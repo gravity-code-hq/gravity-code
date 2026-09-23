@@ -1,4 +1,4 @@
-import { mkdtemp, open, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -307,6 +307,40 @@ describe("pid-lock ownership", () => {
       const lock = await getPidLockInfo(gravityHome);
       expect(lock?.pid).toBe(process.pid);
       expect(lock?.listen).toBe("127.0.0.1:6767");
+    } finally {
+      await rm(gravityHome, { recursive: true, force: true });
+    }
+  });
+
+  test("starts over an empty lock file left by a supervisor killed before writing it", async () => {
+    const gravityHome = await mkdtemp(join(tmpdir(), "gravity-pid-lock-empty-"));
+    const ownerPid = process.pid + 10_000;
+
+    try {
+      await writeFile(join(gravityHome, "gravity.pid"), "");
+
+      await expect(getPidLockInfo(gravityHome)).resolves.toBeNull();
+      await acquirePidLock(gravityHome, null, { ownerPid });
+
+      const lock = await getPidLockInfo(gravityHome);
+      expect(lock?.pid).toBe(ownerPid);
+    } finally {
+      await rm(gravityHome, { recursive: true, force: true });
+    }
+  });
+
+  test("keeps a lock file whose contents cannot be read as a lock", async () => {
+    const gravityHome = await mkdtemp(join(tmpdir(), "gravity-pid-lock-unparseable-"));
+    const pidPath = join(gravityHome, "gravity.pid");
+
+    try {
+      await writeFile(pidPath, JSON.stringify({ pid: "unknown" }));
+
+      await expect(
+        acquirePidLock(gravityHome, null, { ownerPid: process.pid + 10_000 }),
+      ).rejects.toThrow("Cannot read daemon state");
+
+      await expect(readFile(pidPath, "utf-8")).resolves.toBe(JSON.stringify({ pid: "unknown" }));
     } finally {
       await rm(gravityHome, { recursive: true, force: true });
     }
