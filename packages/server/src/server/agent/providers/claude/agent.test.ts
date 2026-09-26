@@ -422,7 +422,7 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
         resolveBinary: async () => "/test/claude/bin",
         resolveVersion: async () => "2.1.219",
         probeModels: async () => [],
-        configDir: emptyConfigDir,
+        runtimeSettings: { env: { CLAUDE_CONFIG_DIR: emptyConfigDir } },
       });
       const { models } = await client.fetchCatalog({
         scope: "workspace",
@@ -470,7 +470,7 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
           throw new Error("unrecognized version output");
         },
         probeModels: async () => [],
-        configDir: emptyConfigDir,
+        runtimeSettings: { env: { CLAUDE_CONFIG_DIR: emptyConfigDir } },
       });
       const { models } = await client.fetchCatalog({
         scope: "workspace",
@@ -493,7 +493,7 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
         resolveBinary: async () => "/test/claude/bin",
         resolveVersion: async () => "2.1.219",
         probeModels: async () => [],
-        configDir: emptyConfigDir,
+        runtimeSettings: { env: { CLAUDE_CONFIG_DIR: emptyConfigDir } },
       });
       const { models } = await client.fetchCatalog({
         scope: "workspace",
