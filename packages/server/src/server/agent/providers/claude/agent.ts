@@ -3399,7 +3399,10 @@ class ClaudeAgentSession implements AgentSession {
       this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
     );
     this.assertContextBudgetEnvironment(autoCompactWindow);
-    if (fastMode === null && !input.ultracode && autoCompactWindow === null) {
+    // Internal agents do daemon work such as naming a branch, so the user's and
+    // project's hooks must not run for them.
+    const disableAllHooks = this.config.internal === true;
+    if (fastMode === null && !input.ultracode && autoCompactWindow === null && !disableAllHooks) {
       return {};
     }
     return {
@@ -3407,6 +3410,7 @@ class ClaudeAgentSession implements AgentSession {
         ...(fastMode === null ? {} : { fastMode }),
         ...(input.ultracode ? { ultracode: true } : {}),
         ...(autoCompactWindow === null ? {} : { autoCompactWindow }),
+        ...(disableAllHooks ? { disableAllHooks: true } : {}),
       }),
     };
   }
