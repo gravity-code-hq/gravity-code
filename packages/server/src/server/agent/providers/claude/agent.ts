@@ -31,7 +31,7 @@ import {
 } from "./task-notification-tool-call.js";
 import {
   applyClaudeRuntimeModels,
-  findClaudeModel,
+  getClaudeContextWindowMaxTokens,
   getClaudeModelsWithSettings,
   normalizeClaudeRuntimeModelId,
   resolveConfiguredClaudeModel,
@@ -2209,7 +2209,7 @@ class ClaudeAgentSession implements AgentSession {
     this.resolveBinary = options.resolveBinary;
     this.rewindSdk = options.rewindSdk ?? realClaudeRewindSdk;
     this.contextUsage = new ClaudeContextUsageState(
-      findClaudeModel(this.config.model)?.contextWindowMaxTokens,
+      getClaudeContextWindowMaxTokens(this.config.model),
     );
     const handle = options.handle;
 
@@ -2530,7 +2530,7 @@ class ClaudeAgentSession implements AgentSession {
       await this.applyFastModeFeature(false, activeQuery);
     }
     this.contextUsage.setInitialContextWindowMaxTokens(
-      findClaudeModel(this.config.model)?.contextWindowMaxTokens,
+      getClaudeContextWindowMaxTokens(this.config.model),
     );
     this.lastOptionsModel = normalizedModelId ?? this.lastOptionsModel;
     this.lastRuntimeModel = null;
@@ -4708,6 +4708,12 @@ class ClaudeAgentSession implements AgentSession {
     this.observePermissionMode(message.permissionMode);
     this.persistence = null;
     if (message.model) {
+      const runtimeContextWindowMaxTokens = getClaudeContextWindowMaxTokens(message.model);
+      // Seed usage before the first result, including settings-resolved aliases.
+      // A repeated init for the same model must retain the SDK's reported limit.
+      if (message.model !== this.lastRuntimeModel && runtimeContextWindowMaxTokens !== undefined) {
+        this.contextUsage.setInitialContextWindowMaxTokens(runtimeContextWindowMaxTokens);
+      }
       const normalizedRuntimeModel = normalizeClaudeRuntimeModelId(message.model);
       this.logger.debug(
         { runtimeModel: message.model, normalizedRuntimeModel },

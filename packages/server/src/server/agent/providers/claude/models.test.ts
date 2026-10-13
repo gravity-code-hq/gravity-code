@@ -18,9 +18,25 @@ import { clearClaudeRuntimeModels } from "./model-registry.js";
 import {
   applyClaudeRuntimeModels,
   findClaudeModel,
+  getClaudeContextWindowMaxTokens,
   getClaudeModels,
   normalizeClaudeRuntimeModelId,
 } from "./models.js";
+
+describe("getClaudeContextWindowMaxTokens", () => {
+  it.each([
+    ["glm-5.2[1m]", 1_000_000],
+    [" glm-5.2[1M] ", 1_000_000],
+    ["claude-sonnet-4-6", 200_000],
+    ["claude-sonnet-4-6[1m]", 1_000_000],
+    ["glm-5.2", undefined],
+    ["glm-5.2[1m]-other", undefined],
+    [undefined, undefined],
+    [null, undefined],
+  ])("resolves %s to %s without guessing unknown models", (model, expected) => {
+    expect(getClaudeContextWindowMaxTokens(model)).toBe(expected);
+  });
+});
 
 const createdClaudeConfigDirs: string[] = [];
 
