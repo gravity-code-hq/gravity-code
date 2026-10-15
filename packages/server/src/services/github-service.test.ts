@@ -796,6 +796,7 @@ describe("ForgeService", () => {
       headRepositorySshUrl: "git@github.com:therainisme/gravity.git",
       headRepositoryUrl: "https://github.com/therainisme/gravity",
       isCrossRepository: true,
+      headRefKind: "branch",
     });
 
     expect(runner.calls).toHaveLength(2);
