@@ -18,16 +18,14 @@ import {
   View,
   type NativeSyntheticEvent,
   type PressableStateCallbackType,
-  type StyleProp,
   type TextInputKeyPressEventData,
-  type ViewStyle,
 } from "react-native";
 import { EditingTextInput as TextInput } from "@/components/ui/text-input";
 import { StyleSheet, useUnistyles, withUnistyles } from "react-native-unistyles";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { isWeb } from "@/constants/platform";
 import * as Clipboard from "expo-clipboard";
-import { ChevronDown, Eye, EyeOff, FilePlus, FolderPlus, RotateCw } from "lucide-react-native";
+import { Eye, EyeOff, FilePlus, FolderPlus, RotateCw } from "lucide-react-native";
 import { MaterialFileIcon } from "@/components/material-file-icon";
 import {
   TreeChevron,
@@ -62,7 +60,15 @@ import { useFileDownload } from "@/hooks/use-file-download";
 import { useFileExplorerActions } from "@/hooks/use-file-explorer-actions";
 import { useIsLocalDaemon } from "@/hooks/use-is-local-daemon";
 import { buildWorkspaceExplorerStateKey } from "@/hooks/use-file-explorer-actions";
-import { usePanelStore, type ExpandedPathsUpdate, type SortOption } from "@/stores/panel-store";
+import { usePanelStore, type ExpandedPathsUpdate } from "@/stores/panel-store";
+import {
+  useWorkspaceSearchController,
+  WorkspaceSearchControls,
+  WorkspaceSearchField,
+  WorkspaceSearchResults,
+  type WorkspaceSearchController,
+  type WorkspaceSearchLocation,
+} from "@/components/workspace-search-pane";
 import { buildAbsoluteExplorerPath } from "@/utils/explorer-paths";
 import { isHiddenExplorerPath } from "@/file-explorer/visibility";
 import {
@@ -78,12 +84,6 @@ import { confirmDialog } from "@/utils/confirm-dialog";
 import { useToast } from "@/contexts/toast-context";
 import { openDesktopTarget, useDesktopOpenTargets } from "@/workspace/desktop-open-targets";
 import { useOpenDirectoryInEditor } from "@/workspace/open-in-editor/directory";
-
-const SORT_OPTIONS: { value: SortOption }[] = [
-  { value: "name" },
-  { value: "modified" },
-  { value: "size" },
-];
 
 const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
 const foregroundMutedColorMapping = (theme: Theme) => ({
@@ -127,13 +127,6 @@ interface TreeRowItemProps {
   onDuplicateEntry?: (entry: ExplorerEntry) => void;
   onDeleteEntry?: (entry: ExplorerEntry) => void;
   testID?: string;
-}
-
-function sortTriggerStyle({
-  hovered,
-  pressed,
-}: PressableStateCallbackType & { hovered?: boolean }) {
-  return [styles.sortTrigger, (Boolean(hovered) || pressed) && styles.sortTriggerHovered];
 }
 
 type ExplorerListRow =
@@ -400,7 +393,7 @@ interface FileExplorerPaneProps {
   serverId: string;
   workspaceId?: string | null;
   workspaceRoot: string;
-  onOpenFile?: (filePath: string) => void;
+  onOpenFile?: (filePath: string, line?: number) => void;
   onOpenFileToSide?: (filePath: string) => void;
   onAddToChat?: (path: string) => void;
 }
@@ -417,6 +410,14 @@ export function FileExplorerPane({
   const isCompact = useIsCompactFormFactor();
 
   const normalizedWorkspaceRoot = useMemo(() => workspaceRoot.trim(), [workspaceRoot]);
+  const search = useWorkspaceSearchController({
+    serverId,
+    workspaceRoot: normalizedWorkspaceRoot,
+  });
+  const handleOpenSearchLocation = useCallback(
+    (location: WorkspaceSearchLocation) => onOpenFile?.(location.path, location.line),
+    [onOpenFile],
+  );
   const workspaceStateKey = useMemo(
     () =>
       buildWorkspaceExplorerStateKey({
@@ -468,9 +469,7 @@ export function FileExplorerPane({
     workspaceId,
     workspaceRoot: normalizedWorkspaceRoot,
   });
-  const sortOption = usePanelStore((state) => state.explorerSortOption);
   const showHiddenFiles = usePanelStore((state) => state.explorerShowHiddenFiles);
-  const setSortOption = usePanelStore((state) => state.setExplorerSortOption);
   const toggleExplorerShowHiddenFiles = usePanelStore(
     (state) => state.toggleExplorerShowHiddenFiles,
   );
@@ -829,12 +828,6 @@ export function FileExplorerPane({
     [deleteEntry, selectExplorerEntry, selectedEntryPath, t, toast],
   );
 
-  const handleSortCycle = useCallback(() => {
-    const currentIndex = SORT_OPTIONS.findIndex((opt) => opt.value === sortOption);
-    const nextIndex = (currentIndex + 1) % SORT_OPTIONS.length;
-    setSortOption(SORT_OPTIONS[nextIndex].value);
-  }, [sortOption, setSortOption]);
-
   const handleToggleHiddenFiles = useCallback(() => {
     const willShow = !usePanelStore.getState().explorerShowHiddenFiles;
     if (!willShow) {
@@ -893,19 +886,9 @@ export function FileExplorerPane({
     void refetchExplorer();
   }, [refetchExplorer]);
 
-  const sortLabels = useMemo(
-    () => ({
-      name: t("workspace.fileExplorer.sort.name"),
-      modified: t("workspace.fileExplorer.sort.modified"),
-      size: t("workspace.fileExplorer.sort.size"),
-    }),
-    [t],
-  );
-  const currentSortLabel = resolveCurrentSortLabel(sortOption, sortLabels);
-
   const treeRows = useMemo(
-    () => flattenExplorerTree({ directories, expandedPaths, sortOption, showHiddenFiles }),
-    [directories, expandedPaths, showHiddenFiles, sortOption],
+    () => flattenExplorerTree({ directories, expandedPaths, showHiddenFiles }),
+    [directories, expandedPaths, showHiddenFiles],
   );
 
   const listRows = useMemo<ExplorerListRow[]>(() => {
@@ -1059,22 +1042,21 @@ export function FileExplorerPane({
     >
       <FileExplorerPaneContent
         error={error}
+        search={search}
+        onOpenSearchLocation={handleOpenSearchLocation}
         isCompact={isCompact}
         showInitialLoading={showInitialLoading}
         showBackFromError={showBackFromError}
         listRows={listRows}
         onNewEntryAtRoot={fsEntryOpsEnabled ? handleNewEntry : undefined}
-        currentSortLabel={currentSortLabel}
         isRefreshFetching={isRefreshFetching}
         treeListRef={treeListRef}
         scrollbar={scrollbar}
         renderTreeRow={renderTreeRow}
-        handleSortCycle={handleSortCycle}
         handleToggleHiddenFiles={handleToggleHiddenFiles}
         handleRefresh={handleRefresh}
         handleBackFromError={handleBackFromError}
         handleRetry={handleRetry}
-        sortTriggerStyle={sortTriggerStyle}
       />
     </View>
   );
@@ -1133,22 +1115,21 @@ function RootCreationContextTarget({
 
 interface FileExplorerPaneContentProps {
   error: string | null;
+  search: WorkspaceSearchController;
+  onOpenSearchLocation: (location: WorkspaceSearchLocation) => void;
   isCompact: boolean;
   showInitialLoading: boolean;
   showBackFromError: boolean;
   listRows: ExplorerListRow[];
   onNewEntryAtRoot?: (parentPath: string, kind: "file" | "directory") => void;
-  currentSortLabel: string;
   isRefreshFetching: boolean;
   treeListRef: RefObject<FlatList<ExplorerListRow> | null>;
   scrollbar: OverlayFlatListScrollbar;
   renderTreeRow: (info: ListRenderItemInfo<ExplorerListRow>) => ReactElement;
-  handleSortCycle: () => void;
   handleToggleHiddenFiles: () => void;
   handleRefresh: () => void;
   handleBackFromError: () => void;
   handleRetry: () => void;
-  sortTriggerStyle: (state: PressableStateCallbackType) => StyleProp<ViewStyle>;
 }
 
 function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
@@ -1156,22 +1137,21 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
   const { t } = useTranslation();
   const {
     error,
+    search,
+    onOpenSearchLocation,
     isCompact,
     showInitialLoading,
     showBackFromError,
     listRows,
     onNewEntryAtRoot,
-    currentSortLabel,
     isRefreshFetching,
     treeListRef,
     scrollbar,
     renderTreeRow,
-    handleSortCycle,
     handleToggleHiddenFiles,
     handleRefresh,
     handleBackFromError,
     handleRetry,
-    sortTriggerStyle: sortTriggerStyleProp,
   } = props;
 
   const showHiddenFiles = usePanelStore((state) => state.explorerShowHiddenFiles);
@@ -1226,16 +1206,7 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
         ]}
         testID="files-pane-header"
       >
-        <Pressable
-          onPress={handleSortCycle}
-          style={sortTriggerStyleProp}
-          testID="files-sort-trigger"
-        >
-          <Text style={styles.sortTriggerText} testID="files-sort-label">
-            {currentSortLabel}
-          </Text>
-          <ChevronDown size={12} color={theme.colors.foregroundMuted} />
-        </Pressable>
+        <WorkspaceSearchField controller={search} compact={isCompact} />
         <ToolbarControls style={styles.headerActions}>
           {onNewEntryAtRoot ? (
             <>
@@ -1313,42 +1284,51 @@ function FileExplorerPaneContent(props: FileExplorerPaneContentProps) {
           </ToolbarButton>
         </ToolbarControls>
       </PaneContentToolbar>
-      <ContextMenu>
-        <RootCreationContextTarget enabled={Boolean(onNewEntryAtRoot)}>
-          {listRows.length === 0 ? (
-            <View style={styles.centerState}>
-              <Text style={styles.emptyText}>{emptyLabel}</Text>
-            </View>
-          ) : (
-            <FlatList
-              ref={treeListRef}
-              style={styles.treeList}
-              data={listRows}
-              renderItem={renderTreeRow}
-              keyExtractor={listRowKeyExtractor}
-              testID="file-explorer-tree-scroll"
-              contentContainerStyle={styles.entriesContent}
-              onLayout={scrollbar.onLayout}
-              onScroll={scrollbar.onScroll}
-              onContentSizeChange={scrollbar.onContentSizeChange}
-              scrollEventThrottle={16}
-              showsVerticalScrollIndicator={!scrollbar.enabled}
-              initialNumToRender={24}
-              maxToRenderPerBatch={40}
-              windowSize={12}
+      <WorkspaceSearchControls controller={search} compact={isCompact} />
+      {search.query.length > 0 ? (
+        <WorkspaceSearchResults
+          controller={search}
+          compact={isCompact}
+          onOpenLocation={onOpenSearchLocation}
+        />
+      ) : (
+        <ContextMenu>
+          <RootCreationContextTarget enabled={Boolean(onNewEntryAtRoot)}>
+            {listRows.length === 0 ? (
+              <View style={styles.centerState}>
+                <Text style={styles.emptyText}>{emptyLabel}</Text>
+              </View>
+            ) : (
+              <FlatList
+                ref={treeListRef}
+                style={styles.treeList}
+                data={listRows}
+                renderItem={renderTreeRow}
+                keyExtractor={listRowKeyExtractor}
+                testID="file-explorer-tree-scroll"
+                contentContainerStyle={styles.entriesContent}
+                onLayout={scrollbar.onLayout}
+                onScroll={scrollbar.onScroll}
+                onContentSizeChange={scrollbar.onContentSizeChange}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={!scrollbar.enabled}
+                initialNumToRender={24}
+                maxToRenderPerBatch={40}
+                windowSize={12}
+              />
+            )}
+            {listRows.length > 0 ? scrollbar.overlay : null}
+          </RootCreationContextTarget>
+          {onNewEntryAtRoot ? (
+            <FileActionsContextMenuContent
+              fileKind="directory"
+              onNewFile={handleNewFileAtRoot}
+              onNewFolder={handleNewFolderAtRoot}
+              testIDPrefix="files-empty-area"
             />
-          )}
-          {listRows.length > 0 ? scrollbar.overlay : null}
-        </RootCreationContextTarget>
-        {onNewEntryAtRoot ? (
-          <FileActionsContextMenuContent
-            fileKind="directory"
-            onNewFile={handleNewFileAtRoot}
-            onNewFolder={handleNewFolderAtRoot}
-            testIDPrefix="files-empty-area"
-          />
-        ) : null}
-      </ContextMenu>
+          ) : null}
+        </ContextMenu>
+      )}
     </View>
   );
 }
@@ -1393,13 +1373,6 @@ function resolveShowInitialLoading({
   return Boolean(
     isExplorerLoading && pendingRequest?.mode === "list" && pendingRequest?.path === ".",
   );
-}
-
-function resolveCurrentSortLabel(
-  sortOption: SortOption,
-  labels: Record<SortOption, string>,
-): string {
-  return labels[sortOption] ?? labels.name;
 }
 
 function toggleDirectory({
@@ -1683,24 +1656,9 @@ const styles = StyleSheet.create((theme) => ({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: theme.spacing[2],
+    paddingLeft: theme.spacing[2],
     backgroundColor: theme.colors.surfaceSidebar,
-  },
-  sortTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: theme.spacing[1],
-    marginLeft: theme.spacing[3] - theme.spacing[1],
-    paddingHorizontal: theme.spacing[1],
-    height: 24,
-    borderRadius: theme.borderRadius.base,
-  },
-  sortTriggerHovered: {
-    backgroundColor: theme.colors.surfaceSidebarHover,
-  },
-  sortTriggerText: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.foregroundMuted,
   },
   headerActions: {
     flexDirection: "row",

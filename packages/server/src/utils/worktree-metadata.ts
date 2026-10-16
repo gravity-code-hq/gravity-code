@@ -12,14 +12,14 @@ const ChangeRequestLookupTargetSchema = z.object({
 // baseRefName is the display name; baseRef is the exact ref the worktree was cut from
 // ("refs/remotes/upstream/main"). baseRef is optional because worktrees written before it
 // existed only have the name — there are no migrations, so readers fall back.
-const PaseoWorktreeMetadataV1Schema = z.object({
+const GravityWorktreeMetadataV1Schema = z.object({
   version: z.literal(1),
   baseRefName: z.string().min(1),
   baseRef: z.string().min(1).optional(),
   changeRequestLookupTarget: ChangeRequestLookupTargetSchema.optional(),
 });
 
-const PaseoWorktreeMetadataV2Schema = z.object({
+const GravityWorktreeMetadataV2Schema = z.object({
   version: z.literal(2),
   baseRefName: z.string().min(1),
   baseRef: z.string().min(1).optional(),
@@ -44,24 +44,24 @@ const PaseoWorktreeMetadataV2Schema = z.object({
     .optional(),
 });
 
-const PaseoWorktreeMetadataSchema = z.union([
-  PaseoWorktreeMetadataV1Schema,
-  PaseoWorktreeMetadataV2Schema,
+const GravityWorktreeMetadataSchema = z.union([
+  GravityWorktreeMetadataV1Schema,
+  GravityWorktreeMetadataV2Schema,
 ]);
 
-export type PaseoWorktreeMetadata = z.infer<typeof PaseoWorktreeMetadataSchema>;
-export type PaseoWorktreeChangeRequestHint = z.infer<typeof ChangeRequestLookupTargetSchema>;
+export type GravityWorktreeMetadata = z.infer<typeof GravityWorktreeMetadataSchema>;
+export type GravityWorktreeChangeRequestHint = z.infer<typeof ChangeRequestLookupTargetSchema>;
 
-export function createPaseoWorktreeChangeRequestHint(
-  input: PaseoWorktreeChangeRequestHint,
-): PaseoWorktreeChangeRequestHint {
+export function createGravityWorktreeChangeRequestHint(
+  input: GravityWorktreeChangeRequestHint,
+): GravityWorktreeChangeRequestHint {
   return ChangeRequestLookupTargetSchema.parse(input);
 }
 
-export function getPaseoWorktreeChangeRequestHintForBranch(
-  metadata: PaseoWorktreeMetadata | null,
+export function getGravityWorktreeChangeRequestHintForBranch(
+  metadata: GravityWorktreeMetadata | null,
   currentBranch: string,
-): PaseoWorktreeChangeRequestHint | null {
+): GravityWorktreeChangeRequestHint | null {
   const target = metadata?.changeRequestLookupTarget;
   if (!target) {
     return null;
@@ -90,18 +90,18 @@ function normalizeLegacyGitHubOwnerForBranch(owner: string): string | null {
   return /^[a-z0-9-]+$/.test(normalized) ? normalized : null;
 }
 
-export function rebindPaseoWorktreeChangeRequestHint(
+export function rebindGravityWorktreeChangeRequestHint(
   worktreeRoot: string,
   previousBranch: string,
   currentBranch: string,
 ): boolean {
-  const metadata = readPaseoWorktreeMetadata(worktreeRoot);
-  const target = getPaseoWorktreeChangeRequestHintForBranch(metadata, previousBranch);
+  const metadata = readGravityWorktreeMetadata(worktreeRoot);
+  const target = getGravityWorktreeChangeRequestHintForBranch(metadata, previousBranch);
   if (!metadata || !target) {
     return false;
   }
 
-  writePaseoWorktreeMetadataFile(worktreeRoot, {
+  writeGravityWorktreeMetadataFile(worktreeRoot, {
     ...metadata,
     changeRequestLookupTarget: {
       ...target,
@@ -116,19 +116,19 @@ export function rebindPaseoWorktreeChangeRequestHint(
   return true;
 }
 
-export function pinPaseoWorktreeBranchIdentityIfMissing(
+export function pinGravityWorktreeBranchIdentityIfMissing(
   worktreeRoot: string,
   branch: string,
 ): boolean {
-  const metadata = readPaseoWorktreeMetadata(worktreeRoot);
+  const metadata = readGravityWorktreeMetadata(worktreeRoot);
   if (!metadata || metadata.changeRequestLookupTarget) {
     return false;
   }
-  const target = createPaseoWorktreeChangeRequestHint({
+  const target = createGravityWorktreeChangeRequestHint({
     headRef: branch,
     localBranchName: branch,
   });
-  writePaseoWorktreeMetadataFile(worktreeRoot, {
+  writeGravityWorktreeMetadataFile(worktreeRoot, {
     ...metadata,
     changeRequestLookupTarget: target,
   });
@@ -157,9 +157,9 @@ function getGitDirForWorktreeRoot(worktreeRoot: string): string {
   return gitPath;
 }
 
-export function getPaseoWorktreeMetadataPath(worktreeRoot: string): string {
+export function getGravityWorktreeMetadataPath(worktreeRoot: string): string {
   const gitDir = getGitDirForWorktreeRoot(worktreeRoot);
-  return join(gitDir, "paseo", "worktree.json");
+  return join(gitDir, "gravity", "worktree.json");
 }
 
 const REMOTE_TRACKING_PREFIX = "refs/remotes/";
@@ -209,12 +209,12 @@ function assertValidBaseRef(value: string): void {
   }
 }
 
-export function writePaseoWorktreeMetadata(
+export function writeGravityWorktreeMetadata(
   worktreeRoot: string,
   options: {
     baseRefName: string;
     baseRef?: string;
-    changeRequestLookupTarget?: PaseoWorktreeChangeRequestHint;
+    changeRequestLookupTarget?: GravityWorktreeChangeRequestHint;
   },
 ): void {
   const baseRefName = normalizeBaseRefName(options.baseRefName);
@@ -224,7 +224,7 @@ export function writePaseoWorktreeMetadata(
     assertValidBaseRef(baseRef);
   }
 
-  const metadata: PaseoWorktreeMetadata = {
+  const metadata: GravityWorktreeMetadata = {
     version: 1,
     baseRefName,
     ...(baseRef ? { baseRef } : {}),
@@ -232,10 +232,10 @@ export function writePaseoWorktreeMetadata(
       ? { changeRequestLookupTarget: options.changeRequestLookupTarget }
       : {}),
   };
-  writePaseoWorktreeMetadataFile(worktreeRoot, metadata);
+  writeGravityWorktreeMetadataFile(worktreeRoot, metadata);
 }
 
-export function writePaseoWorktreeRuntimeMetadata(
+export function writeGravityWorktreeRuntimeMetadata(
   worktreeRoot: string,
   options: { worktreePort: number },
 ): void {
@@ -243,22 +243,22 @@ export function writePaseoWorktreeRuntimeMetadata(
     throw new Error(`Invalid worktree runtime port: ${options.worktreePort}`);
   }
 
-  const current = readPaseoWorktreeMetadata(worktreeRoot);
+  const current = readGravityWorktreeMetadata(worktreeRoot);
   if (!current) {
     throw new Error("Cannot persist worktree runtime metadata: missing base metadata");
   }
 
-  const next: PaseoWorktreeMetadata = {
+  const next: GravityWorktreeMetadata = {
     ...current,
     version: 2,
     runtime: {
       worktreePort: options.worktreePort,
     },
   };
-  writePaseoWorktreeMetadataFile(worktreeRoot, next);
+  writeGravityWorktreeMetadataFile(worktreeRoot, next);
 }
 
-export function writePaseoWorktreeFirstAgentBranchAutoNameMetadata(
+export function writeGravityWorktreeFirstAgentBranchAutoNameMetadata(
   worktreeRoot: string,
   options: { placeholderBranchName: string },
 ): void {
@@ -267,12 +267,12 @@ export function writePaseoWorktreeFirstAgentBranchAutoNameMetadata(
     throw new Error("Placeholder branch name is required");
   }
 
-  const current = readPaseoWorktreeMetadata(worktreeRoot);
+  const current = readGravityWorktreeMetadata(worktreeRoot);
   if (!current) {
     throw new Error("Cannot persist first-agent branch auto-name metadata: missing base metadata");
   }
 
-  writePaseoWorktreeMetadataFile(worktreeRoot, {
+  writeGravityWorktreeMetadataFile(worktreeRoot, {
     ...current,
     version: 2,
     firstAgentBranchAutoName: {
@@ -282,16 +282,16 @@ export function writePaseoWorktreeFirstAgentBranchAutoNameMetadata(
   });
 }
 
-export function markPaseoWorktreeFirstAgentBranchAutoNameAttempted(
+export function markGravityWorktreeFirstAgentBranchAutoNameAttempted(
   worktreeRoot: string,
   options: { attemptedAt?: string } = {},
-): PaseoWorktreeMetadata | null {
-  const current = readPaseoWorktreeMetadata(worktreeRoot);
+): GravityWorktreeMetadata | null {
+  const current = readGravityWorktreeMetadata(worktreeRoot);
   if (!current || current.version !== 2 || current.firstAgentBranchAutoName?.status !== "pending") {
     return current;
   }
 
-  const next: PaseoWorktreeMetadata = {
+  const next: GravityWorktreeMetadata = {
     ...current,
     firstAgentBranchAutoName: {
       status: "attempted",
@@ -299,30 +299,30 @@ export function markPaseoWorktreeFirstAgentBranchAutoNameAttempted(
       attemptedAt: options.attemptedAt ?? new Date().toISOString(),
     },
   };
-  writePaseoWorktreeMetadataFile(worktreeRoot, next);
+  writeGravityWorktreeMetadataFile(worktreeRoot, next);
   return next;
 }
 
-export function readPaseoWorktreeMetadata(worktreeRoot: string): PaseoWorktreeMetadata | null {
-  const metadataPath = getPaseoWorktreeMetadataPath(worktreeRoot);
+export function readGravityWorktreeMetadata(worktreeRoot: string): GravityWorktreeMetadata | null {
+  const metadataPath = getGravityWorktreeMetadataPath(worktreeRoot);
   if (!existsSync(metadataPath)) {
     return null;
   }
   const parsed = JSON.parse(readFileSync(metadataPath, "utf8"));
-  return PaseoWorktreeMetadataSchema.parse(parsed);
+  return GravityWorktreeMetadataSchema.parse(parsed);
 }
 
-export function requirePaseoWorktreeBaseRefName(worktreeRoot: string): string {
-  const metadataPath = getPaseoWorktreeMetadataPath(worktreeRoot);
-  const metadata = readPaseoWorktreeMetadata(worktreeRoot);
+export function requireGravityWorktreeBaseRefName(worktreeRoot: string): string {
+  const metadataPath = getGravityWorktreeMetadataPath(worktreeRoot);
+  const metadata = readGravityWorktreeMetadata(worktreeRoot);
   if (!metadata) {
-    throw new Error(`Missing Paseo worktree base metadata: ${metadataPath}`);
+    throw new Error(`Missing Gravity worktree base metadata: ${metadataPath}`);
   }
   return metadata.baseRefName;
 }
 
-export function readPaseoWorktreeRuntimePort(worktreeRoot: string): number | null {
-  const metadata = readPaseoWorktreeMetadata(worktreeRoot);
+export function readGravityWorktreeRuntimePort(worktreeRoot: string): number | null {
+  const metadata = readGravityWorktreeMetadata(worktreeRoot);
   if (!metadata) {
     return null;
   }
@@ -332,12 +332,12 @@ export function readPaseoWorktreeRuntimePort(worktreeRoot: string): number | nul
   return null;
 }
 
-function writePaseoWorktreeMetadataFile(
+function writeGravityWorktreeMetadataFile(
   worktreeRoot: string,
-  metadata: PaseoWorktreeMetadata,
+  metadata: GravityWorktreeMetadata,
 ): void {
-  const metadataPath = getPaseoWorktreeMetadataPath(worktreeRoot);
-  mkdirSync(join(getGitDirForWorktreeRoot(worktreeRoot), "paseo"), { recursive: true });
+  const metadataPath = getGravityWorktreeMetadataPath(worktreeRoot);
+  mkdirSync(join(getGitDirForWorktreeRoot(worktreeRoot), "gravity"), { recursive: true });
   const tempPath = `${metadataPath}.${process.pid}.${Date.now()}.tmp`;
   writeFileSync(tempPath, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
   renameSync(tempPath, metadataPath);

@@ -1,4 +1,4 @@
-import { waitForDaemonReady, resolvePaseoHome, type DaemonInstance } from "@getpaseo/server";
+import { waitForDaemonReady, resolveGravityHome, type DaemonInstance } from "@gravity/server";
 import { describeDaemonTarget, type DaemonTarget } from "./daemon-target.js";
 export type { DaemonTarget } from "./daemon-target.js";
 import {
@@ -7,13 +7,13 @@ import {
   normalizeHostPort,
   parseConnectionUri,
   shouldUseTlsForDefaultHostedRelay,
-} from "@getpaseo/protocol/daemon-endpoints";
+} from "@gravity/protocol/daemon-endpoints";
 import {
   parseConnectionOfferFromUrl,
   type ConnectionOffer,
-} from "@getpaseo/protocol/connection-offer";
-import { parseSshTransportUri } from "@getpaseo/protocol/ssh-transport";
-import { DaemonClient, type WebSocketLike } from "@getpaseo/client/internal/daemon-client";
+} from "@gravity/protocol/connection-offer";
+import { parseSshTransportUri } from "@gravity/protocol/ssh-transport";
+import { DaemonClient, type WebSocketLike } from "@gravity/client/internal/daemon-client";
 import { WebSocket } from "ws";
 import { getOrCreateCliClientId } from "./client-id.js";
 import { resolveCliVersion } from "../version.js";
@@ -50,7 +50,7 @@ export function buildDaemonConnectionCommandError(options: ConnectOptions & { er
     message: `Cannot connect to daemon at ${describeDaemonTarget(options.target)}: ${message}`,
     details:
       options.target.kind === "instance"
-        ? `Start with: paseo daemon start --home ${JSON.stringify(options.target.home)}`
+        ? `Start with: gravity daemon start --home ${JSON.stringify(options.target.home)}`
         : "Check the selected endpoint and credentials. SSH transport does not install or start the daemon.",
   };
 }
@@ -157,7 +157,7 @@ export function resolveDaemonPassword(host: string): string | undefined {
     const fromUri = parseConnectionUri(trimmed).password;
     if (fromUri) return fromUri;
   }
-  const fromEnv = process.env.PASEO_PASSWORD;
+  const fromEnv = process.env.GRAVITY_PASSWORD;
   return fromEnv && fromEnv.length > 0 ? fromEnv : undefined;
 }
 
@@ -276,7 +276,7 @@ async function connectSelectedDaemon(options: ConnectOptions): Promise<DaemonCli
             instance: options.instance,
           })
         ).listen;
-  const clientId = await getOrCreateCliClientId(resolvePaseoHome({}));
+  const clientId = await getOrCreateCliClientId(resolveGravityHome({}));
   const nodeWebSocketFactory = createNodeWebSocketFactory();
 
   if (explicitHost?.trim().startsWith("ssh://")) {

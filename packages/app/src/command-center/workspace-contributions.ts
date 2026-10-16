@@ -604,16 +604,6 @@ export function buildWorkspaceCommandCenterContributions(
   }
 
   contributions.push(
-    buildWorkspaceAction({
-      source,
-      id: "workspace:rename",
-      rank: 21,
-      title: source.labels.rename,
-      keywords: ["rename", "title", "name", "label"],
-      icon: source.icons.rename,
-      action: { id: "workspace.rename", scope: "workspace" },
-      visibility: "query",
-    }),
     buildWorkspaceCallback({
       source,
       id: "workspace:copy-path",

@@ -97,12 +97,12 @@ There are two supported release paths:
 1. **Direct stable release**: you are ready to ship the resolved release source to everyone immediately (default `origin/main`).
 2. **Beta flow**: release candidates on the `beta` channel. Each beta carries its own changelog entry, publishes npm only on the explicit `beta` dist-tag, and stays behind the Stable/Beta switch on `/download`.
 
-Paseo has one linear release track even though npm dist-tags are independent
+Gravity has one linear release track even though npm dist-tags are independent
 pointers. The npm invariant is:
 
 - A beta release moves only `beta`; `latest` remains on the newest stable.
 - A stable release moves both `latest` and `beta` to that stable version. This
-  keeps users who install `@getpaseo/cli@beta` on the newest Paseo release after
+  keeps users who install `@gravity/cli@beta` on the newest Gravity release after
   a beta is promoted or superseded by a direct stable release.
 
 ## Release version decision
@@ -123,10 +123,46 @@ version:
 The release agent selects patch or minor during preparation and presents the
 target version with the changelog for approval. Agents never select a major
 version autonomously. A major release requires an explicit user instruction and
-approval; Paseo remains on major version zero until that deliberate decision.
+approval; Gravity remains on major version zero until that deliberate decision.
 
 Version bumps are never used to retry a failed build. Retry the existing version
 as described in **Fixing a failed release build**.
+
+## Shipping from this fork
+
+The `release:*` scripts below publish npm packages and push the release tag. Neither applies
+here: the `@gravity/*` packages are not on npm, and a `v*` tag push would run the full
+private-repo pipeline (two Mac runners, Windows, Android, Docker) and create the release in
+the private repo instead of `gravity-code-hq/gravity`. The public release is assembled by
+hand from no-publish CI builds:
+
+1. Prepare as usual: changelog entry committed, `npm run release:prepare` churn committed,
+   then `npm run version:all:patch` (or `minor`). This creates the `chore(release): cut X.Y.Z`
+   commit and a local `vX.Y.Z` tag. Push `main` only. Never push the tag.
+2. Dispatch `desktop-release.yml` once per platform with `publish=false`, `tag=vX.Y.Z`, and
+   `checkout_ref=<full release commit sha>`. Use `platform=macos` with `mac_arch=arm64` for
+   Apple Silicon and `platform=linux` for the `.deb`. No-publish runs get a concurrency group per
+   platform, so both build in parallel. Short SHAs fail at checkout.
+3. Download the `desktop-macos-arm64` and `desktop-linux` run artifacts. They contain the
+   versioned installers, blockmaps, the fixed-name `gravity-macos-arm64.dmg` and
+   `gravity-linux-x64.deb`, and the raw `latest-mac.yml` and `latest-linux.yml`.
+4. Finish the manifests the way `finalize-rollout` would:
+
+   ```bash
+   node scripts/merge-mac-manifest.mjs latest-mac.yml latest-mac.yml latest-mac.yml   # adds minimumSystemVersion
+   ts="$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
+   node scripts/stamp-rollout.mjs --release-date "$ts" --rollout-hours 36 latest-mac.yml latest-linux.yml
+   node scripts/validate-desktop-manifests.mjs --release-date "$ts" --rollout-hours 36 latest-mac.yml latest-linux.yml
+   ```
+
+5. Create the public release as a draft with the changelog entry as its body, upload every
+   installer, blockmap, fixed-name asset, and both manifests, confirm the asset list, then
+   clear the draft flag. `latest` only moves once the release is published, so the website
+   buttons never see a half-uploaded release. Run every `gh` step with the `shreeshiv` token
+   (see **GitHub identity for pushes and releases**).
+
+Not applicable to this fork: npm dist-tags, EAS mobile builds, the Docker image, and
+`Release Notes Sync`. The 0.8.2 release on 2026-10-08 was the first cut through this path.
 
 ## Standard release (stable)
 
@@ -149,18 +185,18 @@ version for every published package. This changes dist-tags only; do not
 republish the packages:
 
 ```bash
-PASEO_VERSION=$(node -p "require('./package.json').version")
+GRAVITY_VERSION=$(node -p "require('./package.json').version")
 for package in highlight relay protocol client plugin server cli; do
-  npm dist-tag add "@getpaseo/$package@$PASEO_VERSION" beta
+  npm dist-tag add "@gravity/$package@$GRAVITY_VERSION" beta
 done
 ```
 
-Verify both npm tags now resolve to `PASEO_VERSION` before considering the
+Verify both npm tags now resolve to `GRAVITY_VERSION` before considering the
 stable release complete.
 
-The Docker workflow builds images from the checked-out source tree on pull requests and on `main` as non-publishing checks. Stable `vX.Y.Z` tag pushes publish `ghcr.io/getpaseo/paseo:X.Y.Z` and `ghcr.io/getpaseo/paseo:latest`; beta `vX.Y.Z-beta.N` tag pushes publish only `ghcr.io/getpaseo/paseo:X.Y.Z-beta.N` and never move `latest`.
+The Docker workflow builds images from the checked-out source tree on pull requests and on `main` as non-publishing checks. Stable `vX.Y.Z` tag pushes publish `ghcr.io/gravity-code-hq/gravity:X.Y.Z` and `ghcr.io/gravity-code-hq/gravity:latest`; beta `vX.Y.Z-beta.N` tag pushes publish only `ghcr.io/gravity-code-hq/gravity:X.Y.Z-beta.N` and never move `latest`.
 
-The production relay is the Elixir service in [getpaseo/paseo-relay](https://github.com/getpaseo/paseo-relay), with its own deployment process. Paseo releases and pushes to this repository do not deploy it. The Cloudflare relay code and workflow in this repository are legacy and are not used in production.
+The production relay is the Elixir service in [gravity-code-hq/gravity-relay](https://github.com/gravity-code-hq/gravity-relay), with its own deployment process. Gravity releases and pushes to this repository do not deploy it. The Cloudflare relay code and workflow in this repository are legacy and are not used in production.
 
 **Stable means stable.** If the user says "stable" or "ship stable", do not ask whether they want a beta first. They picked stable; treat it as a direct stable release. Only run the beta flow when the user explicitly says "beta".
 
@@ -188,8 +224,8 @@ npm run release:promote          # Promote X.Y.Z-beta.N to stable X.Y.Z
 ```
 
 - Beta tags are published GitHub prereleases like `v0.1.41-beta.1`
-- Betas publish npm packages with `--tag beta`, so `npm install @getpaseo/cli@beta` opts in while plain `npm install @getpaseo/cli` stays on `latest`
-- Betas publish desktop assets and APKs for testing. They also build iOS, upload it to TestFlight, add it to the `Paseo Beta` external group, and submit it for Beta App Review. They do not submit mobile builds to the production stores.
+- Betas publish npm packages with `--tag beta`, so `npm install @gravity/cli@beta` opts in while plain `npm install @gravity/cli` stays on `latest`
+- Betas publish desktop assets and APKs for testing. They also build iOS, upload it to TestFlight, add it to the `Gravity Beta` external group, and submit it for Beta App Review. They do not submit mobile builds to the production stores.
 - `release:promote` creates a fresh stable tag like `v0.1.41`; the final release never reuses the beta tag
 - Desktop assets now come from the Electron package at `packages/desktop`
 - Require the Linux artifact CI checks with both restricted and usable user namespaces to pass before publication; see [packaged desktop smoke](testing.md#packaged-desktop-smoke). Keep the installed-package and AppImage checks together.
@@ -310,7 +346,7 @@ iOS and Android store builds are not in `.github/workflows`. They are triggered 
 
 EAS uses the local app version source. `packages/app/app.config.js` derives the native version from the package version. Android `versionCode` is `major * 1_000_000 + minor * 1_000 + patch`. iOS reserves 1,000 build slots per app version: beta `N` uses slot `N`, and stable uses slot `999`. For example, `0.2.6-beta.2` appears in App Store Connect as version `0.2.6` build `2006002`; stable uses build `2006999`. Rebuilding the same tag produces the same native build number; if a store has already accepted a binary and you need a different binary, cut the next beta or patch instead of relying on EAS remote auto-increment.
 
-Beta tags run `Release iOS Beta`. The workflow uploads the build to TestFlight, distributes it to the persistent `Paseo Beta` external group, and submits it for Beta App Review. Testers and the group are managed once in App Store Connect; releases require no dashboard action.
+Beta tags run `Release iOS Beta`. The workflow uploads the build to TestFlight, distributes it to the persistent `Gravity Beta` external group, and submits it for Beta App Review. Testers and the group are managed once in App Store Connect; releases require no dashboard action.
 
 There is no mobile-release workflow under `.github/workflows`. The EAS GitHub app reads the workflows under `packages/app/.eas/workflows` and handles tag triggering directly.
 
@@ -389,7 +425,7 @@ then report the release as shipped.
 Pattern:
 
 ```jsonc
-// mcp__paseo__create_heartbeat arguments
+// mcp__gravity__create_heartbeat arguments
 {
   "name": "vX.Y.Z release babysit heartbeat",
   "cron": "*/10 * * * *",
@@ -409,13 +445,28 @@ The GitHub Release body is populated automatically by the `Release Notes Sync` w
 
 ## Website behavior
 
-- The website download page defaults to GitHub's latest published **stable** release.
-- A published beta prerelease is offered behind the Stable/Beta switch on `/download` (`?channel=beta`), never as the default. The switch only appears while the newest prerelease leads stable on its core version, so promoting `X.Y.Z-beta.N` to `X.Y.Z` retires the beta channel from the page until the next beta line opens.
-- Homebrew, the Play Store, the App Store, and `app.paseo.sh` have no beta. The Beta view drops those rows, and the whole Web section, rather than showing an inert "stable only" placeholder. When a surface gains a beta path — say a public TestFlight link — add its row back in `packages/website/src/routes/download.tsx`.
-- The default download target only moves when you publish the final stable release tag like `v0.1.41`.
-- The public `/changelog` page renders `CHANGELOG.md` as-is, so the in-flight `-beta.N` entry shows there once it lands on `main` — that's intended, it's where beta users check what's coming. Only the **default download target** stays pinned to the latest stable; the download links read GitHub's releases API, not the changelog, so a `-beta.N` heading on top never affects them.
-- The download page's "What's new" link deep-links the **minor group** anchor (`/changelog#release-0.3`), not the exact entry: promotion collapses the beta entries into one stable entry, so the minor group remains the durable target. A version with no entry in the bundled changelog — a tag whose changelog commit hasn't redeployed the site yet — links the plain `/changelog` instead of a dead anchor.
-- The website itself is deployed by `Deploy Website` (Cloudflare Workers), which redeploys on the `release: published` event emitted when a stable draft is published and on pushes to `main` that touch `CHANGELOG.md` or `packages/website/**`. Its job condition excludes beta prereleases.
+- The website (`packages/gravity-website`, deployed by Vercel on every push to `main`) links straight to fixed-name assets under `github.com/gravity-code-hq/gravity/releases/latest/download/`: `gravity-macos-arm64.dmg` for Mac and `gravity-linux-x64.deb` for Linux. Publishing a release doesn't need a website deploy.
+- The site picks the default button from the visitor's user agent: Linux gets the `.deb`, everything else (macOS, iOS, Windows, unknown) gets the DMG. The other platform stays one click away on the download card.
+- GitHub's `latest` skips drafts and prereleases, so the download buttons only move when a stable release is published. A beta never replaces them.
+- The fixed-name `gravity-macos-<arch>.dmg` and `gravity-linux-x64.deb` assets are uploaded by `desktop-release.yml` next to the versioned artifacts. Rename either and that button breaks for every visitor.
+- A stable release is incomplete for the website until both fixed-name assets exist on it. If only one platform built, the other button serves a 404 until that platform is rebuilt (see **Fixing a failed release build**).
+
+## GitHub identity for pushes and releases
+
+Every push to `origin` and every GitHub Release action (create, upload, edit) runs as the
+`shreeshiv` account.
+
+- Git pushes go over HTTPS through `gh auth git-credential`.
+- `gh` keeps several logins. Release commands take the `shreeshiv` token explicitly so the
+  active account never matters:
+
+```bash
+export GH_TOKEN="$(gh auth token --user shreeshiv)"
+gh release upload vX.Y.Z packages/desktop/release/gravity-linux-x64.deb --repo gravity-code-hq/gravity --clobber
+```
+
+- Commits carry `22559884+shreeshiv@users.noreply.github.com` as the author email through the
+  repo-level `user.email`.
 
 ## Fixing a failed release build
 
@@ -430,13 +481,13 @@ and EAS mobile release builds. Use the Docker workflow dispatch instead:
 ```bash
 gh workflow run docker.yml \
   --ref main \
-  -f paseo_version=X.Y.Z-beta.N \
+  -f gravity_version=X.Y.Z-beta.N \
   -f publish=true
 ```
 
-This replaces `ghcr.io/getpaseo/paseo:X.Y.Z-beta.N` in place without touching
+This replaces `ghcr.io/gravity-code-hq/gravity:X.Y.Z-beta.N` in place without touching
 desktop, APK, or EAS release builders. The Docker exception is safe because the
-dispatch runs from `--ref main` and uses the explicit `paseo_version`; it does
+dispatch runs from `--ref main` and uses the explicit `gravity_version`; it does
 not check out or move the `v*` release tag.
 
 To retry a failed non-Docker release workflow, push a retry tag on the commit
@@ -484,12 +535,12 @@ If you decide to publish a release without working desktop builds, inspect its
 assets first, then publish it manually:
 
 ```bash
-RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo getpaseo/paseo --tag vX.Y.Z)
+RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo gravity-code-hq/gravity --tag vX.Y.Z)
 gh release view "$RELEASE_LOOKUP" --json isDraft,isPrerelease,assets
 gh release edit "$RELEASE_LOOKUP" --tag vX.Y.Z --draft=false
 
 # Keep a beta marked as a prerelease:
-RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo getpaseo/paseo --tag vX.Y.Z-beta.N)
+RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo gravity-code-hq/gravity --tag vX.Y.Z-beta.N)
 gh release edit "$RELEASE_LOOKUP" --tag vX.Y.Z-beta.N --draft=false --prerelease
 ```
 
@@ -498,13 +549,12 @@ intentionally unavailable to desktop updater clients.
 
 ## Notes
 
-- `version:all:*` bumps root + syncs workspace versions and `@getpaseo/*` dependency versions
+- `version:all:*` bumps root + syncs workspace versions and `@gravity/*` dependency versions
 - The npm `version` lifecycle regenerates F-Droid changelog files from `CHANGELOG.md` for stable releases only (`npm run fdroid:changelogs`) and stages them, so the release tag carries them. Betas are a no-op. A stable run **aborts the release** if `CHANGELOG.md` has no entry for the version being cut — commit the changelog entry first. See [docs/android.md](android.md) for why these files are generated per ABI.
 - `release:prepare` refreshes workspace `node_modules` links to prevent stale types
 - `npm run dev:desktop` and `npm run build:desktop` target the Electron desktop package in `packages/desktop`
 - If `release:publish` partially fails, re-run it — npm skips already-published versions
 - If `release:publish:beta` partially fails, re-run it — npm skips already-published versions and keeps prereleases off `latest` because every publish uses `--tag beta`
-- The website uses GitHub's latest published release API for download links, so published beta prereleases do not replace the stable download target.
 
 ## Changelog format
 
@@ -535,13 +585,13 @@ No prefix (`v`), no extra text. `Release Notes Sync` matches the `## X.Y.Z` (or 
 
 ## Changelog wording
 
-The changelog is shown on the Paseo homepage. Each bullet is a compact factual record of
+The changelog is shown on the Gravity homepage. Each bullet is a compact factual record of
 product behavior that changed.
 
 - **Name the exact change.** Prefer `Added <capability>`, `Removed <behavior>`,
   `Changed <behavior>`, or `Fixed <failure> when <condition>`.
 - **Keep the scope exact.** A conditional bug is not a general reliability problem. Do not
-  broaden one failure into claims that Paseo is now faster, smoother, responsive, or reliable.
+  broaden one failure into claims that Gravity is now faster, smoother, responsive, or reliable.
 - **Use concrete product and runtime terms.** Git polling, persisted cache, provider catalog,
   and WebSocket reconnects can identify the affected behavior. Component names, internal
   modules, code symbols, and implementation techniques cannot: omit `WorkingIndicator`,
@@ -553,7 +603,7 @@ product behavior that changed.
 
 | Avoid                                                        | Write                                                 |
 | ------------------------------------------------------------ | ----------------------------------------------------- |
-| Paseo stays responsive with many idle Git workspaces         | Removed periodic Git polling for idle workspaces      |
+| Gravity stays responsive with many idle Git workspaces       | Removed periodic Git polling for idle workspaces      |
 | Incompatible saved app data no longer crashes after upgrades | Fixed crash when persisted cache was incompatible     |
 | Splitting layouts no longer remounts the active agent        | Fixed scroll position resetting when splitting a pane |
 | Mobile model selector is faster and more straightforward     | Added search to the mobile model selector             |
@@ -582,20 +632,20 @@ Every bullet must be scannable at a glance. The changelog is not release documen
 
 Every changelog bullet must credit contributors and link to the PR(s) that delivered the change. This is not one-PR-per-line — a single bullet describes a user-facing change and may reference multiple PRs.
 
-Format: append `([#123](https://github.com/getpaseo/paseo/pull/123) by [@user](https://github.com/user))` at the end of each bullet. For changes spanning multiple PRs or contributors:
+Format: append `([#123](https://github.com/gravity-code-hq/gravity/pull/123) by [@user](https://github.com/user))` at the end of each bullet. For changes spanning multiple PRs or contributors:
 
 ```markdown
-- Voice mode now works on tablets with proper microphone permissions. ([#210](https://github.com/getpaseo/paseo/pull/210), [#215](https://github.com/getpaseo/paseo/pull/215) by [@alice](https://github.com/alice), [@bob](https://github.com/bob))
+- Voice mode now works on tablets with proper microphone permissions. ([#210](https://github.com/gravity-code-hq/gravity/pull/210), [#215](https://github.com/gravity-code-hq/gravity/pull/215) by [@alice](https://github.com/alice), [@bob](https://github.com/bob))
 ```
 
 Rules:
 
-- **Always link the PR number** as `[#N](https://github.com/getpaseo/paseo/pull/N)`.
+- **Always link the PR number** as `[#N](https://github.com/gravity-code-hq/gravity/pull/N)`.
 - **Always link the contributor's GitHub profile** as `[@user](https://github.com/user)`.
 - **One bullet = one user-facing change**, regardless of how many PRs went into it. Group related PRs on the same bullet.
 - **De-duplicate contributors.** If the same person authored multiple PRs in one bullet, list them once.
-- **Only credit external contributors.** Skip attribution for [@boudra](https://github.com/boudra). The changelog credits community contributions — core team work is the default.
-- **Credit the commit author, not the PR opener.** A maintainer often opens a PR that lands work authored by someone else (cherry-pick, rebase of a contributor's branch, manual extraction from a stacked PR). The squash commit preserves the original commit's author, but `gh pr view N --json author` returns the PR opener — using that field will silently mis-credit the work to the maintainer (and then the "skip @boudra" rule drops the attribution entirely). Always resolve attribution from commit authors.
+- **Only credit external contributors.** Skip attribution for the core team. The changelog credits community contributions — core team work is the default.
+- **Credit the commit author, not the PR opener.** A maintainer often opens a PR that lands work authored by someone else (cherry-pick, rebase of a contributor's branch, manual extraction from a stacked PR). The squash commit preserves the original commit's author, but `gh pr view N --json author` returns the PR opener — using that field will silently mis-credit the work to the maintainer (and then the "skip the core team" rule drops the attribution entirely). Always resolve attribution from commit authors.
 
   Use this command to get the GitHub logins for each PR:
 

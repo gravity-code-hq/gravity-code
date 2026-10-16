@@ -24,6 +24,7 @@ interface UseAutocompleteInput<
 
 interface UseAutocompleteResult<TKeyPressEvent extends AutocompleteKeyPressEvent> {
   selectedIndex: number;
+  onHighlight: (index: number) => void;
   onKeyPress: (event: TKeyPressEvent) => boolean;
 }
 
@@ -124,6 +125,7 @@ export function useAutocomplete<
 
   return {
     selectedIndex,
+    onHighlight: setSelectedIndex,
     onKeyPress,
   };
 }

@@ -7,12 +7,13 @@ export function getLocalBinDir(): string {
 }
 
 export function getCliTargetPath(): string {
-  const filename = process.platform === "win32" ? "paseo.cmd" : "paseo";
+  if (process.platform === "darwin") return path.join(getLocalBinDir(), "gravity");
+  const filename = process.platform === "win32" ? "gravity.cmd" : "gravity";
   return path.join(getLocalBinDir(), filename);
 }
 
 export function getBundledCliShimPath(): string {
-  const cliShimFilename = process.platform === "win32" ? "paseo.cmd" : "paseo";
+  const cliShimFilename = process.platform === "win32" ? "gravity.cmd" : "gravity";
 
   if (process.platform === "darwin") {
     const electronExePath = app.getPath("exe");

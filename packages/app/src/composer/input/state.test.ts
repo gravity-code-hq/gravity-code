@@ -202,6 +202,11 @@ describe("composer send behavior", () => {
       handleSendMessage: () => calls.push("send"),
       handleQueueMessage: () => calls.push("queue"),
       onQueue: () => undefined,
+      hasSendableContent: true,
+      sendOldestQueuedMessage: () => {
+        calls.push("send oldest queued");
+        return true;
+      },
     };
   }
 
@@ -213,6 +218,8 @@ describe("composer send behavior", () => {
       onQueue: defaultAction.onQueue,
       handleSendMessage: defaultAction.handleSendMessage,
       handleQueueMessage: defaultAction.handleQueueMessage,
+      hasSendableContent: defaultAction.hasSendableContent,
+      sendOldestQueuedMessage: defaultAction.sendOldestQueuedMessage,
     });
 
     const alternateAction = actions();
@@ -236,6 +243,8 @@ describe("composer send behavior", () => {
       onQueue: defaultAction.onQueue,
       handleSendMessage: defaultAction.handleSendMessage,
       handleQueueMessage: defaultAction.handleQueueMessage,
+      hasSendableContent: defaultAction.hasSendableContent,
+      sendOldestQueuedMessage: defaultAction.sendOldestQueuedMessage,
     });
 
     const alternateAction = actions();
@@ -259,6 +268,8 @@ describe("composer send behavior", () => {
       onQueue: defaultAction.onQueue,
       handleSendMessage: defaultAction.handleSendMessage,
       handleQueueMessage: defaultAction.handleQueueMessage,
+      hasSendableContent: defaultAction.hasSendableContent,
+      sendOldestQueuedMessage: defaultAction.sendOldestQueuedMessage,
     });
 
     const alternateAction = actions();
@@ -272,6 +283,51 @@ describe("composer send behavior", () => {
 
     expect(defaultAction.calls).toEqual(["queue"]);
     expect(alternateAction.calls).toEqual(["send"]);
+  });
+
+  it("sends the oldest queued message when Enter fires on an empty composer", () => {
+    const defaultAction = actions();
+    runDefaultSendAction({
+      defaultSendBehavior: "queue",
+      isAgentRunning: true,
+      onQueue: defaultAction.onQueue,
+      handleSendMessage: defaultAction.handleSendMessage,
+      handleQueueMessage: defaultAction.handleQueueMessage,
+      hasSendableContent: false,
+      sendOldestQueuedMessage: defaultAction.sendOldestQueuedMessage,
+    });
+
+    expect(defaultAction.calls).toEqual(["send oldest queued"]);
+  });
+
+  it("falls back to the normal send path when the queue is empty", () => {
+    const defaultAction = actions();
+    runDefaultSendAction({
+      defaultSendBehavior: "interrupt",
+      isAgentRunning: false,
+      onQueue: defaultAction.onQueue,
+      handleSendMessage: defaultAction.handleSendMessage,
+      handleQueueMessage: defaultAction.handleQueueMessage,
+      hasSendableContent: false,
+      sendOldestQueuedMessage: () => false,
+    });
+
+    expect(defaultAction.calls).toEqual(["send"]);
+  });
+
+  it("keeps queueing typed text while messages are already queued", () => {
+    const defaultAction = actions();
+    runDefaultSendAction({
+      defaultSendBehavior: "queue",
+      isAgentRunning: true,
+      onQueue: defaultAction.onQueue,
+      handleSendMessage: defaultAction.handleSendMessage,
+      handleQueueMessage: defaultAction.handleQueueMessage,
+      hasSendableContent: true,
+      sendOldestQueuedMessage: defaultAction.sendOldestQueuedMessage,
+    });
+
+    expect(defaultAction.calls).toEqual(["queue"]);
   });
 });
 

@@ -2,6 +2,73 @@ import { en, type TranslationResources } from "./en";
 import { pluginSettings } from "./plugin-settings";
 
 export const ptBR: TranslationResources = {
+  visualization: {
+    previous: "Variante anterior",
+    next: "Próxima variante",
+    controls: "Controles",
+  },
+
+  providerCustomizations: {
+    addCommand: "Adicionar comando",
+    commandName: "Nome do comando",
+    prompt: "Instruções",
+    invalidName:
+      "Use letras latinas, números, hífens ou sublinhados. Comece com uma letra ou número.",
+    commandExists: "Já existe um comando com este nome. Escolha outro nome.",
+    models: "Modelos",
+    commands: "Comandos",
+    skills: "Habilidades",
+    mcpServers: "Servidores MCP",
+    mcp: {
+      updated: "Verificado {{time}}",
+      checking: "Verificando servidores…",
+      notHealthChecked:
+        "O Codex não testa conexões. Configurado significa que o servidor está na configuração, não que funciona.",
+      empty: "Nenhum servidor MCP configurado.",
+      connectTitle: "Conectar mais",
+      claudeConnectors:
+        "Slack, Gmail, Google Drive, Calendar e outros são conectores ativados no claude.ai. Eles seguem sua conta em todos os hosts, então nada é configurado aqui.",
+      claudeConnectorsLink: "Abrir conectores do claude.ai",
+      claudeLocal: "Para qualquer outro servidor, execute isto no host:",
+      codexAdd: "O Codex lê servidores do config.toml neste host. Adicione um com a CLI do Codex:",
+      codexLogin: "Servidores que usam OAuth também precisam de login no host:",
+      thenRefresh: "Depois toque em Atualizar aqui.",
+      status: {
+        connected: "Conectado",
+        failed: "Falhou",
+        pending_approval: "Precisa de aprovação",
+        disabled: "Desativado",
+        configured: "Configurado",
+        unknown: "Desconhecido",
+      },
+      scope: {
+        claude_ai: "Conta claude.ai",
+        user: "Pessoal",
+        project: "Projeto",
+      },
+    },
+    scope: "Escopo",
+    personal: "Pessoal",
+    project: "Projeto",
+    plugin: "Plugin",
+    provider: "Provedor",
+    searchCommands: "Buscar comandos",
+    searchSkills: "Buscar habilidades",
+    noCommands: "Nenhum comando encontrado.",
+    noSkills: "Nenhuma habilidade encontrada.",
+    updateHost: "Atualize este host para gerenciar comandos e habilidades.",
+    readOnly:
+      "Gerenciado pelo provedor ou por um plugin. Os arquivos instalados são somente leitura aqui.",
+    instructions: "Instruções",
+    improve: "Melhorar com agente",
+    save: "Salvar",
+    saved: "Salvo",
+    conflict:
+      "Este arquivo mudou no disco. Recarregue antes de salvar para não sobrescrever as alterações.",
+    discardTitle: "Descartar alterações?",
+    discardMessage: "Suas edições não salvas serão perdidas.",
+    discard: "Descartar",
+  },
   common: {
     back: "Voltar",
     loading: "Carregando...",
@@ -134,6 +201,10 @@ export const ptBR: TranslationResources = {
       addIssueOrPr_mr: "Adicionar issue ou MR",
       dropImagesHere: "Solte imagens aqui",
       dropFilesHere: "Solte arquivos aqui",
+      queuedCount: "Na fila: {{count}}",
+      deleteQueuedMessage: "Excluir mensagem da fila",
+      deleteAllQueued: "Excluir tudo",
+      sendAllQueuedNow: "Enviar tudo agora",
       editQueuedMessage: "Editar mensagem na fila",
       sendQueuedMessageNow: "Enviar mensagem da fila agora",
       openImage: "Abrir anexo de imagem",
@@ -172,9 +243,14 @@ export const ptBR: TranslationResources = {
     },
   },
   agentControls: {
+    moreSettings: "Mais configurações",
+    permissions: "Permissões",
+    plan: "Plano",
+    caffeineMode: "Modo cafeína",
     provider: {
       fallback: "Provedor",
       select: "Selecionar provedor do agente",
+      switched: "Continuando em {{provider}} em uma nova aba com o histórico do chat",
     },
     thinking: {
       title: "Raciocínio",
@@ -292,6 +368,7 @@ export const ptBR: TranslationResources = {
     },
   },
   message: {
+    forkedFrom: "Ramificado de {{title}}",
     diagram: {
       diagram: "Diagrama",
       zoomIn: "Aproximar",
@@ -305,9 +382,10 @@ export const ptBR: TranslationResources = {
       copyCode: "Copiar código",
       copyTurn: "Copiar turno",
       copyMessage: "Copiar mensagem",
+      expandMessage: "Mostrar mais",
+      collapseMessage: "Mostrar menos",
       forkMenu: "Bifurcar mensagem",
       forkInNewTab: "Bifurcar em uma nova aba",
-      forkInNewWorkspace: "Bifurcar em um novo workspace",
       forkUnavailable: "Atualize o host para usar isto.",
       forkMissingWorkspace: "Este agente não está em um workspace.",
       forkFailed: "Falha ao bifurcar o chat",
@@ -318,6 +396,8 @@ export const ptBR: TranslationResources = {
       dismissImage: "Dispensar imagem",
       closeImage: "Fechar imagem",
       imageLoadFailed: "Não foi possível carregar a imagem",
+      copyImage: "Copiar imagem",
+      copyImageFailed: "Não foi possível copiar a imagem. Tente novamente.",
       imageUnavailable: "Imagem indisponível",
       imagePreviewUnavailable: "Prévia da imagem indisponível.",
       imagePreviewLoadFailed: "Não foi possível carregar a prévia da imagem.",
@@ -335,6 +415,10 @@ export const ptBR: TranslationResources = {
       details: "Detalhes",
     },
     dictation: {
+      listening: "Ouvindo",
+      transcribing: "Transcrevendo…",
+      stopped: "Gravação interrompida",
+      doubleCommand: "Pressione ⌘ duas vezes para iniciar ou parar o ditado",
       start: "Iniciar ditado por voz",
       cancel: "Cancelar ditado",
       retry: "Tentar ditado novamente",
@@ -407,6 +491,15 @@ export const ptBR: TranslationResources = {
     },
   },
   workspace: {
+    zoom: {
+      textSize: "Tamanho do texto",
+      increase: "Aumentar tamanho do texto",
+      decrease: "Diminuir tamanho do texto",
+      reset: "Redefinir",
+      terminalOptions: "Opções do terminal",
+      terminalText: "Texto do terminal: {{size}} px",
+      editorText: "Texto do editor: {{size}} px",
+    },
     route: {
       loading: "Carregando workspace",
       connecting: "Conectando",
@@ -468,11 +561,6 @@ export const ptBR: TranslationResources = {
       },
     },
     fileExplorer: {
-      sort: {
-        name: "Nome",
-        modified: "Modificado",
-        size: "Tamanho",
-      },
       context: {
         size: "Tamanho",
         modified: "Modificado",
@@ -604,6 +692,8 @@ export const ptBR: TranslationResources = {
       },
       menu: {
         openFor: "Abrir menu de {{label}}",
+        copyConversation: "Copiar conversa",
+        downloadConversation: "Baixar conversa",
         copyResumeCommand: "Copiar comando de retomada",
         copyAgentId: "Copiar ID do agente",
         copyTerminalId: "Copiar ID do terminal",
@@ -655,6 +745,14 @@ export const ptBR: TranslationResources = {
         filePathCopiedLabel: "Caminho do arquivo",
         resumeIdUnavailable: "ID de retomada indisponível",
         resumeCommandUnavailable: "Comando de retomada indisponível",
+        copyingConversation: "Copiando conversa…",
+        conversationCopied: "Conversa copiada",
+        conversationCopyFailed:
+          "Não foi possível copiar a conversa: {{reason}}. Tente Copiar conversa novamente.",
+        downloadingConversation: "Preparando o download da conversa…",
+        conversationChanged: "O histórico da conversa mudou. Tente novamente.",
+        conversationDownloadFailed:
+          "Não foi possível baixar a conversa: {{reason}}. Tente baixar novamente.",
         reloadingAgent: "Recarregando agente...",
         reloadedAgent: "Agente recarregado",
         failedToReloadAgent: "Falha ao recarregar agente",
@@ -736,7 +834,7 @@ export const ptBR: TranslationResources = {
       },
       routes: {
         public: "Proxy reverso",
-        paseo: "Memorable",
+        gravity: "Memorable",
         direct: "Direta",
       },
       states: {
@@ -860,7 +958,7 @@ export const ptBR: TranslationResources = {
           mergePrNoGithub:
             "Merge da PR não está disponível agora porque o GitHub não está conectado",
           archiveNotWorktree:
-            "Arquivar não está disponível aqui porque este workspace não foi criado como um worktree do Paseo",
+            "Arquivar não está disponível aqui porque este workspace não foi criado como um worktree do Gravity",
           mergePrNoForge:
             "Merge da {{noun}} não está disponível agora porque o {{brand}} não está conectado",
           mergePrMissing: "Merge da PR não está disponível porque ainda não há uma pull request",
@@ -1075,6 +1173,20 @@ export const ptBR: TranslationResources = {
       updateHost: "Atualize este host para gerenciar etiquetas.",
     },
   },
+  githubStar: {
+    title: "Está gostando do Gravity?",
+    description:
+      "O Gravity é open source. Se ele ajudou hoje, uma estrela no GitHub ajuda outros desenvolvedores a encontrá-lo.",
+    hostHint: "A estrela é dada com a conta do GitHub conectada ao gh em {{host}}.",
+    directStarFailed:
+      "Não foi possível dar a estrela daqui. Abra o GitHub para dar a estrela no navegador.",
+    thanks: "Obrigado por dar uma estrela ao Gravity.",
+    star: "Dar uma estrela no GitHub",
+    starring: "Dando estrela...",
+    openGitHub: "Abrir GitHub",
+    opening: "Abrindo...",
+    later: "Mais tarde",
+  },
   changelog: {
     title: "Novidades",
     installed: "Instalada",
@@ -1083,6 +1195,111 @@ export const ptBR: TranslationResources = {
     error: {
       title: "Não foi possível carregar o changelog",
       description: "Verifique sua conexão e tente novamente.",
+    },
+  },
+  linear: {
+    title: "Tarefas",
+    connect: {
+      title: "Conectar Linear",
+      description:
+        "Cole uma chave de API pessoal para ver suas issues aqui. A chave fica neste host.",
+      apiKeyLabel: "Chave de API",
+      apiKeyPlaceholder: "lin_api_…",
+      action: "Conectar",
+      pending: "Conectando…",
+      createKey: "Criar uma chave de API no Linear",
+    },
+    filters: {
+      assigned: "Atribuídas",
+      created: "Criadas",
+      all: "Todas",
+      completed: "Concluídas",
+      allTeams: "Todas as equipes",
+      teamFilterLabel: "Filtrar por equipe: {{team}}",
+      searchPlaceholder: "Buscar issues",
+      clearSearch: "Limpar busca",
+    },
+    menu: {
+      actions: "Ações do Linear",
+      refresh: "Atualizar",
+      openLinear: "Abrir Linear",
+      disconnect: "Desconectar",
+      disconnecting: "Desconectando…",
+      disconnectTitle: "Desconectar Linear",
+      disconnectMessage: "Remover a chave de API do Linear de {{host}}?",
+      disconnectConfirm: "Desconectar",
+    },
+    states: {
+      noHosts: "Adicione um host para usar o Linear.",
+      hostOffline: "Este host está offline.",
+      hostUnsupported: "Atualize este host para usar o Linear.",
+      retry: "Tentar novamente",
+      loadError: "Não foi possível carregar as issues",
+      empty: "Nenhuma issue",
+      searchEmpty: "Nenhuma issue corresponde à sua busca",
+      hasMore: "Mostrando as primeiras {{count}} issues",
+    },
+    pagination: {
+      range: "Issues {{start}}–{{end}}",
+      previous: "Anterior",
+      next: "Próxima",
+      page: "Página {{page}}",
+      updateHost: "Atualize este host para ver mais issues.",
+    },
+    start: {
+      repository: "Repositório",
+      workspace: "Espaço de trabalho",
+      newWorktree: "Nova worktree",
+      newWorkspace: "Novo espaço de trabalho",
+      existingWorkspace: "Espaço de trabalho existente",
+      repositoryCheckout: "Checkout do repositório (branch atual)",
+      noWorkspaces: "Nenhum espaço de trabalho neste repositório",
+      model: "Modelo",
+      chooseModel: "Escolha um modelo",
+      noModels: "Nenhum modelo disponível",
+      prompt: "Prompt",
+    },
+    issue: {
+      open: "Abrir no Linear",
+      startAgent: "Iniciar agente",
+      actions: "Ações da issue",
+      startFailed: "Não foi possível iniciar o agente",
+      chooseRepo: "Escolha um repositório",
+      noProjects: "Nenhum projeto neste host",
+      openComposer: "Configurar em Novo workspace",
+      copyBranch: "Copiar nome da branch",
+      branchCopied: "Nome da branch copiado",
+      state: "Status",
+      changeState: "Alterar status",
+      stateUpdateFailed: "Não foi possível atualizar o status",
+      priority: "Prioridade",
+      assignee: "Responsável",
+      unassigned: "Sem responsável",
+      unknownUser: "Desconhecido",
+      labels: "Etiquetas",
+      project: "Projeto",
+      dueDate: "Prazo",
+      updated: "Atualizada",
+      updatedAgo: "Atualizada {{time}}",
+      description: "Descrição",
+      noDescription: "Sem descrição",
+      subIssues: "Sub-issues",
+      comments: "Comentários",
+      noComments: "Ainda não há comentários",
+      loadError: "Não foi possível carregar esta issue",
+    },
+    priority: {
+      none: "Sem prioridade",
+      urgent: "Urgente",
+      high: "Alta",
+      medium: "Média",
+      low: "Baixa",
+    },
+    errors: {
+      auth: "O Linear rejeitou a chave de API.",
+      rateLimited: "Limite de requisições do Linear atingido. Tente novamente em instantes.",
+      network: "Não foi possível acessar o Linear.",
+      notConnected: "O Linear não está conectado neste host.",
     },
   },
   sidebar: {
@@ -1152,15 +1369,16 @@ export const ptBR: TranslationResources = {
       diagnostics: "Executar diagnóstico",
       shortcuts: "Atalhos de teclado",
       reportIssue: "Relatar um problema",
-      discord: "Discord",
       github: "Criar issue no GitHub",
       whatsNew: "Novidades",
-      appName: "Paseo",
+      starOnGithub: "Dar uma estrela no GitHub",
+      appName: "Gravity",
     },
     sections: {
       sessions: "Histórico",
       search: "Buscar",
-      schedules: "Agendamentos",
+      schedules: "Automações",
+      tasks: "Tarefas",
     },
     worktreeSetup: {
       title: "Configurar scripts de worktree",
@@ -1216,6 +1434,7 @@ export const ptBR: TranslationResources = {
         showMore: "Mostrar mais",
         showLess: "Mostrar menos",
         createWorkspaceFor: "Criar um novo workspace para {{projectName}}",
+        newAgent: "Novo agente",
         copyPath: "Copiar caminho",
         copyBranchName: "Copiar nome da branch",
         rename: "Renomear workspace",
@@ -1253,9 +1472,9 @@ export const ptBR: TranslationResources = {
     title: "Novo workspace",
     create: "Criar",
     isolation: {
-      local: "Local",
+      local: "Diretório atual",
       worktree: "Novo worktree",
-      label: "Isolamento",
+      label: "Onde executar",
     },
     fields: {
       project: "Projeto",
@@ -1270,9 +1489,9 @@ export const ptBR: TranslationResources = {
       selectModel: "Selecione um modelo",
     },
     tooltips: {
+      isolation: "Executar aqui ou em um novo worktree",
       project: "Choose the project",
       host: "Choose the host",
-      isolation: "Choose the isolation level",
       startingRef: "Escolha de onde começar",
       launch: "Choose what to launch",
     },
@@ -1302,7 +1521,7 @@ export const ptBR: TranslationResources = {
       close: "Fechar janela",
     },
     quitting: {
-      title: "Saindo do Paseo...",
+      title: "Saindo do Gravity...",
       detail: "Parando o daemon local.",
     },
     daemon: {
@@ -1317,20 +1536,20 @@ export const ptBR: TranslationResources = {
       },
       management: {
         title: "Gerenciar daemon integrado",
-        hint: "Permitir que o Paseo inicie e pare o daemon integrado",
+        hint: "Permitir que o Gravity inicie e pare o daemon integrado",
         pauseTitle: "Pausar daemon integrado",
         pauseMessage:
           "Isso vai parar o daemon integrado imediatamente. Agentes e terminais em execução conectados ao daemon integrado serão interrompidos.",
         pauseAndStop: "Pausar e parar",
         registrationFailed:
-          "O daemon integrado foi iniciado, mas o Paseo não conseguiu salvar a conexão localhost. Desative e reative o gerenciamento do daemon ou adicione localhost manualmente.",
+          "O daemon integrado foi iniciado, mas o Gravity não conseguiu salvar a conexão localhost. Desative e reative o gerenciamento do daemon ou adicione localhost manualmente.",
         pausedStopFailed:
-          "O gerenciamento do daemon integrado foi pausado, mas o Paseo não conseguiu parar o daemon.",
+          "O gerenciamento do daemon integrado foi pausado, mas o Gravity não conseguiu parar o daemon.",
         updateFailed: "Não foi possível atualizar o gerenciamento do daemon integrado.",
       },
       keepRunning: {
         title: "Manter daemon em execução ao sair",
-        hint: "O daemon continua em execução quando você sai do Paseo",
+        hint: "O daemon continua em execução quando você sai do Gravity",
       },
       logs: {
         title: "Arquivo de log",
@@ -1345,7 +1564,7 @@ export const ptBR: TranslationResources = {
       fullStatus: {
         title: "Status completo",
         modalTitle: "Status do daemon",
-        hint: "Executa `paseo daemon status` e mostra a saída",
+        hint: "Executa `gravity daemon status` e mostra a saída",
         view: "Ver status",
         copied: "Status copiado para a área de transferência.",
         fetchFailed: "Falha ao buscar status do daemon: {{message}}",
@@ -1400,7 +1619,7 @@ export const ptBR: TranslationResources = {
     },
     rosetta: {
       title: "Baixar a build para Apple Silicon",
-      runningIntel: "Você está executando a build Intel do Paseo pelo Rosetta no Apple Silicon.",
+      runningIntel: "Você está executando a build Intel do Gravity pelo Rosetta no Apple Silicon.",
       highCpu: "Isso causa alto uso de CPU. Baixe a build para Apple Silicon para corrigir.",
       download: "Baixar",
     },
@@ -1442,7 +1661,7 @@ export const ptBR: TranslationResources = {
         microphone: "O status do microfone ainda não foi verificado.",
       },
       testNotification: {
-        title: "Teste de notificação do Paseo",
+        title: "Teste de notificação do Gravity",
         body: "Se você consegue ver isto, as notificações desktop funcionam.",
         notDelivered:
           "A notificação não foi entregue. Verifique Ajustes do Sistema > Notificações.",
@@ -1452,12 +1671,12 @@ export const ptBR: TranslationResources = {
     integrations: {
       cli: {
         statusFailed: "Não foi possível verificar o status de instalação da CLI.",
-        installFailed: "Não foi possível instalar a CLI do Paseo.",
+        installFailed: "Não foi possível instalar a CLI do Gravity.",
       },
     },
   },
   rootError: {
-    title: "O Paseo encontrou um problema.",
+    title: "O Gravity encontrou um problema.",
     body: "Tente novamente para recarregar o app. Se isso continuar acontecendo, inclua os detalhes abaixo ao relatar o problema.",
     details: "Detalhes",
   },
@@ -1523,6 +1742,8 @@ export const ptBR: TranslationResources = {
     stashRestored: "Alterações em stash restauradas",
   },
   agentAutocomplete: {
+    command: "Comando",
+    skill: "Habilidade",
     searchingWorkspace: "Buscando workspace...",
     loadingCommands: "Carregando comandos...",
     noFiles: "Nenhum arquivo ou diretório encontrado",
@@ -1552,7 +1773,7 @@ export const ptBR: TranslationResources = {
     },
   },
   onboarding: {
-    title: "Bem-vindo ao Paseo",
+    title: "Bem-vindo ao Gravity",
     subtitle: "Conecte seu computador para começar",
     actions: {
       settings: "Configurações",
@@ -1640,7 +1861,7 @@ export const ptBR: TranslationResources = {
     },
     direct: {
       title: "Conexão direta",
-      helper: "Informe o endereço de um servidor Paseo.",
+      helper: "Informe o endereço de um servidor Gravity.",
       fields: {
         host: "Host",
         port: "Porta",
@@ -1683,7 +1904,7 @@ export const ptBR: TranslationResources = {
     },
     remoteSsh: {
       title: "SSH remoto",
-      helper: "Conecte-se a um daemon Paseo no host remoto.",
+      helper: "Conecte-se a um daemon Gravity no host remoto.",
       fields: {
         target: "Host SSH",
       },
@@ -1740,15 +1961,15 @@ export const ptBR: TranslationResources = {
       enableDescription:
         "O relay permite conectar este dispositivo de qualquer lugar. O tráfego de pareamento é criptografado de ponta a ponta.",
       relayDocs: "Como o relay funciona",
-      relayDocsAccessibility: "Leia como o relay do Paseo funciona",
+      relayDocsAccessibility: "Leia como o relay do Gravity funciona",
       enableRelay: "Ativar relay",
       enablingRelay: "Ativando...",
       notNow: "Agora não",
       directConnectionHint:
         "Sem relay, conecte diretamente por TCP, Tailscale ou outra VPN. Nenhum código QR é criado.",
-      updateRequired: "Atualize o host para ativar o relay pelo Paseo Desktop.",
+      updateRequired: "Atualize o host para ativar o relay pelo Gravity Desktop.",
       unavailable: "Oferta de pareamento indisponível.",
-      hint: "Escaneie este QR code com o Paseo no seu celular ou copie o link abaixo.",
+      hint: "Escaneie este QR code com o Gravity no seu celular ou copie o link abaixo.",
       securityWarning:
         "Trate este link de pareamento como uma senha. Qualquer pessoa com o link pode acessar este daemon.",
       qrUnavailable: "QR code indisponível.",
@@ -1783,7 +2004,7 @@ export const ptBR: TranslationResources = {
   serviceUrl: {
     title: "Abrir URL do serviço",
     message: "Abrir {{url}}?",
-    inPaseo: "No Paseo",
+    inGravity: "No Gravity",
     externalBrowser: "Navegador externo",
     dontAskAgain: "Não perguntar novamente",
   },
@@ -1828,6 +2049,19 @@ export const ptBR: TranslationResources = {
       failedToLoad: "Falha ao carregar arquivo",
       failedToLoadPreview: "Falha ao carregar prévia do arquivo",
       editor: {
+        find: {
+          placeholder: "Localizar",
+          replace: "Substituir",
+          toggleReplace: "Alternar substituição",
+          previous: "Ocorrência anterior",
+          next: "Próxima ocorrência",
+          selectAll: "Selecionar todas as ocorrências",
+          close: "Fechar busca",
+          replaceAll: "Substituir tudo",
+          count: "{{current}} de {{total}}",
+          invalidRegex: "Expressão inválida",
+          noResults: "Nenhum resultado",
+        },
         fileSize: "Tamanho {{size}}",
         lines: "{{count}} linhas",
         editorStatus: "Status do editor: {{status}}",
@@ -1854,6 +2088,56 @@ export const ptBR: TranslationResources = {
       subtitle: "Arquivos do espaço de trabalho",
       tooltip: "Explorar arquivos do espaço de trabalho",
       chooseFile: "Escolha um arquivo",
+    },
+    search: {
+      label: "Pesquisar",
+      subtitle: "Pesquisar nos arquivos",
+      tooltip: "Pesquisar nos arquivos do espaço de trabalho",
+      placeholder: "Pesquisar",
+      clear: "Limpar pesquisa",
+      modes: {
+        names: "Nomes",
+        contents: "Conteúdo",
+      },
+      options: {
+        caseSensitive: "Diferenciar maiúsculas de minúsculas",
+        wholeWord: "Palavra inteira",
+        regex: "Usar expressão regular",
+        filters: "Arquivos a incluir ou excluir",
+      },
+      filters: {
+        includeLabel: "Arquivos a incluir",
+        includePlaceholder: "ex.: *.ts, src/**",
+        excludeLabel: "Arquivos a excluir",
+        excludePlaceholder: "ex.: *.min.js, dist/**",
+      },
+      count: {
+        fileResult: "{{count}} resultado em {{files}} arquivo",
+        filesResult: "{{count}} resultado em {{files}} arquivos",
+        fileResults: "{{count}} resultados em {{files}} arquivo",
+        filesResults: "{{count}} resultados em {{files}} arquivos",
+      },
+      states: {
+        prompt: "Digite para pesquisar no conteúdo dos arquivos",
+        namesPrompt: "Digite para pesquisar nomes de arquivos",
+        empty:
+          "Nenhum resultado encontrado. Revise as exclusões configuradas e verifique seus arquivos gitignore.",
+        emptyIncludes: "Nenhum resultado encontrado em '{{include}}'.",
+        emptyExcludes: "Nenhum resultado encontrado excluindo '{{exclude}}'.",
+        emptyIncludesExcludes:
+          "Nenhum resultado encontrado em '{{include}}' excluindo '{{exclude}}'.",
+        limitHit:
+          "O conjunto de resultados contém apenas uma parte de todas as correspondências. Seja mais específico na sua pesquisa para restringir os resultados.",
+      },
+      actions: {
+        refresh: "Atualizar",
+        clear: "Limpar resultados da pesquisa",
+        collapseAll: "Recolher tudo",
+        expandAll: "Expandir tudo",
+        toggleDetails: "Alternar detalhes da pesquisa",
+      },
+      fileMatches_one: "{{count}} correspondência encontrada",
+      fileMatches_other: "{{count}} correspondências encontradas",
     },
     pullRequest: {
       label: "Pull request",
@@ -1882,6 +2166,10 @@ export const ptBR: TranslationResources = {
     output: "Saída",
   },
   toolCallGroup: {
+    earlierCalls: {
+      one: "{{count}} chamada de ferramenta anterior",
+      other: "{{count}} chamadas de ferramentas anteriores",
+    },
     editedFiles: {
       one: "editou {{count}} arquivo",
       other: "editou {{count}} arquivos",
@@ -1902,9 +2190,9 @@ export const ptBR: TranslationResources = {
       one: "usou {{count}} outra ferramenta",
       other: "usou {{count}} outras ferramentas",
     },
-    paseoCalls: {
-      one: "chamou o Paseo {{count}} vez",
-      other: "chamou o Paseo {{count}} vezes",
+    gravityCalls: {
+      one: "chamou o Gravity {{count}} vez",
+      other: "chamou o Gravity {{count}} vezes",
     },
     and: "e",
   },
@@ -1985,7 +2273,7 @@ export const ptBR: TranslationResources = {
       send: "Enviar",
       sending: "Enviando...",
       sentTitle: "Notificação de teste enviada",
-      sentDescription: "O Paseo entregou a notificação ao sistema operacional.",
+      sentDescription: "O Gravity entregou a notificação ao sistema operacional.",
       sendFailedTitle: "Não foi possível enviar a notificação de teste",
     },
     hostSections: {
@@ -2004,14 +2292,14 @@ export const ptBR: TranslationResources = {
     metadataGeneration: {
       title: "Geração de metadados",
       description:
-        "Escolha o modelo usado pelo Paseo para títulos de espaços de trabalho, nomes de branches, mensagens de commit e rascunhos de pull request",
+        "Escolha o modelo usado pelo Gravity para títulos de espaços de trabalho, nomes de branches, mensagens de commit e rascunhos de pull request",
       selection: "Seleção de modelo",
       automatic: "Automática",
       preferred: "Manual",
-      automaticHint: "O Paseo escolhe um modelo rápido disponível",
-      preferredHint: "Escolha o modelo que o Paseo usa",
+      automaticHint: "O Gravity escolhe um modelo rápido disponível",
+      preferredHint: "Escolha o modelo que o Gravity usa",
       model: "Modelo",
-      fallbackHint: "Se ele não estiver disponível, o Paseo usa outro modelo disponível",
+      fallbackHint: "Se ele não estiver disponível, o Gravity usa outro modelo disponível",
       docs: "Documentação",
       saveError: "Não foi possível atualizar a geração de metadados",
     },
@@ -2020,7 +2308,7 @@ export const ptBR: TranslationResources = {
       browserData: {
         title: "Dados do navegador",
         siteData: "Cookies e dados de sites",
-        description: "As abas do navegador compartilham logins e dados de sites no Paseo.",
+        description: "As abas do navegador compartilham logins e dados de sites no Gravity.",
         clear: "Limpar dados do navegador",
         clearing: "Limpando...",
         confirmTitle: "Limpar dados do navegador?",
@@ -2049,9 +2337,23 @@ export const ptBR: TranslationResources = {
         description: "Onde abrir URLs de scripts em execução",
         options: {
           ask: "Perguntar",
-          inApp: "No Paseo",
+          inApp: "No Gravity",
           external: "Navegador externo",
         },
+      },
+      power: {
+        title: "Energia",
+        label: "Continuar trabalhando com a tampa fechada",
+        description:
+          "Mantém este Mac ativo até desativar ou sair do Gravity. Encerra após 12 horas ou com 20% de bateria.",
+        agentLabel: "Manter ativo para este agente",
+        agentHint:
+          "Mantém este Mac ativo durante a próxima execução deste agente e depois desativa. Requer permissão de administrador.",
+        pending: "Aguardando o macOS…",
+        error: "Não foi possível alterar os ajustes de repouso. Tente novamente. {{detail}}",
+        agentsActive:
+          "Um agente está mantendo este Mac ativo. Desative o botão dele no campo de mensagem.",
+        globalActive: "Ativado para este Mac em Ajustes → Geral.",
       },
       terminalScrollback: {
         label: "Scrollback do terminal",
@@ -2063,14 +2365,10 @@ export const ptBR: TranslationResources = {
         description:
           "Mostrar os blocos de pensamento e raciocínio do agente totalmente expandidos por padrão",
       },
-      toolCallDetail: {
-        label: "Exibição de chamadas de ferramentas",
-        description: "Como as chamadas de ferramentas aparecem na linha do tempo",
-        accessibilityLabel: "Selecionar exibição de chamadas de ferramentas ({{value}})",
-        options: {
-          overview: "Resumo",
-          detailed: "Detalhes completos",
-        },
+      collapseToolCalls: {
+        label: "Recolher chamadas de ferramentas",
+        description:
+          "Agrupa chamadas consecutivas de ferramentas em uma seção recolhível com rolagem",
       },
       language: {
         label: "Idioma",
@@ -2135,7 +2433,7 @@ export const ptBR: TranslationResources = {
         label: "Atualizações do app",
         readyToInstall: "Pronta para instalar: {{version}}",
         installTitle: "Instalar atualização desktop",
-        installMessage: "Isso atualiza o Paseo neste computador",
+        installMessage: "Isso atualiza o Gravity neste computador",
         installConfirm: "Instalar atualização",
         update: "Atualizar",
         updateTo: "Atualizar para {{version}}",
@@ -2191,8 +2489,11 @@ export const ptBR: TranslationResources = {
           "Usada em código, diffs e saída do terminal. Deixe vazio para usar o padrão do sistema",
         codeFontAccessibility: "Família da fonte de código",
         codeSize: "Tamanho do código",
-        codeSizeHint: "Usado em código, diffs e saída do terminal",
+        codeSizeHint: "Usado em código e diffs",
         codeSizeAccessibility: "Tamanho da fonte de código",
+        terminalSize: "Tamanho do terminal",
+        terminalSizeHint: "Usado na saída do terminal",
+        terminalSizeAccessibility: "Tamanho da fonte do terminal",
       },
       syntax: {
         title: "Sintaxe",
@@ -2259,6 +2560,7 @@ export const ptBR: TranslationResources = {
         toggleRightSidebar: "Alternar painel lateral",
         toggleBothSidebars: "Alternar ambas as barras laterais",
         toggleSettings: "Alternar Configurações",
+        openHistory: "Abrir histórico",
         toggleFocusMode: "Alternar modo de foco",
         cycleTheme: "Alternar tema",
         focusMessageInput: "Focar entrada de mensagem",
@@ -2366,11 +2668,11 @@ export const ptBR: TranslationResources = {
         title: "Skills de orquestração",
         description: "Ensine seus agentes a orquestrar pela CLI",
         updateAvailable: "Atualização disponível",
-        updateTitle: "Atualizar Paseo skills?",
+        updateTitle: "Atualizar Gravity skills?",
         updateFallback: "Sincronize as skills incluídas com sua máquina.",
-        uninstallTitle: "Desinstalar Paseo skills?",
+        uninstallTitle: "Desinstalar Gravity skills?",
         uninstallMessage:
-          "Remove todas as skills de orquestração do Paseo de ~/.agents, ~/.claude e ~/.codex.",
+          "Remove todas as skills de orquestração do Gravity de ~/.agents, ~/.claude e ~/.codex.",
         choose: "Escolher skills",
         chooseAll: "Todas as skills",
         chooseAllHint:
@@ -2407,9 +2709,9 @@ export const ptBR: TranslationResources = {
         title: "Orquestração",
         unavailable: "Conecte-se a este host para gerenciar a orquestração",
         enableTools: {
-          title: "Ativar ferramentas do Paseo",
+          title: "Ativar ferramentas do Gravity",
           hint: "Agentes poderão gerenciar worktrees, agentes e agendamentos",
-          accessibilityLabel: "Injetar ferramentas do Paseo",
+          accessibilityLabel: "Injetar ferramentas do Gravity",
         },
         systemPrompt: {
           title: "Prompt do sistema",
@@ -2514,15 +2816,15 @@ export const ptBR: TranslationResources = {
             "Este host não está conectado. Aguarde até ele ficar online antes de reiniciar.",
           offlineTitle: "Host offline",
           offlineMessage:
-            "Este host está offline. O Paseo reconecta automaticamente. Aguarde ele voltar a ficar online antes de reiniciar.",
+            "Este host está offline. O Gravity reconecta automaticamente. Aguarde ele voltar a ficar online antes de reiniciar.",
           requestFailedTitle: "Erro",
           requestFailedMessage:
-            "Falha ao enviar a solicitação de reinício. O Paseo reconecta automaticamente. Tente novamente quando o host aparecer como online.",
+            "Falha ao enviar a solicitação de reinício. O Gravity reconecta automaticamente. Tente novamente quando o host aparecer como online.",
           dialogFailedMessage: "Não foi possível abrir o diálogo de confirmação de reinício.",
         },
         update: {
           desktopManagedHint:
-            "Este daemon é gerenciado pelo Paseo Desktop. Atualize o Paseo Desktop no host.",
+            "Este daemon é gerenciado pelo Gravity Desktop. Atualize o Gravity Desktop no host.",
           title: "Atualizar daemon",
           hint: "Atualiza o daemon para a versão mais recente e o reinicia",
           confirm: "Atualizar",
@@ -2627,6 +2929,43 @@ export const ptBR: TranslationResources = {
         unknownError: "Erro desconhecido",
       },
     },
+    accounts: {
+      title: "Contas",
+      info: "Salve mais de um login por provedor e alterne entre eles. O provedor continua usando o login ativo; agentes em execução adotam a troca na próxima requisição.",
+      loading: "Carregando contas...",
+      errorTitle: "Não foi possível carregar as contas",
+      providerUnsupported: "Este provedor não oferece suporte a logins salvos",
+      hostUnavailable: "Conecte-se a este host para gerenciar contas",
+      hostUpgradeRequired: "Atualize o host para gerenciar contas",
+      clientUnavailable: "A conexão com o host não está pronta",
+      refresh: "Atualizar",
+      refreshing: "Atualizando...",
+      retry: "Tentar novamente",
+      dismiss: "Dispensar",
+      notSignedIn: "Sem login em {{provider}}",
+      currentLoginUnsaved: "Conectado como {{email}}. Salve este login para voltar a ele depois.",
+      currentLoginExpired:
+        "O login atual de {{email}} expirou. Faça login novamente antes de salvá-lo.",
+      save: "Salvar login atual",
+      saving: "Salvando...",
+      active: "Ativa",
+      loginExpired: "Login expirado",
+      loginExpiredHint:
+        "Faça login com esta conta em {{provider}} novamente e depois salve o login atual",
+      usageUnavailable: "Uso indisponível",
+      switch: "Alternar",
+      switching: "Alternando...",
+      remove: "Remover",
+      removing: "Removendo...",
+      removeConfirmTitle: "Remover {{email}}?",
+      removeConfirmMessage:
+        "O Gravity esquece este login salvo. O login do próprio provedor não é afetado.",
+      removeConfirm: "Remover",
+      switchErrorTitle: "Não foi possível alternar a conta",
+      saveErrorTitle: "Não foi possível salvar o login",
+      removeErrorTitle: "Não foi possível remover o login",
+      actionsMenu: "Ações para {{email}}",
+    },
     project: {
       noEditableTarget: "Este projeto não pode ser editado neste host.",
       backToProjects: "Voltar para projetos",
@@ -2642,13 +2981,13 @@ export const ptBR: TranslationResources = {
         savedToast: "Projeto atualizado",
       },
       readFailures: {
-        invalidTitle: "Não foi possível analisar paseo.json",
+        invalidTitle: "Não foi possível analisar gravity.json",
         invalidDescription: "Corrija o arquivo no disco e recarregue.",
         missingTitle: "Este host não tem este projeto",
         missingSingleHost: "O host selecionado não tem registro deste projeto.",
-        transportTitle: "Não foi possível carregar paseo.json",
+        transportTitle: "Não foi possível carregar gravity.json",
         transportFallback: "O host não respondeu.",
-        failedTitle: "Não foi possível carregar paseo.json",
+        failedTitle: "Não foi possível carregar gravity.json",
         failedDescription: "Recarregue para tentar novamente.",
       },
       worktree: {
@@ -2659,7 +2998,7 @@ export const ptBR: TranslationResources = {
           "Veja a documentação para mais detalhes e as variáveis de ambiente disponíveis para estes comandos",
         setup: "Configuração",
         setupAccessibility: "Comandos de configuração do worktree",
-        uncommittedTitle: "Faça commit das alterações no paseo.json",
+        uncommittedTitle: "Faça commit das alterações no gravity.json",
         uncommittedDescription:
           "Novos worktrees usam o script de configuração do branch base selecionado.",
         teardown: "Desmontagem",
@@ -2684,7 +3023,7 @@ export const ptBR: TranslationResources = {
         newScript: "Novo script",
         editScript: "Editar {{name}}",
         runAsService: "Executar como serviço",
-        serviceHint: "O Paseo supervisiona o processo e atribui uma porta via $PASEO_PORT",
+        serviceHint: "O Gravity supervisiona o processo e atribui uma porta via $GRAVITY_PORT",
         actions: {
           add: "Adicionar script",
           edit: "Editar",
@@ -2693,7 +3032,7 @@ export const ptBR: TranslationResources = {
       },
       metadata: {
         title: "Geração de metadados",
-        info: "Instruções específicas do projeto injetadas nos prompts de IA que o Paseo usa para gerar metadados. Use-as para aplicar convenções da sua equipe, como nomes de branch, estilo de commit ou formato de PR",
+        info: "Instruções específicas do projeto injetadas nos prompts de IA que o Gravity usa para gerar metadados. Use-as para aplicar convenções da sua equipe, como nomes de branch, estilo de commit ou formato de PR",
         branchName: "Nomes de branch",
         branchNamePlaceholder: "Prefixe branches com feat/ ou fix/, mb/ para branches pessoais",
         commitMessage: "Mensagens de commit",
@@ -2703,8 +3042,8 @@ export const ptBR: TranslationResources = {
       },
       writeFailures: {
         staleTitle: "Configuração alterada no disco",
-        staleDescription: "Recarregue para buscar o paseo.json mais recente antes de salvar.",
-        failedTitle: "Não foi possível salvar paseo.json",
+        staleDescription: "Recarregue para buscar o gravity.json mais recente antes de salvar.",
+        failedTitle: "Não foi possível salvar gravity.json",
         failedDescription: "Tente novamente ou recarregue a versão mais recente do disco.",
       },
       actions: {

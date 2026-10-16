@@ -19,8 +19,6 @@ export interface DesktopSidebarState {
   focusModeEnabled: boolean;
 }
 
-export type SortOption = "name" | "modified" | "size";
-
 export const DEFAULT_SIDEBAR_WIDTH = 320;
 export const MIN_SIDEBAR_WIDTH = 200;
 export const MAX_SIDEBAR_WIDTH = 600;
@@ -147,6 +145,7 @@ export const PanelPersistedStateSchema = z.strictObject({
   sidebarWidth: z.number().optional(),
   // Accepted only so migration can discard the former docked explorer sidebar width.
   explorerWidth: z.number().optional(),
+  // Accepted only so persisted state from before the fixed sort order still parses.
   explorerSortOption: z.enum(["name", "modified", "size"]).optional(),
   explorerShowHiddenFiles: z.boolean().optional(),
   explorerFilesSplitRatio: z.number().optional(),

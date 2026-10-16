@@ -1,7 +1,7 @@
-// CLI exports for @getpaseo/server
-export { createPaseoDaemon, type PaseoDaemon, type PaseoDaemonConfig } from "./bootstrap.js";
+// CLI exports for @gravity/server
+export { createGravityDaemon, type GravityDaemon, type GravityDaemonConfig } from "./bootstrap.js";
 export { loadConfig, type CliConfigOverrides } from "./config.js";
-export { resolvePaseoHome } from "./paseo-home.js";
+export { resolveGravityHome } from "./gravity-home.js";
 export { getOrCreateServerId } from "./server-id.js";
 export { createRootLogger, type LogLevel, type LogFormat } from "./logger.js";
 export {
@@ -16,21 +16,21 @@ export {
   decodeOfferFragmentPayload,
   parseConnectionOfferFromUrl,
   type ConnectionOffer,
-} from "@getpaseo/protocol/connection-offer";
-export { buildRelayWebSocketUrl } from "@getpaseo/protocol/daemon-endpoints";
+} from "@gravity/protocol/connection-offer";
+export { buildRelayWebSocketUrl } from "@gravity/protocol/daemon-endpoints";
 export {
   buildDaemonWebSocketUrl,
   deriveLabelFromEndpoint,
   normalizeHostPort,
   parseConnectionUri,
   shouldUseTlsForDefaultHostedRelay,
-} from "@getpaseo/protocol/daemon-endpoints";
-export { PARENT_AGENT_ID_LABEL } from "@getpaseo/protocol/agent-labels";
+} from "@gravity/protocol/daemon-endpoints";
+export { PARENT_AGENT_ID_LABEL } from "@gravity/protocol/agent-labels";
 export {
   DirectTcpHostConnectionSchema,
   type DirectTcpHostConnection,
   type NormalizedDirectTcpHostConnection,
-} from "@getpaseo/protocol/host-connection-schema";
+} from "@gravity/protocol/host-connection-schema";
 export {
   ensureLocalSpeechModels,
   listLocalSpeechModels,
@@ -61,7 +61,7 @@ export {
   AGENT_PROVIDER_DEFINITIONS,
   BUILTIN_PROVIDER_IDS,
   type AgentProviderDefinition,
-} from "@getpaseo/protocol/provider-manifest";
+} from "@gravity/protocol/provider-manifest";
 
 // Agent SDK types for CLI commands
 export type {
@@ -95,7 +95,7 @@ export type {
   AgentSnapshotPayload,
   AgentStreamEventPayload,
   AgentStreamMessage,
-} from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/messages";
 
 export {
   readDaemonInstance,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { WorkspaceDescriptor } from "@/stores/session-store";
+import type { Agent, WorkspaceDescriptor } from "@/stores/session-store";
 import type { WorkspaceAgentActivity } from "@/utils/workspace-agent-activity";
 import {
   areSidebarWorkspaceSessionsEqual,
@@ -15,8 +15,11 @@ function activityMap(): Map<string, WorkspaceAgentActivity> {
   return new Map();
 }
 
+const agents = new Map<string, Agent>();
+
 function sidebarSession(input?: Partial<Omit<SidebarWorkspaceSession, "serverId">>) {
   return {
+    agents: input?.agents ?? agents,
     workspaces: input?.workspaces ?? workspaceMap(),
     workspaceAgentActivity: input?.workspaceAgentActivity ?? activityMap(),
   };
@@ -40,11 +43,13 @@ describe("sidebar workspace session selection", () => {
     ).toEqual([
       {
         serverId: "host-b",
+        agents,
         workspaces: hostB.workspaces,
         workspaceAgentActivity: hostB.workspaceAgentActivity,
       },
       {
         serverId: "host-a",
+        agents,
         workspaces: hostA.workspaces,
         workspaceAgentActivity: hostA.workspaceAgentActivity,
       },

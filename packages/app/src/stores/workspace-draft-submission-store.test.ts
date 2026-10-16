@@ -66,6 +66,6 @@ test("consuming draft presentation retains its running creation through remount 
   store.getState().consumePending(submission);
   expect(store.getState().pendingByDraftId[submission.draftId]).toBeUndefined();
   expect(store.getState().creationByDraftId[submission.draftId]).toBe(creation);
-  store.getState().clearDraftSetup({ draftId: submission.draftId });
+  store.getState().clearAgentCreation({ draftId: submission.draftId });
   expect(store.getState().creationByDraftId[submission.draftId]).toBeUndefined();
 });

@@ -1,7 +1,7 @@
 #!/usr/bin/env npx tsx
 
 /**
- * Regression: `paseo daemon stop` must stop supervised dev daemons
+ * Regression: `gravity daemon stop` must stop supervised dev daemons
  * without allowing the supervisor entrypoint to respawn a new worker process.
  */
 
@@ -17,9 +17,9 @@ $.verbose = false;
 
 const pollIntervalMs = 100;
 const testEnv = {
-  PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD: process.env.PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD ?? "0",
-  PASEO_DICTATION_ENABLED: process.env.PASEO_DICTATION_ENABLED ?? "0",
-  PASEO_VOICE_MODE_ENABLED: process.env.PASEO_VOICE_MODE_ENABLED ?? "0",
+  GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD: process.env.GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD ?? "0",
+  GRAVITY_DICTATION_ENABLED: process.env.GRAVITY_DICTATION_ENABLED ?? "0",
+  GRAVITY_VOICE_MODE_ENABLED: process.env.GRAVITY_VOICE_MODE_ENABLED ?? "0",
 };
 
 function sleep(ms: number): Promise<void> {
@@ -43,8 +43,8 @@ interface PidLockState {
   pid: number | null;
 }
 
-async function readPidLockState(paseoHome: string): Promise<PidLockState> {
-  const pidPath = join(paseoHome, "paseo.pid");
+async function readPidLockState(gravityHome: string): Promise<PidLockState> {
+  const pidPath = join(gravityHome, "gravity.pid");
 
   try {
     const content = await readFile(pidPath, "utf-8");
@@ -64,9 +64,9 @@ interface DaemonStatus {
   pid: number | null;
 }
 
-async function readDaemonStatus(paseoHome: string): Promise<DaemonStatus> {
+async function readDaemonStatus(gravityHome: string): Promise<DaemonStatus> {
   const result =
-    await $`PASEO_HOME=${paseoHome} PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD=${testEnv.PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD} PASEO_DICTATION_ENABLED=${testEnv.PASEO_DICTATION_ENABLED} PASEO_VOICE_MODE_ENABLED=${testEnv.PASEO_VOICE_MODE_ENABLED} npx paseo daemon status --home ${paseoHome} --json`.nothrow();
+    await $`GRAVITY_HOME=${gravityHome} GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD=${testEnv.GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD} GRAVITY_DICTATION_ENABLED=${testEnv.GRAVITY_DICTATION_ENABLED} GRAVITY_VOICE_MODE_ENABLED=${testEnv.GRAVITY_VOICE_MODE_ENABLED} npx gravity daemon status --home ${gravityHome} --json`.nothrow();
   if (result.exitCode !== 0) {
     return { localDaemon: null, pid: null };
   }
@@ -84,8 +84,11 @@ async function readDaemonStatus(paseoHome: string): Promise<DaemonStatus> {
   }
 }
 
-async function readCapturedSupervisorLogs(paseoHome: string, recentLogs: string): Promise<string> {
-  const durableLogs = await readFile(join(paseoHome, "daemon.log"), "utf8").catch(() => "");
+async function readCapturedSupervisorLogs(
+  gravityHome: string,
+  recentLogs: string,
+): Promise<string> {
+  const durableLogs = await readFile(join(gravityHome, "daemon.log"), "utf8").catch(() => "");
   return `${recentLogs}\n${durableLogs}`;
 }
 
@@ -109,14 +112,14 @@ async function waitFor(
 console.log("=== Daemon Stop (supervisor regression) ===\n");
 
 const port = await getAvailablePort();
-const paseoHome = await mkdtemp(join(tmpdir(), "paseo-stop-supervisor-"));
+const gravityHome = await mkdtemp(join(tmpdir(), "gravity-stop-supervisor-"));
 const cliRoot = join(import.meta.dirname, "..");
 
 let supervisorProcess: ChildProcess | null = null;
 let recentSupervisorLogs = "";
 
 try {
-  console.log("Test 1: start supervisor-entrypoint in dev mode with isolated PASEO_HOME");
+  console.log("Test 1: start supervisor-entrypoint in dev mode with isolated GRAVITY_HOME");
 
   supervisorProcess = spawn(
     process.execPath,
@@ -126,9 +129,9 @@ try {
       env: {
         ...process.env,
         ...testEnv,
-        PASEO_HOME: paseoHome,
-        PASEO_LISTEN: `127.0.0.1:${port}`,
-        PASEO_RELAY_ENABLED: "false",
+        GRAVITY_HOME: gravityHome,
+        GRAVITY_LISTEN: `127.0.0.1:${port}`,
+        GRAVITY_RELAY_ENABLED: "false",
         CI: "true",
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -144,7 +147,7 @@ try {
 
   await waitFor(
     async () => {
-      const status = await readDaemonStatus(paseoHome);
+      const status = await readDaemonStatus(gravityHome);
       return (
         status.localDaemon === "running" && status.pid !== null && isProcessRunning(status.pid)
       );
@@ -153,7 +156,7 @@ try {
     "daemon did not become running in time",
   );
 
-  const statusBeforeStop = await readDaemonStatus(paseoHome);
+  const statusBeforeStop = await readDaemonStatus(gravityHome);
   const daemonPid = statusBeforeStop.pid;
   assert.strictEqual(
     statusBeforeStop.localDaemon,
@@ -162,7 +165,7 @@ try {
   );
   assert(daemonPid !== null, "daemon pid should exist once daemon starts");
   assert(isProcessRunning(daemonPid), "daemon process should be running");
-  const pidLockBeforeStop = await readPidLockState(paseoHome);
+  const pidLockBeforeStop = await readPidLockState(gravityHome);
   assert.strictEqual(pidLockBeforeStop.pid, daemonPid, "pid lock should match status pid");
   assert.strictEqual(
     daemonPid,
@@ -171,16 +174,16 @@ try {
   );
   console.log(`✓ dev daemon started with daemon pid ${daemonPid}\n`);
 
-  console.log("Test 2: `paseo daemon stop` should stop without respawn");
+  console.log("Test 2: `gravity daemon stop` should stop without respawn");
   const stopResult =
-    await $`PASEO_HOME=${paseoHome} PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD=${testEnv.PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD} PASEO_DICTATION_ENABLED=${testEnv.PASEO_DICTATION_ENABLED} PASEO_VOICE_MODE_ENABLED=${testEnv.PASEO_VOICE_MODE_ENABLED} npx paseo daemon stop --home ${paseoHome} --json`.nothrow();
+    await $`GRAVITY_HOME=${gravityHome} GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD=${testEnv.GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD} GRAVITY_DICTATION_ENABLED=${testEnv.GRAVITY_DICTATION_ENABLED} GRAVITY_VOICE_MODE_ENABLED=${testEnv.GRAVITY_VOICE_MODE_ENABLED} npx gravity daemon stop --home ${gravityHome} --json`.nothrow();
   assert.strictEqual(stopResult.exitCode, 0, `stop should succeed: ${stopResult.stderr}`);
   const stopJson = JSON.parse(stopResult.stdout) as { action?: unknown };
   assert.strictEqual(stopJson.action, "stopped", "stop should report stopped action");
 
   await waitFor(
     async () => {
-      const status = await readDaemonStatus(paseoHome);
+      const status = await readDaemonStatus(gravityHome);
       return status.localDaemon === "stopped";
     },
     15000,
@@ -197,7 +200,7 @@ try {
 
   await sleep(1000);
 
-  const pidAfterStop = await readPidLockState(paseoHome);
+  const pidAfterStop = await readPidLockState(gravityHome);
   const respawned = pidAfterStop.pid !== null && isProcessRunning(pidAfterStop.pid);
   assert.strictEqual(
     respawned,
@@ -205,13 +208,16 @@ try {
     `daemon respawned after stop (pid: ${pidAfterStop.pid ?? "unknown"})`,
   );
 
-  const statusAfterStop = await readDaemonStatus(paseoHome);
+  const statusAfterStop = await readDaemonStatus(gravityHome);
   assert.strictEqual(
     statusAfterStop.localDaemon,
     "stopped",
     "daemon should remain stopped after stop command",
   );
-  const capturedSupervisorLogs = await readCapturedSupervisorLogs(paseoHome, recentSupervisorLogs);
+  const capturedSupervisorLogs = await readCapturedSupervisorLogs(
+    gravityHome,
+    recentSupervisorLogs,
+  );
   assert(
     process.platform === "win32"
       ? capturedSupervisorLogs.includes('"reason":"client_shutdown_rpc"')
@@ -243,8 +249,8 @@ try {
     });
   }
 
-  await $`PASEO_HOME=${paseoHome} PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD=${testEnv.PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD} PASEO_DICTATION_ENABLED=${testEnv.PASEO_DICTATION_ENABLED} PASEO_VOICE_MODE_ENABLED=${testEnv.PASEO_VOICE_MODE_ENABLED} npx paseo daemon stop --home ${paseoHome} --force`.nothrow();
-  await rm(paseoHome, { recursive: true, force: true });
+  await $`GRAVITY_HOME=${gravityHome} GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD=${testEnv.GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD} GRAVITY_DICTATION_ENABLED=${testEnv.GRAVITY_DICTATION_ENABLED} GRAVITY_VOICE_MODE_ENABLED=${testEnv.GRAVITY_VOICE_MODE_ENABLED} npx gravity daemon stop --home ${gravityHome} --force`.nothrow();
+  await rm(gravityHome, { recursive: true, force: true });
 }
 
 if (recentSupervisorLogs.trim().length === 0) {

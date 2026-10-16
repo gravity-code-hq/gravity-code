@@ -5,11 +5,19 @@ import type { Logger } from "pino";
 
 import type { AgentModelDefinition } from "../../agent-sdk-types.js";
 import {
+  CLAUDE_DEFAULT_THINKING_OPTION_ID,
+  CLAUDE_DISABLED_THINKING_OPTION_ID,
+  buildThinkingOptions,
   getClaudeCustomModelThinkingOptions,
   getClaudeManifestModels,
   normalizeClaudeManifestModelId,
   normalizeClaudeRuntimeModelId as normalizeClaudeManifestRuntimeModelId,
 } from "./model-manifest.js";
+import {
+  type ClaudeRuntimeModel,
+  getClaudeRuntimeModels,
+  setClaudeRuntimeModels,
+} from "./model-registry.js";
 
 const CLAUDE_SETTINGS_MODEL_ENV_KEYS = [
   "ANTHROPIC_MODEL",
@@ -20,7 +28,92 @@ const CLAUDE_SETTINGS_MODEL_ENV_KEYS = [
 ] as const;
 
 export function getClaudeModels(claudeCodeVersion?: string): AgentModelDefinition[] {
-  return getClaudeManifestModels(claudeCodeVersion);
+  const manifestModels = getClaudeManifestModels(claudeCodeVersion);
+  const runtimeModels = getClaudeRuntimeModels();
+  if (runtimeModels.length === 0) {
+    return manifestModels;
+  }
+  return mergeClaudeRuntimeModels(runtimeModels, manifestModels);
+}
+
+/**
+ * Fold what Claude Code reported into the curated manifest.
+ *
+ * Probe rows lead, in the order the CLI listed them: they are the current lineup, and their
+ * labels and effort levels track the installed CLI rather than this build. Manifest rows the
+ * probe did not cover follow, so a model the user pinned before it left the picker stays
+ * selectable.
+ */
+function mergeClaudeRuntimeModels(
+  runtimeModels: readonly ClaudeRuntimeModel[],
+  manifestModels: readonly AgentModelDefinition[],
+): AgentModelDefinition[] {
+  const covered = new Set<string>();
+  for (const model of runtimeModels) {
+    covered.add(model.id);
+    for (const alias of model.aliases ?? []) covered.add(alias);
+  }
+
+  const models = runtimeModels.map((model) => toClaudeModelDefinition(model));
+  for (const manifestModel of manifestModels) {
+    if (covered.has(manifestModel.id)) continue;
+    // A probe-discovered default outranks the manifest's, which is a guess frozen at build time.
+    models.push(
+      runtimeModels.length > 0 ? { ...manifestModel, isDefault: undefined } : manifestModel,
+    );
+  }
+  return models;
+}
+
+function toClaudeModelDefinition(model: ClaudeRuntimeModel): AgentModelDefinition {
+  const definition: AgentModelDefinition = {
+    provider: "claude",
+    id: model.id,
+    label: model.label,
+  };
+  if (model.description) definition.description = model.description;
+  if (model.aliases && model.aliases.length > 0) definition.aliases = [...model.aliases];
+  if (model.isDefault) definition.isDefault = true;
+  if (model.contextWindowMaxTokens !== undefined) {
+    definition.contextWindowMaxTokens = model.contextWindowMaxTokens;
+  }
+  const thinkingOptions = buildThinkingOptions(
+    model.effortLevels,
+    model.supportsThinkingDisabled === true,
+  );
+  if (thinkingOptions) {
+    definition.thinkingOptions = thinkingOptions;
+    definition.defaultThinkingOptionId = CLAUDE_DEFAULT_THINKING_OPTION_ID;
+  }
+  return definition;
+}
+
+/**
+ * Publish probe results, enriched with the curated data Claude Code does not report.
+ *
+ * The manifest stays authoritative for a model it lists: its context window is measured
+ * rather than inferred from the id, and its disabled-thinking flag is known rather than
+ * guessed from the family.
+ */
+export function applyClaudeRuntimeModels(
+  runtimeModels: readonly ClaudeRuntimeModel[],
+  claudeCodeVersion?: string,
+): void {
+  const manifestModels = getClaudeManifestModels(claudeCodeVersion);
+  setClaudeRuntimeModels(
+    runtimeModels.map((model) => {
+      const manifestModel = manifestModels.find((candidate) => candidate.id === model.id);
+      if (!manifestModel) return model;
+      const enriched: ClaudeRuntimeModel = { ...model };
+      if (manifestModel.contextWindowMaxTokens !== undefined) {
+        enriched.contextWindowMaxTokens = manifestModel.contextWindowMaxTokens;
+      }
+      enriched.supportsThinkingDisabled = manifestModel.thinkingOptions?.some(
+        (option) => option.id === CLAUDE_DISABLED_THINKING_OPTION_ID,
+      );
+      return enriched;
+    }),
+  );
 }
 
 export function resolveConfiguredClaudeModel(model: AgentModelDefinition): AgentModelDefinition {

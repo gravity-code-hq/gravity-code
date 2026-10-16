@@ -1,0 +1,23 @@
+Gravity
+Copyright (c) 2026-present Gravity Code
+
+This product includes software derived from Paseo.
+Paseo: https://github.com/getpaseo/paseo
+Copyright (c) 2025-present Mohamed Boudra
+Licensed under the Apache License, Version 2.0 (LICENSES/Apache-2.0.txt).
+
+Files originally from Paseo have been modified, including renaming. The git
+history of this repository records every change made to those files.
+
+Gravity is not affiliated with or endorsed by the Paseo project. "Paseo"
+and its logo are trademarks of their respective owners.
+
+This product includes code derived from Visual Studio Code.
+Visual Studio Code: https://github.com/microsoft/vscode
+Copyright (c) Microsoft Corporation
+Licensed under the MIT License (LICENSES/MIT-vscode.txt).
+
+The workspace content search engine in packages/server/src/server/file-explorer
+ports VS Code's ripgrep text search engine and search preview logic, and the app's
+Search pane in packages/app/src/components/workspace-search-pane.tsx ports its
+result preview rules.

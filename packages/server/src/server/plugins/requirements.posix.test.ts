@@ -16,12 +16,12 @@ async function directory() {
   roots.push(root);
   return root;
 }
-async function writePlugin(root: string, paseo?: string, build?: string[][]) {
+async function writePlugin(root: string, gravity?: string, build?: string[][]) {
   await writeFile(
-    path.join(root, "paseo-plugin.json"),
+    path.join(root, "gravity-plugin.json"),
     JSON.stringify({
       id: "example",
-      requirements: paseo === undefined ? undefined : { paseo },
+      requirements: gravity === undefined ? undefined : { gravity },
       build,
     }),
   );
@@ -69,7 +69,7 @@ it("rejects incompatible installs without persisting them, then accepts the corr
     status: "running",
   });
   expect(service.catalog()).toEqual([
-    { id: "example", requirements: { paseo: "^0.8.0" }, clientBundle: expect.any(String) },
+    { id: "example", requirements: { gravity: "^0.8.0" }, clientBundle: expect.any(String) },
   ]);
 });
 
@@ -80,13 +80,15 @@ it("marks pre-0.8 plugins failed on startup and recovers after migration and rel
   expect(service.listPlugins()).toEqual([
     expect.objectContaining({
       status: "failed",
-      error: expect.stringContaining("https://paseo.sh/docs/plugins/v0.8/migration"),
+      error: expect.stringContaining(
+        "https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
+      ),
     }),
   ]);
   await writePlugin(root, ">=0.8.0");
   await expect(service.reloadPlugin("example")).resolves.toMatchObject({ status: "running" });
   await writePlugin(root, ">=0.9.0");
-  await expect(service.reloadPlugin("example")).rejects.toThrow("requires Paseo >=0.9.0");
+  await expect(service.reloadPlugin("example")).rejects.toThrow("requires Gravity >=0.9.0");
   expect(service.catalog()).toEqual([]);
 });
 
@@ -97,14 +99,14 @@ it("still requires entry migration when an old plugin adds a compatible requirem
   await writeFile(path.join(root, "index.ts"), "export default () => () => {};");
   const { service } = await host();
   await expect(service.installDirectory({ path: root })).rejects.toThrow(
-    "https://paseo.sh/docs/plugins/v0.8/migration",
+    "https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
   );
 });
 
 it("rejects Git install and update before build commands, preserving the running revision", async () => {
   const repository = await directory();
   await runGitCommand(["init", "-b", "main"], { cwd: repository });
-  await runGitCommand(["config", "user.name", "Paseo Tests"], { cwd: repository });
+  await runGitCommand(["config", "user.name", "Gravity Tests"], { cwd: repository });
   await runGitCommand(["config", "user.email", "tests@example.test"], { cwd: repository });
   const commit = async () => {
     await runGitCommand(["add", "-A"], { cwd: repository });
@@ -120,13 +122,13 @@ it("rejects Git install and update before build commands, preserving the running
     [process.execPath, "-e", 'require("node:fs").writeFileSync(process.argv[1], "ran")', marker],
   ]);
   await commit();
-  await expect(service.updateSources("example")).rejects.toThrow("requires Paseo >=0.9.0");
+  await expect(service.updateSources("example")).rejects.toThrow("requires Gravity >=0.9.0");
   expect(service.listPlugins()).toEqual([installed]);
   expect(service.catalog()).toHaveLength(1);
   expect(await readdir(path.join(home, "plugins", ".staging"))).toEqual([]);
   await expect(readFile(marker)).rejects.toMatchObject({ code: "ENOENT" });
   await expect(service.installSource({ source, id: "second" })).rejects.toThrow(
-    "requires Paseo >=0.9.0",
+    "requires Gravity >=0.9.0",
   );
   await expect(readFile(marker)).rejects.toMatchObject({ code: "ENOENT" });
   expect(service.listPlugins()).toEqual([installed]);

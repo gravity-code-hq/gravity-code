@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type pino from "pino";
-import { createClientChannel, type Transport } from "@getpaseo/relay/e2ee";
-import { exportPublicKey, generateKeyPair } from "@getpaseo/relay";
+import { createClientChannel, type Transport } from "@gravity/relay/e2ee";
+import { exportPublicKey, generateKeyPair } from "@gravity/relay";
 import { startRelayTransport } from "./relay-transport";
 
 function createMockLogger() {
@@ -151,7 +151,7 @@ describe("relay-transport control lifecycle", () => {
     const controller = startRelayTransport({
       logger: logger as unknown as pino.Logger,
       attachSocket: async () => {},
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       relayUseTls: true,
       serverId: "srv_test",
       createWebSocket: relay.createWebSocket,
@@ -175,7 +175,7 @@ describe("relay-transport control lifecycle", () => {
     const controller = startRelayTransport({
       logger: logger as unknown as pino.Logger,
       attachSocket: async () => {},
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       relayUseTls: true,
       serverId: "srv_test",
       createWebSocket: relay.createWebSocket,
@@ -199,7 +199,7 @@ describe("relay-transport control lifecycle", () => {
     const controller = startRelayTransport({
       logger: logger as unknown as pino.Logger,
       attachSocket: async () => {},
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       relayUseTls: true,
       serverId: "srv_test",
       createWebSocket: relay.createWebSocket,
@@ -227,7 +227,7 @@ describe("relay-transport control lifecycle", () => {
     const controller = startRelayTransport({
       logger: logger as unknown as pino.Logger,
       attachSocket,
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       relayUseTls: true,
       serverId: "srv_test",
       createWebSocket: relay.createWebSocket,
@@ -265,7 +265,7 @@ describe("relay-transport control lifecycle", () => {
     const controller = startRelayTransport({
       logger: logger as unknown as pino.Logger,
       attachSocket: async (socket) => resolveAttached?.(socket),
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       relayUseTls: true,
       serverId: "srv_test",
       daemonKeyPair,

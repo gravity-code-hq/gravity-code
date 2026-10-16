@@ -1,4 +1,70 @@
 export const en = {
+  visualization: {
+    previous: "Previous variant",
+    next: "Next variant",
+    controls: "Controls",
+  },
+
+  providerCustomizations: {
+    addCommand: "Add command",
+    commandName: "Command name",
+    prompt: "Prompt",
+    invalidName: "Use letters, numbers, hyphens, or underscores. Start with a letter or number.",
+    commandExists: "A command with this name already exists. Choose a different name.",
+    models: "Models",
+    commands: "Commands",
+    skills: "Skills",
+    mcpServers: "MCP servers",
+    mcp: {
+      updated: "Checked {{time}}",
+      checking: "Checking servers…",
+      notHealthChecked:
+        "Codex does not test connections. Configured means the server is in the config, not that it works.",
+      empty: "No MCP servers configured.",
+      connectTitle: "Connect more",
+      claudeConnectors:
+        "Slack, Gmail, Google Drive, Calendar, and others are connectors you turn on at claude.ai. They follow your account to every host, so nothing is set up here.",
+      claudeConnectorsLink: "Open claude.ai connectors",
+      claudeLocal: "For any other server, run this on the host:",
+      codexAdd: "Codex reads servers from config.toml on this host. Add one with the Codex CLI:",
+      codexLogin: "Servers that use OAuth also need a login on the host:",
+      thenRefresh: "Then press Refresh here.",
+      status: {
+        connected: "Connected",
+        failed: "Failed",
+        pending_approval: "Needs approval",
+        disabled: "Disabled",
+        configured: "Configured",
+        unknown: "Unknown",
+      },
+      scope: {
+        claude_ai: "claude.ai account",
+        user: "Personal",
+        project: "Project",
+      },
+    },
+    scope: "Scope",
+    personal: "Personal",
+    project: "Project",
+    plugin: "Plugin",
+    provider: "Provider",
+    searchCommands: "Search commands",
+    searchSkills: "Search skills",
+    noCommands: "No commands found.",
+    noSkills: "No skills found.",
+    updateHost: "Update this host to manage commands and skills.",
+    readOnly: "Managed by the provider or a plugin. Installed files are read-only here.",
+    instructions: "Instructions",
+    improve: "Improve with agent",
+    save: "Save",
+    saved: "Saved",
+    conflict:
+      "This file changed on disk. Reload it before saving to avoid overwriting those changes.",
+    discardTitle: "Discard changes?",
+    discardMessage: "Your unsaved edits will be lost.",
+    discard: "Discard",
+  },
+
   common: {
     back: "Back",
     loading: "Loading...",
@@ -131,6 +197,10 @@ export const en = {
       addIssueOrPr_mr: "Add issue or MR",
       dropImagesHere: "Drop images here",
       dropFilesHere: "Drop files here",
+      queuedCount: "{{count}} queued",
+      deleteQueuedMessage: "Delete queued message",
+      deleteAllQueued: "Delete all",
+      sendAllQueuedNow: "Send all now",
       editQueuedMessage: "Edit queued message",
       sendQueuedMessageNow: "Send queued message now",
       openImage: "Open image attachment",
@@ -169,9 +239,14 @@ export const en = {
     },
   },
   agentControls: {
+    moreSettings: "More settings",
+    permissions: "Permissions",
+    plan: "Plan",
+    caffeineMode: "Caffeine mode",
     provider: {
       fallback: "Provider",
       select: "Select agent provider",
+      switched: "Continuing in {{provider}} in a new tab with the chat history",
     },
     thinking: {
       title: "Thinking",
@@ -287,6 +362,7 @@ export const en = {
     },
   },
   message: {
+    forkedFrom: "Forked from {{title}}",
     diagram: {
       diagram: "Diagram",
       zoomIn: "Zoom in",
@@ -300,9 +376,10 @@ export const en = {
       copyCode: "Copy code",
       copyTurn: "Copy turn",
       copyMessage: "Copy message",
+      expandMessage: "Show more",
+      collapseMessage: "Show less",
       forkMenu: "Fork chat from here",
       forkInNewTab: "Fork in a new tab",
-      forkInNewWorkspace: "Fork in a new workspace",
       forkUnavailable: "Update the host to use this.",
       forkMissingWorkspace: "This agent is not in a workspace.",
       forkFailed: "Failed to fork chat",
@@ -313,6 +390,8 @@ export const en = {
       dismissImage: "Dismiss image",
       closeImage: "Close image",
       imageLoadFailed: "Couldn't load image",
+      copyImage: "Copy image",
+      copyImageFailed: "Couldn't copy image. Try again.",
       imageUnavailable: "Image unavailable",
       imagePreviewUnavailable: "Image preview unavailable.",
       imagePreviewLoadFailed: "Unable to load image preview.",
@@ -330,6 +409,10 @@ export const en = {
       details: "Details",
     },
     dictation: {
+      listening: "Listening",
+      transcribing: "Transcribing…",
+      stopped: "Recording stopped",
+      doubleCommand: "Press ⌘ twice to start or stop dictation",
       start: "Start voice dictation",
       cancel: "Cancel dictation",
       retry: "Retry dictation",
@@ -402,6 +485,15 @@ export const en = {
     },
   },
   workspace: {
+    zoom: {
+      textSize: "Text size",
+      increase: "Increase text size",
+      decrease: "Decrease text size",
+      reset: "Reset",
+      terminalOptions: "Terminal options",
+      terminalText: "Terminal text: {{size}} px",
+      editorText: "Editor text: {{size}} px",
+    },
     route: {
       loading: "Loading workspace",
       connecting: "Connecting",
@@ -462,11 +554,6 @@ export const en = {
       },
     },
     fileExplorer: {
-      sort: {
-        name: "Name",
-        modified: "Modified",
-        size: "Size",
-      },
       context: {
         size: "Size",
         modified: "Modified",
@@ -598,6 +685,8 @@ export const en = {
       },
       menu: {
         openFor: "Open menu for {{label}}",
+        copyConversation: "Copy conversation",
+        downloadConversation: "Download conversation",
         copyResumeCommand: "Copy resume command",
         copyAgentId: "Copy agent id",
         copyTerminalId: "Copy terminal id",
@@ -649,6 +738,14 @@ export const en = {
         filePathCopiedLabel: "File path",
         resumeIdUnavailable: "Resume ID not available",
         resumeCommandUnavailable: "Resume command not available",
+        copyingConversation: "Copying conversation…",
+        conversationCopied: "Conversation copied",
+        conversationCopyFailed:
+          "Could not copy conversation: {{reason}}. Try Copy conversation again.",
+        downloadingConversation: "Preparing conversation download…",
+        conversationChanged: "Conversation history changed. Please try again.",
+        conversationDownloadFailed:
+          "Could not download conversation: {{reason}}. Try Download conversation again.",
         reloadingAgent: "Reloading agent...",
         reloadedAgent: "Reloaded agent",
         failedToReloadAgent: "Failed to reload agent",
@@ -729,7 +826,7 @@ export const en = {
       },
       routes: {
         public: "Reverse proxy",
-        paseo: "Memorable",
+        gravity: "Memorable",
         direct: "Direct",
       },
       states: {
@@ -849,7 +946,7 @@ export const en = {
             "Update isn't available because this branch is already up to date with {{baseRef}}",
           mergePrNoGithub: "Merge PR isn't available right now because GitHub isn't connected",
           archiveNotWorktree:
-            "Archive isn't available here because this workspace was not created as a Paseo worktree",
+            "Archive isn't available here because this workspace was not created as a Gravity worktree",
           mergePrNoForge:
             "Merge {{noun}} isn't available right now because {{brand}} isn't connected",
           mergePrMissing: "Merge PR isn't available because there isn't a pull request yet",
@@ -1059,6 +1156,19 @@ export const en = {
       updateHost: "Update this host to manage labels.",
     },
   },
+  githubStar: {
+    title: "Enjoying Gravity?",
+    description:
+      "Gravity is open source. If it helped today, a GitHub star helps other developers find it.",
+    hostHint: "Stars with the GitHub account signed in to gh on {{host}}.",
+    directStarFailed: "Couldn't star from here. Open GitHub to star in your browser.",
+    thanks: "Thanks for starring Gravity.",
+    star: "Star on GitHub",
+    starring: "Starring...",
+    openGitHub: "Open GitHub",
+    opening: "Opening...",
+    later: "Later",
+  },
   changelog: {
     title: "What's new",
     installed: "Installed",
@@ -1067,6 +1177,110 @@ export const en = {
     error: {
       title: "Unable to load the changelog",
       description: "Check your connection and try again.",
+    },
+  },
+  linear: {
+    title: "Tasks",
+    connect: {
+      title: "Connect Linear",
+      description: "Paste a personal API key to see your issues here. The key stays on this host.",
+      apiKeyLabel: "API key",
+      apiKeyPlaceholder: "lin_api_…",
+      action: "Connect",
+      pending: "Connecting…",
+      createKey: "Create an API key in Linear",
+    },
+    filters: {
+      assigned: "Assigned",
+      created: "Created",
+      all: "All",
+      completed: "Completed",
+      allTeams: "All teams",
+      teamFilterLabel: "Filter by team: {{team}}",
+      searchPlaceholder: "Search issues",
+      clearSearch: "Clear search",
+    },
+    menu: {
+      actions: "Linear actions",
+      refresh: "Refresh",
+      openLinear: "Open Linear",
+      disconnect: "Disconnect",
+      disconnecting: "Disconnecting…",
+      disconnectTitle: "Disconnect Linear",
+      disconnectMessage: "Remove the Linear API key from {{host}}?",
+      disconnectConfirm: "Disconnect",
+    },
+    states: {
+      noHosts: "Add a host to use Linear.",
+      hostOffline: "This host is offline.",
+      hostUnsupported: "Update this host to use Linear.",
+      retry: "Try again",
+      loadError: "Unable to load issues",
+      empty: "No issues",
+      searchEmpty: "No issues match your search",
+      hasMore: "Showing the first {{count}} issues",
+    },
+    pagination: {
+      range: "{{start}}–{{end}} issues",
+      previous: "Previous",
+      next: "Next",
+      page: "Page {{page}}",
+      updateHost: "Update this host to browse more issues.",
+    },
+    start: {
+      repository: "Repository",
+      workspace: "Workspace",
+      newWorktree: "New worktree",
+      newWorkspace: "New workspace",
+      existingWorkspace: "Existing workspace",
+      repositoryCheckout: "Repository checkout (current branch)",
+      noWorkspaces: "No workspaces in this repository",
+      model: "Model",
+      chooseModel: "Choose a model",
+      noModels: "No models available",
+      prompt: "Prompt",
+    },
+    issue: {
+      open: "Open in Linear",
+      startAgent: "Start agent",
+      actions: "Issue actions",
+      startFailed: "Could not start agent",
+      chooseRepo: "Choose a repo",
+      noProjects: "No projects on this host",
+      openComposer: "Set up in New workspace",
+      copyBranch: "Copy branch name",
+      branchCopied: "Branch name copied",
+      state: "Status",
+      changeState: "Change status",
+      stateUpdateFailed: "Could not update status",
+      priority: "Priority",
+      assignee: "Assignee",
+      unassigned: "Unassigned",
+      unknownUser: "Unknown",
+      labels: "Labels",
+      project: "Project",
+      dueDate: "Due",
+      updated: "Updated",
+      updatedAgo: "Updated {{time}}",
+      description: "Description",
+      noDescription: "No description",
+      subIssues: "Sub-issues",
+      comments: "Comments",
+      noComments: "No comments yet",
+      loadError: "Unable to load this issue",
+    },
+    priority: {
+      none: "No priority",
+      urgent: "Urgent",
+      high: "High",
+      medium: "Medium",
+      low: "Low",
+    },
+    errors: {
+      auth: "Linear rejected the API key.",
+      rateLimited: "Linear rate limit reached. Try again shortly.",
+      network: "Could not reach Linear.",
+      notConnected: "Linear is not connected on this host.",
     },
   },
   sidebar: {
@@ -1136,15 +1350,16 @@ export const en = {
       diagnostics: "Run diagnostics",
       shortcuts: "Keyboard shortcuts",
       reportIssue: "Report an issue",
-      discord: "Discord",
       github: "Create GitHub issue",
       whatsNew: "What's new",
-      appName: "Paseo",
+      starOnGithub: "Star on GitHub",
+      appName: "Gravity",
     },
     sections: {
       sessions: "History",
       search: "Search",
-      schedules: "Schedules",
+      schedules: "Automations",
+      tasks: "Tasks",
     },
     worktreeSetup: {
       title: "Set up worktree scripts",
@@ -1200,6 +1415,7 @@ export const en = {
         showMore: "Show more",
         showLess: "Show less",
         createWorkspaceFor: "Create a new workspace for {{projectName}}",
+        newAgent: "New agent",
         copyPath: "Copy path",
         copyBranchName: "Copy branch name",
         rename: "Rename workspace",
@@ -1237,9 +1453,9 @@ export const en = {
     title: "New workspace",
     create: "Create",
     isolation: {
-      local: "Local",
+      local: "Current directory",
       worktree: "New worktree",
-      label: "Isolation",
+      label: "Where to run",
     },
     fields: {
       project: "Project",
@@ -1254,9 +1470,9 @@ export const en = {
       selectModel: "Select a model",
     },
     tooltips: {
+      isolation: "Run here or in a new worktree",
       project: "Choose the project",
       host: "Choose the host",
-      isolation: "Choose the isolation level",
       startingRef: "Choose where to start from",
       launch: "Choose what to launch",
     },
@@ -1286,7 +1502,7 @@ export const en = {
       close: "Close window",
     },
     quitting: {
-      title: "Quitting Paseo...",
+      title: "Quitting Gravity...",
       detail: "Stopping the local daemon.",
     },
     daemon: {
@@ -1317,20 +1533,20 @@ export const en = {
       },
       management: {
         title: "Manage built-in daemon",
-        hint: "Let Paseo start and stop the built-in daemon",
+        hint: "Let Gravity start and stop the built-in daemon",
         pauseTitle: "Pause built-in daemon",
         pauseMessage:
           "This will stop the built-in daemon immediately. Running agents and terminals connected to the built-in daemon will be stopped.",
         pauseAndStop: "Pause and stop",
         registrationFailed:
-          "Built-in daemon started, but Paseo could not save the localhost connection. Toggle daemon management off and on again, or add localhost manually.",
+          "Built-in daemon started, but Gravity could not save the localhost connection. Toggle daemon management off and on again, or add localhost manually.",
         pausedStopFailed:
-          "Built-in daemon management was paused, but Paseo could not stop the daemon.",
+          "Built-in daemon management was paused, but Gravity could not stop the daemon.",
         updateFailed: "Unable to update built-in daemon management.",
       },
       keepRunning: {
         title: "Keep daemon running after quit",
-        hint: "Daemon keeps running when you quit Paseo",
+        hint: "Daemon keeps running when you quit Gravity",
       },
       logs: {
         title: "Log file",
@@ -1345,7 +1561,7 @@ export const en = {
       fullStatus: {
         title: "Full status",
         modalTitle: "Daemon status",
-        hint: "Runs `paseo daemon status` and shows the output",
+        hint: "Runs `gravity daemon status` and shows the output",
         view: "View status",
         copied: "Status copied to clipboard.",
         fetchFailed: "Failed to fetch daemon status: {{message}}",
@@ -1397,7 +1613,7 @@ export const en = {
     },
     rosetta: {
       title: "Download the Apple Silicon build",
-      runningIntel: "You're running the Intel build of Paseo under Rosetta on Apple Silicon.",
+      runningIntel: "You're running the Intel build of Gravity under Rosetta on Apple Silicon.",
       highCpu: "This causes high CPU usage. Download the Apple Silicon build to fix it.",
       download: "Download",
     },
@@ -1439,7 +1655,7 @@ export const en = {
         microphone: "Microphone status has not been checked yet.",
       },
       testNotification: {
-        title: "Paseo notification test",
+        title: "Gravity notification test",
         body: "If you can see this, desktop notifications work.",
         notDelivered: "Notification was not delivered. Check System Settings > Notifications.",
         failed: "Failed to send notification.",
@@ -1448,12 +1664,12 @@ export const en = {
     integrations: {
       cli: {
         statusFailed: "Unable to check CLI install status.",
-        installFailed: "Unable to install the Paseo CLI.",
+        installFailed: "Unable to install the Gravity CLI.",
       },
     },
   },
   rootError: {
-    title: "Paseo ran into a problem.",
+    title: "Gravity ran into a problem.",
     body: "Try again to reload the app. If this keeps happening, include the details below when you report it.",
     details: "Details",
   },
@@ -1519,6 +1735,8 @@ export const en = {
     stashRestored: "Stashed changes restored",
   },
   agentAutocomplete: {
+    command: "Command",
+    skill: "Skill",
     searchingWorkspace: "Searching workspace...",
     loadingCommands: "Loading commands...",
     noFiles: "No files or directories found",
@@ -1548,7 +1766,7 @@ export const en = {
     },
   },
   onboarding: {
-    title: "Welcome to Paseo",
+    title: "Welcome to Gravity",
     subtitle: "Connect your computer to get started",
     actions: {
       settings: "Settings",
@@ -1636,7 +1854,7 @@ export const en = {
     },
     direct: {
       title: "Direct connection",
-      helper: "Enter the address of a Paseo server.",
+      helper: "Enter the address of a Gravity server.",
       fields: {
         host: "Host",
         port: "Port",
@@ -1678,7 +1896,7 @@ export const en = {
     },
     remoteSsh: {
       title: "Remote SSH",
-      helper: "Connect to a Paseo daemon running on the remote host.",
+      helper: "Connect to a Gravity daemon running on the remote host.",
       fields: {
         target: "SSH host",
       },
@@ -1734,15 +1952,15 @@ export const en = {
       enableDescription:
         "Relay lets this device connect from anywhere. Pairing traffic is end-to-end encrypted.",
       relayDocs: "How relay works",
-      relayDocsAccessibility: "Read how Paseo relay works",
+      relayDocsAccessibility: "Read how Gravity relay works",
       enableRelay: "Enable relay",
       enablingRelay: "Enabling...",
       notNow: "Not now",
       directConnectionHint:
         "Without relay, connect directly over TCP, Tailscale, or another VPN. No QR code is created.",
-      updateRequired: "Update the host to enable relay from Paseo Desktop.",
+      updateRequired: "Update the host to enable relay from Gravity Desktop.",
       unavailable: "Pairing offer unavailable.",
-      hint: "Scan this QR code with Paseo on your phone, or copy the link below.",
+      hint: "Scan this QR code with Gravity on your phone, or copy the link below.",
       securityWarning:
         "Treat this pairing link like a password. Anyone with it can access this daemon.",
       qrUnavailable: "QR code unavailable.",
@@ -1777,7 +1995,7 @@ export const en = {
   serviceUrl: {
     title: "Open service URL",
     message: "Open {{url}}?",
-    inPaseo: "In Paseo",
+    inGravity: "In Gravity",
     externalBrowser: "External browser",
     dontAskAgain: "Don't ask again",
   },
@@ -1822,6 +2040,19 @@ export const en = {
       failedToLoad: "Failed to load file",
       failedToLoadPreview: "Failed to load file preview",
       editor: {
+        find: {
+          placeholder: "Find",
+          replace: "Replace",
+          toggleReplace: "Toggle replace",
+          previous: "Previous match",
+          next: "Next match",
+          selectAll: "Select all matches",
+          close: "Close find",
+          replaceAll: "Replace all",
+          count: "{{current}} of {{total}}",
+          invalidRegex: "Invalid regex",
+          noResults: "No results",
+        },
         fileSize: "File size {{size}}",
         lines: "{{count}} lines",
         editorStatus: "Editor status {{status}}",
@@ -1848,6 +2079,55 @@ export const en = {
       subtitle: "Workspace files",
       tooltip: "Browse workspace files",
       chooseFile: "Choose a file",
+    },
+    search: {
+      label: "Search",
+      subtitle: "Find in files",
+      tooltip: "Search workspace files",
+      placeholder: "Search",
+      clear: "Clear search",
+      modes: {
+        names: "Names",
+        contents: "Contents",
+      },
+      options: {
+        caseSensitive: "Match case",
+        wholeWord: "Match whole word",
+        regex: "Use regular expression",
+        filters: "Files to include or exclude",
+      },
+      filters: {
+        includeLabel: "Files to include",
+        includePlaceholder: "e.g. *.ts, src/**",
+        excludeLabel: "Files to exclude",
+        excludePlaceholder: "e.g. *.min.js, dist/**",
+      },
+      count: {
+        fileResult: "{{count}} result in {{files}} file",
+        filesResult: "{{count}} result in {{files}} files",
+        fileResults: "{{count}} results in {{files}} file",
+        filesResults: "{{count}} results in {{files}} files",
+      },
+      states: {
+        prompt: "Type to search file contents",
+        namesPrompt: "Type to search file names",
+        empty:
+          "No results found. Review your configured exclusions and check your gitignore files.",
+        emptyIncludes: "No results found in '{{include}}'.",
+        emptyExcludes: "No results found excluding '{{exclude}}'.",
+        emptyIncludesExcludes: "No results found in '{{include}}' excluding '{{exclude}}'.",
+        limitHit:
+          "The result set only contains a subset of all matches. Be more specific in your search to narrow down the results.",
+      },
+      actions: {
+        refresh: "Refresh",
+        clear: "Clear Search Results",
+        collapseAll: "Collapse All",
+        expandAll: "Expand All",
+        toggleDetails: "Toggle Search Details",
+      },
+      fileMatches_one: "{{count}} match found",
+      fileMatches_other: "{{count}} matches found",
     },
     pullRequest: {
       label: "Pull request",
@@ -1876,6 +2156,10 @@ export const en = {
     output: "Output",
   },
   toolCallGroup: {
+    earlierCalls: {
+      one: "{{count}} earlier tool call",
+      other: "{{count}} earlier tool calls",
+    },
     editedFiles: {
       one: "edited {{count}} file",
       other: "edited {{count}} files",
@@ -1896,9 +2180,9 @@ export const en = {
       one: "used {{count}} other tool",
       other: "used {{count}} other tools",
     },
-    paseoCalls: {
-      one: "called Paseo {{count}} time",
-      other: "called Paseo {{count}} times",
+    gravityCalls: {
+      one: "called Gravity {{count}} time",
+      other: "called Gravity {{count}} times",
     },
     and: "and",
   },
@@ -2014,7 +2298,7 @@ export const en = {
       send: "Send",
       sending: "Sending...",
       sentTitle: "Test notification sent",
-      sentDescription: "Paseo handed the notification to the operating system.",
+      sentDescription: "Gravity handed the notification to the operating system.",
       sendFailedTitle: "Unable to send test notification",
     },
     hostSections: {
@@ -2045,7 +2329,7 @@ export const en = {
       directoryLabel: "Plugin directory",
       directoryPlaceholder: "/absolute/path/on/host",
       idLabel: "Plugin installation ID",
-      idHint: "Leave blank to use paseo-plugin.json",
+      idHint: "Leave blank to use gravity-plugin.json",
       idPlaceholder: "Manifest default",
       install: "Install directory",
       installing: "Installing…",
@@ -2094,14 +2378,14 @@ export const en = {
     metadataGeneration: {
       title: "Metadata generation",
       description:
-        "Choose the model Paseo uses for workspace titles, branch names, commit messages, and pull request drafts",
+        "Choose the model Gravity uses for workspace titles, branch names, commit messages, and pull request drafts",
       selection: "Model selection",
       automatic: "Automatic",
       preferred: "Manual",
-      automaticHint: "Paseo picks a fast available model",
-      preferredHint: "Choose the model Paseo uses",
+      automaticHint: "Gravity picks a fast available model",
+      preferredHint: "Choose the model Gravity uses",
       model: "Model",
-      fallbackHint: "If it is unavailable, Paseo falls back to another available model",
+      fallbackHint: "If it is unavailable, Gravity falls back to another available model",
       docs: "Docs",
       saveError: "Unable to update metadata generation",
     },
@@ -2110,7 +2394,7 @@ export const en = {
       browserData: {
         title: "Browser data",
         siteData: "Cookies and site data",
-        description: "Browser tabs share sign-ins and site data across Paseo.",
+        description: "Browser tabs share sign-ins and site data across Gravity.",
         clear: "Clear browser data",
         clearing: "Clearing...",
         confirmTitle: "Clear browser data?",
@@ -2137,9 +2421,22 @@ export const en = {
         description: "Where to open URLs from running scripts",
         options: {
           ask: "Ask",
-          inApp: "In Paseo",
+          inApp: "In Gravity",
           external: "External browser",
         },
+      },
+      power: {
+        title: "Power",
+        label: "Keep working with lid closed",
+        description:
+          "Keeps this Mac awake until turned off or Gravity quits. Ends after 12 hours or at 20% battery.",
+        agentLabel: "Keep awake for this agent",
+        agentHint:
+          "Keeps this Mac awake for this agent’s next run, then turns off. Requires administrator permission.",
+        pending: "Waiting for macOS…",
+        error: "Could not change sleep settings. Try again. {{detail}}",
+        agentsActive: "An agent is keeping this Mac awake. Turn off its composer toggle to stop.",
+        globalActive: "Enabled for this Mac in Settings → General.",
       },
       terminalScrollback: {
         label: "Terminal scrollback",
@@ -2150,14 +2447,9 @@ export const en = {
         label: "Always expand reasoning",
         description: "Show agent thinking and chain-of-thought blocks fully expanded by default",
       },
-      toolCallDetail: {
-        label: "Tool call display",
-        description: "How tool calls appear in the timeline",
-        accessibilityLabel: "Select tool call display ({{value}})",
-        options: {
-          overview: "Summary",
-          detailed: "Full detail",
-        },
+      collapseToolCalls: {
+        label: "Collapse tool calls",
+        description: "Group consecutive tool calls into a collapsible, scrollable section",
       },
       language: {
         label: "Language",
@@ -2222,7 +2514,7 @@ export const en = {
         label: "App updates",
         readyToInstall: "Ready to install: {{version}}",
         installTitle: "Install desktop update",
-        installMessage: "This updates Paseo on this computer",
+        installMessage: "This updates Gravity on this computer",
         installConfirm: "Install update",
         update: "Update",
         updateTo: "Update to {{version}}",
@@ -2278,8 +2570,11 @@ export const en = {
           "Used in code, diffs, and the terminal output. Leave empty for the system default",
         codeFontAccessibility: "Code font family",
         codeSize: "Code size",
-        codeSizeHint: "Used for code, diffs, and terminal output",
+        codeSizeHint: "Used for code and diffs",
         codeSizeAccessibility: "Code font size",
+        terminalSize: "Terminal size",
+        terminalSizeHint: "Used for terminal output",
+        terminalSizeAccessibility: "Terminal font size",
       },
       syntax: {
         title: "Syntax",
@@ -2345,6 +2640,7 @@ export const en = {
         toggleRightSidebar: "Toggle Explorer sidebar",
         toggleBothSidebars: "Toggle both sidebars",
         toggleSettings: "Toggle settings",
+        openHistory: "Open history",
         toggleFocusMode: "Toggle focus mode",
         cycleTheme: "Cycle theme",
         focusMessageInput: "Focus message input",
@@ -2458,11 +2754,11 @@ export const en = {
         uninstallFailed: "Unable to uninstall orchestration skills.",
         saveSelectionFailed: "Unable to save the orchestration skills selection.",
         updateAvailable: "Update available",
-        updateTitle: "Update Paseo skills?",
+        updateTitle: "Update Gravity skills?",
         updateFallback: "Sync bundled skills to this host.",
-        uninstallTitle: "Uninstall Paseo skills?",
+        uninstallTitle: "Uninstall Gravity skills?",
         uninstallMessage:
-          "Removes all Paseo orchestration skills from ~/.agents, ~/.claude, ~/.codex on this host.",
+          "Removes all Gravity orchestration skills from ~/.agents, ~/.claude, ~/.codex on this host.",
         choose: "Choose skills",
         chooseAll: "All skills",
         chooseAllHint: "Keep every bundled skill installed, including ones added later.",
@@ -2494,9 +2790,9 @@ export const en = {
         title: "Orchestration",
         unavailable: "Connect to this host to manage orchestration",
         enableTools: {
-          title: "Enable Paseo tools",
-          hint: "Agents will be able to manage worktrees, agents and schedules",
-          accessibilityLabel: "Inject Paseo tools",
+          title: "Enable Gravity tools",
+          hint: "Agents will be able to manage worktrees, agents and automations",
+          accessibilityLabel: "Inject Gravity tools",
         },
         systemPrompt: {
           title: "System prompt",
@@ -2599,15 +2895,15 @@ export const en = {
             "This host is not connected. Wait for it to come online before restarting.",
           offlineTitle: "Host offline",
           offlineMessage:
-            "This host is offline. Paseo reconnects automatically-wait until it's back online before restarting.",
+            "This host is offline. Gravity reconnects automatically-wait until it's back online before restarting.",
           requestFailedTitle: "Error",
           requestFailedMessage:
-            "Failed to send the restart request. Paseo reconnects automatically-try again once the host shows as online.",
+            "Failed to send the restart request. Gravity reconnects automatically-try again once the host shows as online.",
           dialogFailedMessage: "Unable to open the restart confirmation dialog.",
         },
         update: {
           desktopManagedHint:
-            "This daemon is managed by Paseo Desktop. Update Paseo Desktop on the host.",
+            "This daemon is managed by Gravity Desktop. Update Gravity Desktop on the host.",
           title: "Update daemon",
           hint: "Update the daemon to the latest version and restart it",
           confirm: "Update",
@@ -2711,6 +3007,43 @@ export const en = {
         unknownError: "Unknown error",
       },
     },
+    accounts: {
+      title: "Accounts",
+      info: "Accounts are saved automatically when detected. Select Switch to use another account; your other accounts stay saved.",
+      loading: "Loading accounts...",
+      errorTitle: "Unable to load accounts",
+      providerUnsupported: "This provider does not support saved logins",
+      hostUnavailable: "Connect to this host to manage accounts",
+      hostUpgradeRequired: "Update the host to manage accounts",
+      clientUnavailable: "Host connection is not ready",
+      refresh: "Refresh",
+      refreshing: "Refreshing...",
+      retry: "Try again",
+      dismiss: "Dismiss",
+      notSignedIn: "Not signed in to {{provider}}",
+      currentLoginUnsaved: "Signed in as {{email}}. Save this login to switch back to it later.",
+      currentLoginExpired:
+        "The current login for {{email}} has expired. Log in again before saving it.",
+      save: "Save current login",
+      saving: "Saving...",
+      active: "Active",
+      loginExpired: "Login expired",
+      loginExpiredHint:
+        "Log in with this account in {{provider}} again, then save the current login",
+      usageUnavailable: "Usage unavailable",
+      switch: "Switch",
+      switching: "Switching...",
+      remove: "Remove",
+      removing: "Removing...",
+      removeConfirmTitle: "Remove {{email}}?",
+      removeConfirmMessage:
+        "Gravity forgets this saved login. The provider's own login is not affected.",
+      removeConfirm: "Remove",
+      switchErrorTitle: "Unable to switch account",
+      saveErrorTitle: "Unable to save login",
+      removeErrorTitle: "Unable to remove login",
+      actionsMenu: "Actions for {{email}}",
+    },
     project: {
       noEditableTarget: "This project isn't editable on this host.",
       backToProjects: "Back to projects",
@@ -2726,13 +3059,13 @@ export const en = {
         savedToast: "Project updated",
       },
       readFailures: {
-        invalidTitle: "paseo.json couldn't be parsed",
+        invalidTitle: "gravity.json couldn't be parsed",
         invalidDescription: "Fix the file on disk, then reload.",
         missingTitle: "This host doesn't have this project",
         missingSingleHost: "The selected host has no record of this project.",
-        transportTitle: "Couldn't load paseo.json",
+        transportTitle: "Couldn't load gravity.json",
         transportFallback: "The host didn't respond.",
-        failedTitle: "Couldn't load paseo.json",
+        failedTitle: "Couldn't load gravity.json",
         failedDescription: "Reload to try again.",
       },
       worktree: {
@@ -2743,7 +3076,7 @@ export const en = {
           "See docs for more details and the environment variables available to these commands",
         setup: "Setup",
         setupAccessibility: "Worktree setup commands",
-        uncommittedTitle: "Commit paseo.json changes",
+        uncommittedTitle: "Commit gravity.json changes",
         uncommittedDescription:
           "New worktrees use the setup script from the base branch you select.",
         teardown: "Teardown",
@@ -2768,7 +3101,7 @@ export const en = {
         newScript: "New script",
         editScript: "Edit {{name}}",
         runAsService: "Run as a service",
-        serviceHint: "Paseo supervises the process and assigns a port via $PASEO_PORT",
+        serviceHint: "Gravity supervises the process and assigns a port via $GRAVITY_PORT",
         actions: {
           add: "Add script",
           edit: "Edit",
@@ -2777,7 +3110,7 @@ export const en = {
       },
       metadata: {
         title: "Metadata generation",
-        info: "Project-specific instructions injected into the AI prompts Paseo uses to generate metadata - use them to enforce your team's conventions like branch naming, commit style, or PR format",
+        info: "Project-specific instructions injected into the AI prompts Gravity uses to generate metadata - use them to enforce your team's conventions like branch naming, commit style, or PR format",
         branchName: "Branch names",
         branchNamePlaceholder: "Prefix branches with feat/ or fix/, mb/ for personal branches",
         commitMessage: "Commit messages",
@@ -2787,8 +3120,8 @@ export const en = {
       },
       writeFailures: {
         staleTitle: "Config changed on disk",
-        staleDescription: "Reload to fetch the latest paseo.json before saving.",
-        failedTitle: "Couldn't save paseo.json",
+        staleDescription: "Reload to fetch the latest gravity.json before saving.",
+        failedTitle: "Couldn't save gravity.json",
         failedDescription: "Try again, or reload the latest version from disk.",
       },
       actions: {

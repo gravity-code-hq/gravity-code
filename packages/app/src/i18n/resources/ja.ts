@@ -2,6 +2,71 @@ import { en, type TranslationResources } from "./en";
 import { pluginSettings } from "./plugin-settings";
 
 export const ja: TranslationResources = {
+  visualization: {
+    previous: "前のバリエーション",
+    next: "次のバリエーション",
+    controls: "調整",
+  },
+
+  providerCustomizations: {
+    addCommand: "コマンドを追加",
+    commandName: "コマンド名",
+    prompt: "プロンプト",
+    invalidName: "半角英数字、ハイフン、アンダースコアを使用し、英字か数字で始めてください。",
+    commandExists: "同じ名前のコマンドがすでに存在します。別の名前を指定してください。",
+    models: "モデル",
+    commands: "コマンド",
+    skills: "スキル",
+    mcpServers: "MCP サーバー",
+    mcp: {
+      updated: "{{time}}に確認",
+      checking: "サーバーを確認中…",
+      notHealthChecked:
+        "Codex は接続を検証しません。「設定済み」は設定ファイルに存在することを示し、動作を保証するものではありません。",
+      empty: "MCP サーバーは設定されていません。",
+      connectTitle: "さらに接続する",
+      claudeConnectors:
+        "Slack、Gmail、Google ドライブ、カレンダーなどは claude.ai で有効にするコネクタです。アカウントに紐づいてすべてのホストで使えるため、ここで設定するものはありません。",
+      claudeConnectorsLink: "claude.ai のコネクタを開く",
+      claudeLocal: "その他のサーバーはホストで次を実行します:",
+      codexAdd:
+        "Codex はこのホストの config.toml からサーバーを読み込みます。Codex CLI で追加します:",
+      codexLogin: "OAuth を使うサーバーはホストでのログインも必要です:",
+      thenRefresh: "その後、ここで「更新」を押してください。",
+      status: {
+        connected: "接続済み",
+        failed: "失敗",
+        pending_approval: "承認が必要",
+        disabled: "無効",
+        configured: "設定済み",
+        unknown: "不明",
+      },
+      scope: {
+        claude_ai: "claude.ai アカウント",
+        user: "個人",
+        project: "プロジェクト",
+      },
+    },
+    scope: "範囲",
+    personal: "個人",
+    project: "プロジェクト",
+    plugin: "プラグイン",
+    provider: "プロバイダー",
+    searchCommands: "コマンドを検索",
+    searchSkills: "スキルを検索",
+    noCommands: "コマンドがありません。",
+    noSkills: "スキルがありません。",
+    updateHost: "コマンドとスキルを管理するにはホストを更新してください。",
+    readOnly: "プロバイダーまたはプラグインが管理しています。ここでは読み取り専用です。",
+    instructions: "指示",
+    improve: "エージェントで改善",
+    save: "保存",
+    saved: "保存しました",
+    conflict: "ファイルが変更されました。変更を上書きしないよう、保存前に再読み込みしてください。",
+    discardTitle: "変更を破棄しますか？",
+    discardMessage: "未保存の編集は失われます。",
+    discard: "破棄",
+  },
   common: {
     back: "戻る",
     loading: "読み込み中...",
@@ -134,6 +199,10 @@ export const ja: TranslationResources = {
       addIssueOrPr_mr: "イシューまたはMRを追加",
       dropImagesHere: "ここに画像をドロップ",
       dropFilesHere: "ここにファイルをドロップ",
+      queuedCount: "{{count}} 件待機中",
+      deleteQueuedMessage: "キューのメッセージを削除",
+      deleteAllQueued: "すべて削除",
+      sendAllQueuedNow: "すべて今すぐ送信",
       editQueuedMessage: "キューに入れたメッセージを編集",
       sendQueuedMessageNow: "キューに入れたメッセージを今すぐ送信",
       openImage: "画像添付ファイルを開く",
@@ -173,9 +242,14 @@ export const ja: TranslationResources = {
     },
   },
   agentControls: {
+    moreSettings: "その他の設定",
+    permissions: "権限",
+    plan: "プラン",
+    caffeineMode: "カフェインモード",
     provider: {
       fallback: "プロバイダー",
       select: "エージェントプロバイダーを選択",
+      switched: "チャット履歴を引き継いで新しいタブで {{provider}} に切り替えます",
     },
     thinking: {
       title: "思考",
@@ -293,6 +367,7 @@ export const ja: TranslationResources = {
     },
   },
   message: {
+    forkedFrom: "{{title}} から分岐",
     diagram: {
       diagram: "図",
       zoomIn: "拡大",
@@ -306,9 +381,10 @@ export const ja: TranslationResources = {
       copyCode: "コードをコピー",
       copyTurn: "ターンをコピー",
       copyMessage: "メッセージをコピー",
+      expandMessage: "さらに表示",
+      collapseMessage: "表示を減らす",
       forkMenu: "メッセージをフォーク",
       forkInNewTab: "新しいタブにフォーク",
-      forkInNewWorkspace: "新しいワークスペースにフォーク",
       forkUnavailable: "これを使用するにはホストを更新してください。",
       forkMissingWorkspace: "このエージェントはワークスペース内にありません。",
       forkFailed: "チャットのフォークに失敗しました",
@@ -319,6 +395,8 @@ export const ja: TranslationResources = {
       dismissImage: "画像を閉じる",
       closeImage: "画像を閉じる",
       imageLoadFailed: "画像を読み込めませんでした",
+      copyImage: "画像をコピー",
+      copyImageFailed: "画像をコピーできませんでした。もう一度お試しください。",
       imageUnavailable: "画像が利用できません",
       imagePreviewUnavailable: "画像プレビューは利用できません。",
       imagePreviewLoadFailed: "画像プレビューを読み込めません。",
@@ -336,6 +414,10 @@ export const ja: TranslationResources = {
       details: "詳細",
     },
     dictation: {
+      listening: "聞き取り中",
+      transcribing: "文字起こし中…",
+      stopped: "録音停止",
+      doubleCommand: "⌘を2回押して音声入力を開始・停止",
       start: "音声入力を開始",
       cancel: "音声入力をキャンセル",
       retry: "音声入力を再試行",
@@ -408,6 +490,15 @@ export const ja: TranslationResources = {
     },
   },
   workspace: {
+    zoom: {
+      textSize: "文字サイズ",
+      increase: "文字サイズを拡大",
+      decrease: "文字サイズを縮小",
+      reset: "リセット",
+      terminalOptions: "ターミナルのオプション",
+      terminalText: "ターミナルの文字：{{size}} px",
+      editorText: "エディターの文字：{{size}} px",
+    },
     route: {
       loading: "ワークスペースを読み込み中",
       connecting: "接続中",
@@ -469,11 +560,6 @@ export const ja: TranslationResources = {
       },
     },
     fileExplorer: {
-      sort: {
-        name: "名前",
-        modified: "更新日時",
-        size: "サイズ",
-      },
       context: {
         size: "サイズ",
         modified: "更新日時",
@@ -605,6 +691,8 @@ export const ja: TranslationResources = {
       },
       menu: {
         openFor: "{{label}}のメニューを開く",
+        copyConversation: "会話をコピー",
+        downloadConversation: "会話をダウンロード",
         copyResumeCommand: "再開コマンドをコピー",
         copyAgentId: "エージェントIDをコピー",
         copyTerminalId: "ターミナルIDをコピー",
@@ -657,6 +745,14 @@ export const ja: TranslationResources = {
         filePathCopiedLabel: "ファイルパス",
         resumeIdUnavailable: "再開IDが利用できません",
         resumeCommandUnavailable: "再開コマンドが利用できません",
+        copyingConversation: "会話をコピー中…",
+        conversationCopied: "会話をコピーしました",
+        conversationCopyFailed:
+          "会話をコピーできませんでした: {{reason}}。「会話をコピー」をもう一度試してください。",
+        downloadingConversation: "会話のダウンロードを準備中…",
+        conversationChanged: "会話履歴が変更されました。もう一度お試しください。",
+        conversationDownloadFailed:
+          "会話をダウンロードできませんでした: {{reason}}。もう一度お試しください。",
         reloadingAgent: "エージェントを再読み込み中...",
         reloadedAgent: "エージェントを再読み込みしました",
         failedToReloadAgent: "エージェントの再読み込みに失敗しました",
@@ -736,7 +832,7 @@ export const ja: TranslationResources = {
       },
       routes: {
         public: "リバースプロキシ",
-        paseo: "Memorable",
+        gravity: "Memorable",
         direct: "直接接続",
       },
       states: {
@@ -851,7 +947,7 @@ export const ja: TranslationResources = {
           updateCurrent: "このブランチはすでに{{baseRef}}と最新の状態のため、更新は利用できません",
           mergePrNoGithub: "GitHubが接続されていないため、PRのマージは現在利用できません",
           archiveNotWorktree:
-            "このワークスペースはPaseoワークツリーとして作成されていないため、アーカイブはここでは利用できません",
+            "このワークスペースはGravityワークツリーとして作成されていないため、アーカイブはここでは利用できません",
           mergePrNoForge: "{{brand}}が接続されていないため、{{noun}}のマージは現在利用できません",
           mergePrMissing: "プルリクエストがまだないため、PRのマージは利用できません",
           mergePrDraft: "プルリクエストがまだドラフトのため、PRのマージは利用できません",
@@ -1062,6 +1158,20 @@ export const ja: TranslationResources = {
       updateHost: "ラベルを管理するにはホストを更新してください。",
     },
   },
+  githubStar: {
+    title: "Gravity を気に入っていただけましたか？",
+    description:
+      "Gravity はオープンソースです。役に立ったなら、GitHub のスターが他の開発者に見つけてもらう助けになります。",
+    hostHint: "{{host}} の gh にサインインしている GitHub アカウントでスターを付けます。",
+    directStarFailed:
+      "ここからスターを付けられませんでした。GitHub を開いてブラウザでスターを付けてください。",
+    thanks: "Gravity にスターを付けていただきありがとうございます。",
+    star: "GitHub でスターを付ける",
+    starring: "スターを付けています...",
+    openGitHub: "GitHub を開く",
+    opening: "開いています...",
+    later: "後で",
+  },
   changelog: {
     title: "新着情報",
     installed: "インストール済み",
@@ -1070,6 +1180,111 @@ export const ja: TranslationResources = {
     error: {
       title: "変更履歴を読み込めません",
       description: "接続を確認してもう一度お試しください。",
+    },
+  },
+  linear: {
+    title: "タスク",
+    connect: {
+      title: "Linear を接続",
+      description:
+        "個人用 API キーを貼り付けると、ここに Issue が表示されます。キーはこのホストに保存されます。",
+      apiKeyLabel: "API キー",
+      apiKeyPlaceholder: "lin_api_…",
+      action: "接続",
+      pending: "接続中…",
+      createKey: "Linear で API キーを作成",
+    },
+    filters: {
+      assigned: "担当",
+      created: "作成済み",
+      all: "すべて",
+      completed: "完了",
+      allTeams: "すべてのチーム",
+      teamFilterLabel: "チームで絞り込み: {{team}}",
+      searchPlaceholder: "Issue を検索",
+      clearSearch: "検索をクリア",
+    },
+    menu: {
+      actions: "Linear の操作",
+      refresh: "更新",
+      openLinear: "Linear を開く",
+      disconnect: "接続解除",
+      disconnecting: "接続解除中…",
+      disconnectTitle: "Linear の接続を解除",
+      disconnectMessage: "{{host}} から Linear の API キーを削除しますか？",
+      disconnectConfirm: "接続解除",
+    },
+    states: {
+      noHosts: "Linear を使うにはホストを追加してください。",
+      hostOffline: "このホストはオフラインです。",
+      hostUnsupported: "Linear を使うにはこのホストを更新してください。",
+      retry: "再試行",
+      loadError: "Issue を読み込めません",
+      empty: "Issue はありません",
+      searchEmpty: "検索に一致する Issue はありません",
+      hasMore: "最初の {{count}} 件を表示中",
+    },
+    pagination: {
+      range: "{{start}}–{{end}} 件の課題",
+      previous: "前へ",
+      next: "次へ",
+      page: "{{page}} ページ",
+      updateHost: "さらに課題を表示するには、このホストを更新してください。",
+    },
+    start: {
+      repository: "リポジトリ",
+      workspace: "ワークスペース",
+      newWorktree: "新しいワークツリー",
+      newWorkspace: "新しいワークスペース",
+      existingWorkspace: "既存のワークスペース",
+      repositoryCheckout: "リポジトリのチェックアウト（現在のブランチ）",
+      noWorkspaces: "このリポジトリにワークスペースはありません",
+      model: "モデル",
+      chooseModel: "モデルを選択",
+      noModels: "利用可能なモデルはありません",
+      prompt: "プロンプト",
+    },
+    issue: {
+      open: "Linear で開く",
+      startAgent: "エージェントを開始",
+      actions: "課題の操作",
+      startFailed: "エージェントを開始できませんでした",
+      chooseRepo: "リポジトリを選択",
+      noProjects: "このホストにプロジェクトがありません",
+      openComposer: "新しいワークスペースで設定",
+      copyBranch: "ブランチ名をコピー",
+      branchCopied: "ブランチ名をコピーしました",
+      state: "ステータス",
+      changeState: "ステータスを変更",
+      stateUpdateFailed: "ステータスを更新できませんでした",
+      priority: "優先度",
+      assignee: "担当者",
+      unassigned: "未割り当て",
+      unknownUser: "不明",
+      labels: "ラベル",
+      project: "プロジェクト",
+      dueDate: "期限",
+      updated: "更新",
+      updatedAgo: "{{time}}に更新",
+      description: "説明",
+      noDescription: "説明はありません",
+      subIssues: "サブ Issue",
+      comments: "コメント",
+      noComments: "コメントはまだありません",
+      loadError: "この Issue を読み込めません",
+    },
+    priority: {
+      none: "優先度なし",
+      urgent: "緊急",
+      high: "高",
+      medium: "中",
+      low: "低",
+    },
+    errors: {
+      auth: "Linear が API キーを拒否しました。",
+      rateLimited: "Linear のレート制限に達しました。しばらくしてから再試行してください。",
+      network: "Linear に接続できません。",
+      notConnected: "このホストでは Linear が接続されていません。",
     },
   },
   sidebar: {
@@ -1140,15 +1355,16 @@ export const ja: TranslationResources = {
       diagnostics: "診断を実行",
       shortcuts: "キーボードショートカット",
       reportIssue: "問題を報告",
-      discord: "Discord",
       github: "GitHub Issueを作成",
       whatsNew: "新着情報",
-      appName: "Paseo",
+      starOnGithub: "GitHub でスターを付ける",
+      appName: "Gravity",
     },
     sections: {
       sessions: "履歴",
       search: "検索",
-      schedules: "スケジュール",
+      schedules: "自動化",
+      tasks: "タスク",
     },
     worktreeSetup: {
       title: "ワークツリースクリプトを設定",
@@ -1204,6 +1420,7 @@ export const ja: TranslationResources = {
         showMore: "さらに表示",
         showLess: "表示を減らす",
         createWorkspaceFor: "{{projectName}}の新しいワークスペースを作成",
+        newAgent: "新しいエージェント",
         copyPath: "パスをコピー",
         copyBranchName: "ブランチ名をコピー",
         rename: "ワークスペースの名前を変更",
@@ -1241,9 +1458,9 @@ export const ja: TranslationResources = {
     title: "新しいワークスペース",
     create: "作成",
     isolation: {
-      local: "ローカル",
+      local: "現在のディレクトリ",
       worktree: "新しいワークツリー",
-      label: "分離方法",
+      label: "実行場所",
     },
     fields: {
       project: "プロジェクト",
@@ -1258,9 +1475,9 @@ export const ja: TranslationResources = {
       selectModel: "モデルを選択してください",
     },
     tooltips: {
+      isolation: "ここで実行するか新しいワークツリーで実行",
       project: "Choose the project",
       host: "Choose the host",
-      isolation: "Choose the isolation level",
       startingRef: "開始点を選択",
       launch: "Choose what to launch",
     },
@@ -1290,7 +1507,7 @@ export const ja: TranslationResources = {
       close: "ウィンドウを閉じる",
     },
     quitting: {
-      title: "Paseoを終了中...",
+      title: "Gravityを終了中...",
       detail: "ローカルデーモンを停止中。",
     },
     daemon: {
@@ -1305,20 +1522,20 @@ export const ja: TranslationResources = {
       },
       management: {
         title: "組み込みデーモンを管理",
-        hint: "Paseoが組み込みデーモンを起動・停止できるようにする",
+        hint: "Gravityが組み込みデーモンを起動・停止できるようにする",
         pauseTitle: "組み込みデーモンを一時停止",
         pauseMessage:
           "これにより組み込みデーモンが即座に停止します。組み込みデーモンに接続されている実行中のエージェントとターミナルが停止されます。",
         pauseAndStop: "一時停止して停止",
         registrationFailed:
-          "組み込みデーモンは起動しましたが、Paseoがlocalhostの接続を保存できませんでした。デーモン管理をオフにしてから再度オンにするか、localhostを手動で追加してください。",
+          "組み込みデーモンは起動しましたが、Gravityがlocalhostの接続を保存できませんでした。デーモン管理をオフにしてから再度オンにするか、localhostを手動で追加してください。",
         pausedStopFailed:
-          "組み込みデーモン管理は一時停止されましたが、Paseoがデーモンを停止できませんでした。",
+          "組み込みデーモン管理は一時停止されましたが、Gravityがデーモンを停止できませんでした。",
         updateFailed: "組み込みデーモン管理を更新できません。",
       },
       keepRunning: {
         title: "終了後もデーモンを実行し続ける",
-        hint: "Paseoを終了してもデーモンは実行し続けます",
+        hint: "Gravityを終了してもデーモンは実行し続けます",
       },
       logs: {
         title: "ログファイル",
@@ -1333,7 +1550,7 @@ export const ja: TranslationResources = {
       fullStatus: {
         title: "詳細ステータス",
         modalTitle: "デーモンのステータス",
-        hint: "`paseo daemon status`を実行して出力を表示します",
+        hint: "`gravity daemon status`を実行して出力を表示します",
         view: "ステータスを表示",
         copied: "ステータスをクリップボードにコピーしました。",
         fetchFailed: "デーモンのステータスの取得に失敗しました: {{message}}",
@@ -1386,7 +1603,7 @@ export const ja: TranslationResources = {
     },
     rosetta: {
       title: "Apple Siliconビルドをダウンロード",
-      runningIntel: "Apple Silicon上のRosettaでPaseoのIntelビルドを実行しています。",
+      runningIntel: "Apple Silicon上のRosettaでGravityのIntelビルドを実行しています。",
       highCpu:
         "これにより高いCPU使用率が発生します。修正するにはApple Siliconビルドをダウンロードしてください。",
       download: "ダウンロード",
@@ -1429,7 +1646,7 @@ export const ja: TranslationResources = {
         microphone: "マイクのステータスはまだ確認されていません。",
       },
       testNotification: {
-        title: "Paseo通知テスト",
+        title: "Gravity通知テスト",
         body: "これが見えれば、デスクトップ通知は機能しています。",
         notDelivered: "通知が届きませんでした。システム設定 > 通知を確認してください。",
         failed: "通知の送信に失敗しました。",
@@ -1438,12 +1655,12 @@ export const ja: TranslationResources = {
     integrations: {
       cli: {
         statusFailed: "CLIのインストール状態を確認できません。",
-        installFailed: "Paseo CLIをインストールできません。",
+        installFailed: "Gravity CLIをインストールできません。",
       },
     },
   },
   rootError: {
-    title: "Paseo で問題が発生しました。",
+    title: "Gravity で問題が発生しました。",
     body: "アプリを再読み込みするにはもう一度お試しください。繰り返し発生する場合は、以下の詳細を添えて報告してください。",
     details: "詳細",
   },
@@ -1509,6 +1726,8 @@ export const ja: TranslationResources = {
     stashRestored: "スタッシュした変更を復元しました",
   },
   agentAutocomplete: {
+    command: "コマンド",
+    skill: "スキル",
     searchingWorkspace: "ワークスペースを検索中...",
     loadingCommands: "コマンドを読み込み中...",
     noFiles: "ファイルまたはディレクトリが見つかりません",
@@ -1538,7 +1757,7 @@ export const ja: TranslationResources = {
     },
   },
   onboarding: {
-    title: "Paseoへようこそ",
+    title: "Gravityへようこそ",
     subtitle: "始めるにはコンピューターに接続してください",
     actions: {
       settings: "設定",
@@ -1626,7 +1845,7 @@ export const ja: TranslationResources = {
     },
     direct: {
       title: "直接接続",
-      helper: "Paseoサーバーのアドレスを入力してください。",
+      helper: "Gravityサーバーのアドレスを入力してください。",
       fields: {
         host: "ホスト",
         port: "ポート",
@@ -1668,7 +1887,7 @@ export const ja: TranslationResources = {
     },
     remoteSsh: {
       title: "リモート SSH",
-      helper: "リモートホストで動作する Paseo デーモンに接続します。",
+      helper: "リモートホストで動作する Gravity デーモンに接続します。",
       fields: {
         target: "SSH ホスト",
       },
@@ -1726,15 +1945,15 @@ export const ja: TranslationResources = {
       enableDescription:
         "リレーを使うと、このデバイスからどこでも接続できます。ペアリング通信はエンドツーエンドで暗号化されます。",
       relayDocs: "リレーの仕組み",
-      relayDocsAccessibility: "Paseo リレーの仕組みを読む",
+      relayDocsAccessibility: "Gravity リレーの仕組みを読む",
       enableRelay: "リレーを有効にする",
       enablingRelay: "有効化中...",
       notNow: "今はしない",
       directConnectionHint:
         "リレーを使わない場合は、TCP、Tailscale、または別の VPN で直接接続してください。QR コードは作成されません。",
-      updateRequired: "Paseo Desktop からリレーを有効にするにはホストを更新してください。",
+      updateRequired: "Gravity Desktop からリレーを有効にするにはホストを更新してください。",
       unavailable: "ペアリングオファーが利用できません。",
-      hint: "スマートフォンのPaseoでこのQRコードをスキャンするか、以下のリンクをコピーしてください。",
+      hint: "スマートフォンのGravityでこのQRコードをスキャンするか、以下のリンクをコピーしてください。",
       securityWarning:
         "このペアリングリンクはパスワードと同様に扱ってください。リンクを知っている人は誰でもこのデーモンにアクセスできます。",
       qrUnavailable: "QRコードが利用できません。",
@@ -1769,7 +1988,7 @@ export const ja: TranslationResources = {
   serviceUrl: {
     title: "サービスURLを開く",
     message: "{{url}}を開きますか？",
-    inPaseo: "Paseoで",
+    inGravity: "Gravityで",
     externalBrowser: "外部ブラウザ",
     dontAskAgain: "次回から確認しない",
   },
@@ -1814,6 +2033,19 @@ export const ja: TranslationResources = {
       failedToLoad: "ファイルの読み込みに失敗しました",
       failedToLoadPreview: "ファイルプレビューの読み込みに失敗しました",
       editor: {
+        find: {
+          placeholder: "検索",
+          replace: "置換",
+          toggleReplace: "置換を切り替え",
+          previous: "前の一致",
+          next: "次の一致",
+          selectAll: "すべての一致を選択",
+          close: "検索を閉じる",
+          replaceAll: "すべて置換",
+          count: "{{current}} / {{total}}",
+          invalidRegex: "無効な正規表現",
+          noResults: "結果なし",
+        },
         fileSize: "ファイルサイズ {{size}}",
         lines: "{{count}} 行",
         editorStatus: "エディターの状態 {{status}}",
@@ -1840,6 +2072,54 @@ export const ja: TranslationResources = {
       subtitle: "ワークスペースのファイル",
       tooltip: "ワークスペースのファイルを参照",
       chooseFile: "ファイルを選択",
+    },
+    search: {
+      label: "検索",
+      subtitle: "ファイル内を検索",
+      tooltip: "ワークスペースのファイルを検索",
+      placeholder: "検索",
+      clear: "検索をクリア",
+      modes: {
+        names: "名前",
+        contents: "内容",
+      },
+      options: {
+        caseSensitive: "大文字と小文字を区別",
+        wholeWord: "単語単位で検索",
+        regex: "正規表現を使用",
+        filters: "含める・除外するファイル",
+      },
+      filters: {
+        includeLabel: "含めるファイル",
+        includePlaceholder: "例: *.ts, src/**",
+        excludeLabel: "除外するファイル",
+        excludePlaceholder: "例: *.min.js, dist/**",
+      },
+      count: {
+        fileResult: "{{files}} ファイルに {{count}} 件",
+        filesResult: "{{files}} ファイルに {{count}} 件",
+        fileResults: "{{files}} ファイルに {{count}} 件",
+        filesResults: "{{files}} ファイルに {{count}} 件",
+      },
+      states: {
+        prompt: "入力してファイルの内容を検索",
+        namesPrompt: "入力してファイル名を検索",
+        empty: "結果が見つかりません。設定した除外と gitignore ファイルを確認してください。",
+        emptyIncludes: "'{{include}}' に結果が見つかりません。",
+        emptyExcludes: "'{{exclude}}' を除外すると結果が見つかりません。",
+        emptyIncludesExcludes: "'{{exclude}}' を除外した '{{include}}' に結果が見つかりません。",
+        limitHit:
+          "結果セットにはすべての一致の一部のみが含まれています。検索をより具体的にして結果を絞り込んでください。",
+      },
+      actions: {
+        refresh: "更新",
+        clear: "検索結果をクリア",
+        collapseAll: "すべて折りたたむ",
+        expandAll: "すべて展開",
+        toggleDetails: "検索の詳細を切り替え",
+      },
+      fileMatches_one: "{{count}} 件の一致",
+      fileMatches_other: "{{count}} 件の一致",
     },
     pullRequest: {
       label: "プルリクエスト",
@@ -1869,6 +2149,10 @@ export const ja: TranslationResources = {
     output: "出力",
   },
   toolCallGroup: {
+    earlierCalls: {
+      one: "以前のツール呼び出し {{count}} 件",
+      other: "以前のツール呼び出し {{count}} 件",
+    },
     editedFiles: {
       one: "{{count}}個のファイルを編集",
       other: "{{count}}個のファイルを編集",
@@ -1889,9 +2173,9 @@ export const ja: TranslationResources = {
       one: "その他のツールを{{count}}回使用",
       other: "その他のツールを{{count}}回使用",
     },
-    paseoCalls: {
-      one: "Paseoを{{count}}回呼び出し",
-      other: "Paseoを{{count}}回呼び出し",
+    gravityCalls: {
+      one: "Gravityを{{count}}回呼び出し",
+      other: "Gravityを{{count}}回呼び出し",
     },
     and: "および",
   },
@@ -1972,7 +2256,7 @@ export const ja: TranslationResources = {
       send: "送信",
       sending: "送信中...",
       sentTitle: "テスト通知を送信しました",
-      sentDescription: "Paseo が通知をオペレーティングシステムに渡しました。",
+      sentDescription: "Gravity が通知をオペレーティングシステムに渡しました。",
       sendFailedTitle: "テスト通知を送信できません",
     },
     hostSections: {
@@ -1995,10 +2279,10 @@ export const ja: TranslationResources = {
       selection: "モデル選択",
       automatic: "自動",
       preferred: "手動",
-      automaticHint: "Paseo が利用可能な高速モデルを選択します",
-      preferredHint: "Paseo が使用するモデルを選択します",
+      automaticHint: "Gravity が利用可能な高速モデルを選択します",
+      preferredHint: "Gravity が使用するモデルを選択します",
       model: "モデル",
-      fallbackHint: "利用できない場合、Paseo は別の利用可能なモデルを使用します",
+      fallbackHint: "利用できない場合、Gravity は別の利用可能なモデルを使用します",
       docs: "ドキュメント",
       saveError: "メタデータ生成を更新できません",
     },
@@ -2034,9 +2318,23 @@ export const ja: TranslationResources = {
         description: "実行中のスクリプトからURLを開く場所",
         options: {
           ask: "確認する",
-          inApp: "Paseoで",
+          inApp: "Gravityで",
           external: "外部ブラウザ",
         },
+      },
+      power: {
+        title: "電源",
+        label: "蓋を閉じても作業を続ける",
+        description:
+          "オフにするかGravityを終了するまで、このMacをスリープさせません。12時間後またはバッテリー残量20%で終了します。",
+        agentLabel: "このエージェントのためにスリープを防ぐ",
+        agentHint:
+          "このエージェントの次の実行が終わるまでMacをスリープさせません。管理者の許可が必要です。",
+        pending: "macOSを待っています…",
+        error: "スリープ設定を変更できませんでした。再試行してください。{{detail}}",
+        agentsActive:
+          "エージェントがこのMacのスリープを防いでいます。入力欄のスイッチをオフにしてください。",
+        globalActive: "設定 → 一般でこのMacに対して有効になっています。",
       },
       terminalScrollback: {
         label: "ターミナルスクロールバック",
@@ -2047,14 +2345,10 @@ export const ja: TranslationResources = {
         label: "常に思考プロセスを展開",
         description: "デフォルトでAIのエージェント思考・推論ブロックを完全に展開して表示します",
       },
-      toolCallDetail: {
-        label: "ツール呼び出しの表示",
-        description: "タイムラインでのツール呼び出しの表示方法",
-        accessibilityLabel: "ツール呼び出しの表示を選択（{{value}}）",
-        options: {
-          overview: "要約",
-          detailed: "すべての詳細",
-        },
+      collapseToolCalls: {
+        label: "ツール呼び出しを折りたたむ",
+        description:
+          "連続するツール呼び出しを、折りたたみとスクロールができるセクションにまとめます",
       },
       language: {
         label: "言語",
@@ -2119,7 +2413,7 @@ export const ja: TranslationResources = {
         label: "アプリの更新",
         readyToInstall: "インストール準備完了: {{version}}",
         installTitle: "デスクトップの更新をインストール",
-        installMessage: "このコンピューターのPaseoを更新します",
+        installMessage: "このコンピューターのGravityを更新します",
         installConfirm: "更新をインストール",
         update: "更新",
         updateTo: "{{version}}に更新",
@@ -2176,8 +2470,11 @@ export const ja: TranslationResources = {
           "コード、差分、ターミナル出力で使用されます。システムデフォルトにするには空のままにしてください",
         codeFontAccessibility: "コードフォントファミリー",
         codeSize: "コードサイズ",
-        codeSizeHint: "コード、差分、ターミナル出力に使用されます",
+        codeSizeHint: "コードと差分に使用されます",
         codeSizeAccessibility: "コードフォントサイズ",
+        terminalSize: "ターミナルサイズ",
+        terminalSizeHint: "ターミナル出力に使用されます",
+        terminalSizeAccessibility: "ターミナルのフォントサイズ",
       },
       syntax: {
         title: "構文ハイライト",
@@ -2244,6 +2541,7 @@ export const ja: TranslationResources = {
         toggleRightSidebar: "サイドパネルを切り替え",
         toggleBothSidebars: "両方のサイドバーを切り替え",
         toggleSettings: "設定を切り替え",
+        openHistory: "履歴を開く",
         toggleFocusMode: "フォーカスモードを切り替え",
         cycleTheme: "テーマを順に切り替え",
         focusMessageInput: "メッセージ入力にフォーカス",
@@ -2351,11 +2649,11 @@ export const ja: TranslationResources = {
         title: "オーケストレーションスキル",
         description: "エージェントがCLI経由でオーケストレーションできるようにします。",
         updateAvailable: "更新が利用可能",
-        updateTitle: "Paseoスキルを更新しますか？",
+        updateTitle: "Gravityスキルを更新しますか？",
         updateFallback: "バンドルされたスキルをマシンに同期します。",
-        uninstallTitle: "Paseoスキルをアンインストールしますか？",
+        uninstallTitle: "Gravityスキルをアンインストールしますか？",
         uninstallMessage:
-          "~/.agents、~/.claude、~/.codexからすべてのPaseoオーケストレーションスキルを削除します。",
+          "~/.agents、~/.claude、~/.codexからすべてのGravityオーケストレーションスキルを削除します。",
         choose: "スキルを選択",
         chooseAll: "すべてのスキル",
         chooseAllHint:
@@ -2392,9 +2690,9 @@ export const ja: TranslationResources = {
         title: "オーケストレーション",
         unavailable: "オーケストレーションを管理するにはこのホストに接続してください",
         enableTools: {
-          title: "Paseoツールを有効にする",
+          title: "Gravityツールを有効にする",
           hint: "エージェントがワークツリー、エージェント、スケジュールを管理できるようになります",
-          accessibilityLabel: "Paseoツールを有効にする",
+          accessibilityLabel: "Gravityツールを有効にする",
         },
         systemPrompt: {
           title: "システムプロンプト",
@@ -2499,15 +2797,15 @@ export const ja: TranslationResources = {
             "このホストは接続されていません。再起動する前にオンラインになるまでお待ちください。",
           offlineTitle: "ホストオフライン",
           offlineMessage:
-            "このホストはオフラインです。Paseoが自動再接続します。再起動は、ホストがオンラインに戻ってから行ってください。",
+            "このホストはオフラインです。Gravityが自動再接続します。再起動は、ホストがオンラインに戻ってから行ってください。",
           requestFailedTitle: "エラー",
           requestFailedMessage:
-            "再起動リクエストの送信に失敗しました。Paseoは自動的に再接続します。ホストがオンラインになったら再試行してください。",
+            "再起動リクエストの送信に失敗しました。Gravityは自動的に再接続します。ホストがオンラインになったら再試行してください。",
           dialogFailedMessage: "再起動確認ダイアログを開けませんでした。",
         },
         update: {
           desktopManagedHint:
-            "このデーモンはPaseo Desktopによって管理されています。ホスト上のPaseo Desktopを更新してください。",
+            "このデーモンはGravity Desktopによって管理されています。ホスト上のGravity Desktopを更新してください。",
           title: "デーモンを更新",
           hint: "デーモンを最新バージョンに更新して再起動します",
           confirm: "更新",
@@ -2612,6 +2910,44 @@ export const ja: TranslationResources = {
         unknownError: "不明なエラー",
       },
     },
+    accounts: {
+      title: "アカウント",
+      info: "プロバイダーごとに複数のログインを保存して切り替えられます。プロバイダーはアクティブなログインを使い続け、実行中のエージェントは次のリクエストから切り替えが反映されます。",
+      loading: "アカウントを読み込み中...",
+      errorTitle: "アカウントを読み込めません",
+      providerUnsupported: "このプロバイダーは保存済みログインに対応していません",
+      hostUnavailable: "アカウントを管理するにはこのホストに接続してください",
+      hostUpgradeRequired: "アカウントを管理するにはホストを更新してください",
+      clientUnavailable: "ホスト接続の準備ができていません",
+      refresh: "更新",
+      refreshing: "更新中...",
+      retry: "再試行",
+      dismiss: "閉じる",
+      notSignedIn: "{{provider}} にサインインしていません",
+      currentLoginUnsaved:
+        "{{email}} としてサインイン中です。後で戻れるようにこのログインを保存してください。",
+      currentLoginExpired:
+        "{{email}} の現在のログインは期限切れです。保存する前に再度ログインしてください。",
+      save: "現在のログインを保存",
+      saving: "保存中...",
+      active: "アクティブ",
+      loginExpired: "ログイン期限切れ",
+      loginExpiredHint:
+        "{{provider}} でこのアカウントに再度ログインしてから、現在のログインを保存してください",
+      usageUnavailable: "使用状況を取得できません",
+      switch: "切り替え",
+      switching: "切り替え中...",
+      remove: "削除",
+      removing: "削除中...",
+      removeConfirmTitle: "{{email}} を削除しますか？",
+      removeConfirmMessage:
+        "Gravity はこの保存済みログインを忘れます。プロバイダー自体のログインには影響しません。",
+      removeConfirm: "削除",
+      switchErrorTitle: "アカウントを切り替えられません",
+      saveErrorTitle: "ログインを保存できません",
+      removeErrorTitle: "ログインを削除できません",
+      actionsMenu: "{{email}} の操作",
+    },
     project: {
       noEditableTarget: "このホストではこのプロジェクトを編集できません。",
       backToProjects: "プロジェクトに戻る",
@@ -2627,13 +2963,13 @@ export const ja: TranslationResources = {
         savedToast: "プロジェクトを更新しました",
       },
       readFailures: {
-        invalidTitle: "paseo.jsonを解析できませんでした",
+        invalidTitle: "gravity.jsonを解析できませんでした",
         invalidDescription: "ディスク上のファイルを修正してから再読み込みしてください。",
         missingTitle: "このホストにはこのプロジェクトがありません",
         missingSingleHost: "選択したホストにはこのプロジェクトの記録がありません。",
-        transportTitle: "paseo.jsonを読み込めませんでした",
+        transportTitle: "gravity.jsonを読み込めませんでした",
         transportFallback: "ホストが応答しませんでした。",
-        failedTitle: "paseo.jsonを読み込めませんでした",
+        failedTitle: "gravity.jsonを読み込めませんでした",
         failedDescription: "再読み込みして再試行してください。",
       },
       worktree: {
@@ -2644,7 +2980,7 @@ export const ja: TranslationResources = {
           "これらのコマンドで使用可能な詳細と環境変数についてはドキュメントを参照してください",
         setup: "セットアップ",
         setupAccessibility: "ワークツリーセットアップコマンド",
-        uncommittedTitle: "paseo.json の変更をコミットしてください",
+        uncommittedTitle: "gravity.json の変更をコミットしてください",
         uncommittedDescription:
           "新しいワークツリーでは、選択したベースブランチのセットアップスクリプトが使われます。",
         teardown: "削除時",
@@ -2669,7 +3005,7 @@ export const ja: TranslationResources = {
         newScript: "新しいスクリプト",
         editScript: "{{name}}を編集",
         runAsService: "サービスとして実行",
-        serviceHint: "Paseoがプロセスを監督し、$PASEO_PORTを通じてポートを割り当てます",
+        serviceHint: "Gravityがプロセスを監督し、$GRAVITY_PORTを通じてポートを割り当てます",
         actions: {
           add: "スクリプトを追加",
           edit: "編集",
@@ -2678,7 +3014,7 @@ export const ja: TranslationResources = {
       },
       metadata: {
         title: "メタデータ生成",
-        info: "Paseoがメタデータ生成に使うAIプロンプトへ追加する、プロジェクト固有の指示です。ブランチ名、コミット形式、PR形式など、チームの規約を反映するために使います。",
+        info: "Gravityがメタデータ生成に使うAIプロンプトへ追加する、プロジェクト固有の指示です。ブランチ名、コミット形式、PR形式など、チームの規約を反映するために使います。",
         branchName: "ブランチ名",
         branchNamePlaceholder: "ブランチ名は feat/ または fix/ で始め、個人ブランチは mb/ にする",
         commitMessage: "コミットメッセージ",
@@ -2688,8 +3024,8 @@ export const ja: TranslationResources = {
       },
       writeFailures: {
         staleTitle: "設定がディスク上で変更されました",
-        staleDescription: "保存する前に最新のpaseo.jsonを取得するために再読み込みしてください。",
-        failedTitle: "paseo.jsonを保存できませんでした",
+        staleDescription: "保存する前に最新のgravity.jsonを取得するために再読み込みしてください。",
+        failedTitle: "gravity.jsonを保存できませんでした",
         failedDescription: "再試行するか、ディスクから最新バージョンを再読み込みしてください。",
       },
       actions: {

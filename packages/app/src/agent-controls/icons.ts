@@ -2,7 +2,12 @@ import type { ComponentType } from "react";
 import {
   Bot,
   Brain,
+  CircleOff,
+  Feather,
+  Flame,
+  Gauge,
   ListTodo,
+  Rocket,
   Settings2,
   Shield,
   ShieldAlert,
@@ -13,7 +18,7 @@ import {
   ShieldQuestionMark,
   Zap,
 } from "lucide-react-native";
-import { getModeVisuals, type AgentProviderDefinition } from "@getpaseo/protocol/provider-manifest";
+import { getModeVisuals, type AgentProviderDefinition } from "@gravity/protocol/provider-manifest";
 
 export interface AgentControlIconProps {
   size: number;
@@ -24,6 +29,24 @@ export type AgentControlIcon = ComponentType<AgentControlIconProps>;
 
 export const ThinkingIcon = Brain;
 export const PlanModeIcon = ListTodo;
+
+const THINKING_ICONS: Record<string, AgentControlIcon> = {
+  off: CircleOff,
+  none: CircleOff,
+  minimal: Feather,
+  low: Feather,
+  medium: Gauge,
+  high: Brain,
+  xhigh: Zap,
+  extrahigh: Zap,
+  max: Flame,
+  ultracode: Rocket,
+};
+
+export function getThinkingOptionIcon(optionId?: string): AgentControlIcon {
+  const normalizedId = optionId?.replace(/[\s_-]+/g, "").toLowerCase();
+  return (normalizedId ? THINKING_ICONS[normalizedId] : undefined) ?? ThinkingIcon;
+}
 
 const MODE_ICONS: Record<string, AgentControlIcon> = {
   Bot,

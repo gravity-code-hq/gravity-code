@@ -1,0 +1,25 @@
+{
+  "name": "@gravity/website",
+  "version": "0.8.3",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 3000",
+    "build": "tsgo --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 3000",
+    "typecheck": "tsgo --noEmit"
+  },
+  "dependencies": {
+    "lucide-react": "^1.7.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@typescript/native-preview": "7.0.0-dev.20260423.1",
+    "@vitejs/plugin-react": "^4.5.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.3"
+  }
+}

@@ -35,6 +35,14 @@ describe("canonical CLI surface", () => {
     expect(help).not.toContain("--worktree <name>");
   });
 
+  it("creates workspaces without an isolation choice", () => {
+    const workspace = createCli().commands.find((command) => command.name() === "workspace");
+    const create = workspace?.commands.find((command) => command.name() === "create");
+    const help = create?.helpInformation();
+    expect(help).toContain("--path <path>");
+    expect(help).not.toContain("--isolation");
+  });
+
   it("offers the worktree creation options on run", () => {
     const run = createCli().commands.find((command) => command.name() === "run");
     const help = run?.helpInformation();

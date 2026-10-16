@@ -11,7 +11,7 @@ import type {
   AgentTimelineItem,
 } from "../agent/agent-sdk-types.js";
 import { DaemonClient } from "../test-utils/daemon-client.js";
-import { createTestPaseoDaemon, type TestPaseoDaemon } from "../test-utils/paseo-daemon.js";
+import { createTestGravityDaemon, type TestGravityDaemon } from "../test-utils/gravity-daemon.js";
 import {
   canRunRealProvider,
   createRealProviderClient,
@@ -19,7 +19,7 @@ import {
   getRealProviderConfig,
 } from "./real-provider-test-config.js";
 
-process.env.PASEO_SUPERVISED = "0";
+process.env.GRAVITY_SUPERVISED = "0";
 
 const PI_TEST_TIMEOUT_MS = 240_000;
 const PI_REAL_TEST_MODEL = getRealProviderConfig("pi").model;
@@ -53,7 +53,7 @@ function createPiClient(): AgentClient {
 
 function createPiToolDaemon() {
   const logger = pino({ level: "silent" });
-  return createTestPaseoDaemon({
+  return createTestGravityDaemon({
     agentClients: createRealProviderClients(["pi"], logger),
     logger,
   });
@@ -106,7 +106,7 @@ async function waitForTimelineItem(
 }
 
 async function withConnectedPiDaemon(
-  run: (context: { client: DaemonClient; daemon: TestPaseoDaemon }) => Promise<void>,
+  run: (context: { client: DaemonClient; daemon: TestGravityDaemon }) => Promise<void>,
 ): Promise<void> {
   const daemon = await createPiToolDaemon();
   const client = new DaemonClient({
@@ -139,7 +139,7 @@ beforeEach((context) => {
 });
 
 test(
-  "real Pi daemon composes project and Paseo system prompts",
+  "real Pi daemon composes project and Gravity system prompts",
   async () => {
     const cwd = tmpCwd("pi-system-prompts-");
 
@@ -148,9 +148,9 @@ test(
       writeFileSync(
         path.join(cwd, ".pi", "APPEND_SYSTEM.md"),
         [
-          "When the user says PASEO_SYSTEM_PROMPT_PROBE, reply with exactly two tokens:",
-          "PROJECT_PROMPT followed by the value of PASEO_PROMPT_TOKEN from later system instructions.",
-          "If no PASEO_PROMPT_TOKEN exists, use MISSING as the second token.",
+          "When the user says GRAVITY_SYSTEM_PROMPT_PROBE, reply with exactly two tokens:",
+          "PROJECT_PROMPT followed by the value of GRAVITY_PROMPT_TOKEN from later system instructions.",
+          "If no GRAVITY_PROMPT_TOKEN exists, use MISSING as the second token.",
         ].join("\n"),
       );
 
@@ -161,10 +161,10 @@ test(
           provider: "pi",
           model: PI_REAL_TEST_MODEL,
           systemPrompt:
-            "PASEO_PROMPT_TOKEN is PASEO_PROMPT. Follow the project instruction for PASEO_SYSTEM_PROMPT_PROBE.",
+            "GRAVITY_PROMPT_TOKEN is GRAVITY_PROMPT. Follow the project instruction for GRAVITY_SYSTEM_PROMPT_PROBE.",
         });
 
-        await client.sendMessage(agent.id, "PASEO_SYSTEM_PROMPT_PROBE");
+        await client.sendMessage(agent.id, "GRAVITY_SYSTEM_PROMPT_PROBE");
         const finish = await client.waitForFinish(agent.id, PI_TEST_TIMEOUT_MS);
         expect(finish.status).toBe("idle");
 
@@ -174,7 +174,7 @@ test(
           .map((item) => item.text)
           .join("")
           .trim();
-        expect(response).toBe("PROJECT_PROMPT PASEO_PROMPT");
+        expect(response).toBe("PROJECT_PROMPT GRAVITY_PROMPT");
       });
     } finally {
       rmSync(cwd, { recursive: true, force: true });
@@ -184,7 +184,7 @@ test(
 );
 
 test(
-  "real Pi daemon lists Paseo-handled compact slash commands",
+  "real Pi daemon lists Gravity-handled compact slash commands",
   async () => {
     const cwd = tmpCwd("pi-compact-commands-");
 
@@ -648,8 +648,8 @@ test(
   "resumed Pi prompts retain their exact native entry ids after explicit runtime close",
   async () => {
     const cwd = tmpCwd("pi-resumed-entry-id-");
-    const firstPrompt = "PASEO_PI_ENTRY_ID_FIRST. Reply exactly: first-ok";
-    const secondPrompt = "PASEO_PI_ENTRY_ID_SECOND. Reply exactly: second-ok";
+    const firstPrompt = "GRAVITY_PI_ENTRY_ID_FIRST. Reply exactly: first-ok";
+    const secondPrompt = "GRAVITY_PI_ENTRY_ID_SECOND. Reply exactly: second-ok";
 
     try {
       await withConnectedPiDaemon(async ({ client, daemon }) => {

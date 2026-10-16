@@ -2,10 +2,18 @@ import { createHash, randomUUID } from "node:crypto";
 import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { ProjectIconSource } from "@getpaseo/protocol/messages";
+import type { ProjectIconSource } from "@gravity/protocol/messages";
 
 import { writeFileAtomic } from "../server/atomic-file.js";
 import type { PersistedProjectRecord, ProjectRegistry } from "../server/workspace-registry.js";
+import { githubOwnerFromProjectKey } from "../server/project-key.js";
+import {
+  githubAvatarUrl,
+  readPackageHomepage,
+  type RemoteIconCache,
+  sharedRemoteIconCache,
+  websiteFaviconUrl,
+} from "./project-remote-icon.js";
 import { getImageDimensions, getProjectIcon, type ProjectIcon } from "./project-icon.js";
 
 const MAX_ICON_BYTES = 512 * 1024;
@@ -20,7 +28,7 @@ const inFlightSaves = new Map<string, Promise<unknown>>();
  * this boundary accepts bytes, validates them, and replaces whatever was stored.
  */
 export async function setProjectCustomIcon(input: {
-  paseoHome: string;
+  gravityHome: string;
   projectId: string;
   source: ProjectIconSource;
   projects: ProjectRegistry;
@@ -34,7 +42,7 @@ export async function setProjectCustomIcon(input: {
     } else {
       const bytes = Buffer.from(input.source.data, "base64");
       validateIcon(bytes);
-      await writeFileAtomic(cachePath(input.paseoHome, input.projectId), bytes);
+      await writeFileAtomic(cachePath(input.gravityHome, input.projectId), bytes);
       customIconRevision = randomUUID();
     }
 
@@ -54,8 +62,9 @@ export async function setProjectCustomIcon(input: {
 
 /** Resolves the icon a project renders with, whichever mode it is in. */
 export async function readProjectIcon(input: {
-  paseoHome: string;
+  gravityHome: string;
   project: PersistedProjectRecord;
+  remoteIcons?: RemoteIconCache;
 }): Promise<ProjectIcon | null> {
   return (await readProjectIconSnapshot(input)).icon;
 }
@@ -69,10 +78,17 @@ export interface ProjectIconSnapshot {
 export class ProjectIconReader {
   private readonly snapshots = new Map<string, ProjectIconSnapshot>();
 
-  constructor(private readonly paseoHome: string) {}
+  constructor(
+    private readonly gravityHome: string,
+    private readonly remoteIcons: RemoteIconCache = sharedRemoteIconCache(gravityHome),
+  ) {}
 
   async snapshot(project: PersistedProjectRecord): Promise<ProjectIconSnapshot> {
-    const snapshot = await readProjectIconSnapshot({ paseoHome: this.paseoHome, project });
+    const snapshot = await readProjectIconSnapshot({
+      gravityHome: this.gravityHome,
+      project,
+      remoteIcons: this.remoteIcons,
+    });
     this.snapshots.set(project.projectId, snapshot);
     return snapshot;
   }
@@ -84,13 +100,15 @@ export class ProjectIconReader {
 
 /** Reads the effective icon and gives that exact result a stable identity. */
 export async function readProjectIconSnapshot(input: {
-  paseoHome: string;
+  gravityHome: string;
   project: PersistedProjectRecord;
+  /** Omit to skip the network fallbacks and resolve from the repo's files only. */
+  remoteIcons?: RemoteIconCache;
 }): Promise<ProjectIconSnapshot> {
   if (input.project.customIconRevision) {
     let icon: ProjectIcon | null = null;
     try {
-      icon = validateIcon(await readFile(cachePath(input.paseoHome, input.project.projectId)));
+      icon = validateIcon(await readFile(cachePath(input.gravityHome, input.project.projectId)));
     } catch {
       // A missing/corrupt custom icon is itself a cacheable result until the
       // registry revision changes.
@@ -102,9 +120,27 @@ export async function readProjectIconSnapshot(input: {
         : `custom:none:${input.project.customIconRevision}`,
     };
   }
-  const icon = await getProjectIcon(input.project.rootPath);
+  const icon =
+    (await getProjectIcon(input.project.rootPath)) ??
+    (await readRemoteIcon(input.project, input.remoteIcons));
   if (!icon) return { icon: null, revision: "automatic:none:v1" };
   return { icon, revision: iconRevision("automatic", icon) };
+}
+
+/** The website favicon wins over the owner's avatar: it is the project's own mark. */
+async function readRemoteIcon(
+  project: PersistedProjectRecord,
+  remoteIcons: RemoteIconCache | undefined,
+): Promise<ProjectIcon | null> {
+  if (!remoteIcons) return null;
+  const faviconUrl = websiteFaviconUrl(await readPackageHomepage(project.rootPath));
+  const owner = githubOwnerFromProjectKey(project.projectKey);
+  // Both at once, so a first lookup waits on one fetch timeout rather than two.
+  const [favicon, avatar] = await Promise.all([
+    faviconUrl ? remoteIcons.read(faviconUrl) : null,
+    owner ? remoteIcons.read(githubAvatarUrl(owner)) : null,
+  ]);
+  return favicon ?? avatar;
 }
 
 function iconRevision(source: "automatic" | "custom", icon: ProjectIcon): string {
@@ -117,10 +153,10 @@ function iconRevision(source: "automatic" | "custom", icon: ProjectIcon): string
 }
 
 export async function removeProjectCustomIcon(input: {
-  paseoHome: string;
+  gravityHome: string;
   projectId: string;
 }): Promise<void> {
-  await rm(cachePath(input.paseoHome, input.projectId), { force: true });
+  await rm(cachePath(input.gravityHome, input.projectId), { force: true });
 }
 
 async function serialize<T>(projectId: string, save: () => Promise<T>): Promise<T> {
@@ -134,9 +170,9 @@ async function serialize<T>(projectId: string, save: () => Promise<T>): Promise<
   }
 }
 
-function cachePath(paseoHome: string, projectId: string): string {
+function cachePath(gravityHome: string, projectId: string): string {
   const key = createHash("sha256").update(projectId).digest("hex");
-  return join(paseoHome, "projects", "icons", `${key}.bin`);
+  return join(gravityHome, "projects", "icons", `${key}.bin`);
 }
 
 function detectMimeType(buffer: Buffer): string | null {

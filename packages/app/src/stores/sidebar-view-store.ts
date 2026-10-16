@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { persist, type StateStorage } from "zustand/middleware";
 import { z } from "zod";
-import { workspaceLabelKey } from "@getpaseo/protocol/workspace-labels";
+import { workspaceLabelKey } from "@gravity/protocol/workspace-labels";
 import { createValidatedPersistStorage } from "@/storage/validated-persist-storage";
 
 export type SidebarGroupMode = "project" | "status";
@@ -63,6 +63,8 @@ interface SidebarViewStoreState {
   labelFilter: SidebarLabelFilter;
   setGroupMode: (mode: SidebarGroupMode) => void;
   toggleHostFilter: (serverId: string) => void;
+  /** Pin the sidebar to exactly this host, replacing any multi-host selection. */
+  setHostFilter: (serverId: string) => void;
   clearHostFilters: () => void;
   toggleProjectFilter: (viewKey: string) => void;
   clearProjectFilters: () => void;
@@ -185,6 +187,7 @@ export const useSidebarViewStore = create<SidebarViewStoreState>()(
       setGroupMode: (mode) => set({ groupMode: mode }),
       toggleHostFilter: (serverId) =>
         set((state) => ({ hostFilters: toggleFilterEntry(state.hostFilters, serverId) })),
+      setHostFilter: (serverId) => set({ hostFilters: [serverId] }),
       clearHostFilters: () => set({ hostFilters: [] }),
       toggleProjectFilter: (viewKey) =>
         set((state) => ({ projectFilters: toggleFilterEntry(state.projectFilters, viewKey) })),

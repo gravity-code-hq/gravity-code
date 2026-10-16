@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { setImmediate as waitForImmediate } from "node:timers/promises";
 
-import type { PaseoToolCatalog } from "../../tools/types.js";
+import type { GravityToolCatalog } from "../../tools/types.js";
 import type { OmpNoTurnScheduler, OmpProviderIdleScheduler } from "./agent.js";
 import type { OmpUsagePollScheduler } from "./usage-poller.js";
 import { resolveOmpProviderParams } from "./provider-config.js";
@@ -101,14 +101,14 @@ class ManualUsagePollScheduler implements OmpUsagePollScheduler {
   }
 }
 
-function createToolCatalog(): PaseoToolCatalog {
+function createToolCatalog(): GravityToolCatalog {
   return {
     tools: new Map([
       [
         "create_agent",
         {
           name: "create_agent",
-          description: "Create a Paseo agent.",
+          description: "Create a Gravity agent.",
           handler: async () => ({ content: [] }),
         },
       ],
@@ -124,7 +124,7 @@ describe("OMP agent client and session", () => {
     await omp.start({ modeId: "ask" }, createToolCatalog());
 
     expect(omp.launchConfiguration()).toEqual({
-      cwd: "/tmp/paseo-omp-agent-test",
+      cwd: "/tmp/gravity-omp-agent-test",
       protocolMode: "rpc-ui",
       modeId: "ask",
       argv: ["omp", "--mode", "rpc-ui", "--approval-mode", "always-ask"],
@@ -134,7 +134,7 @@ describe("OMP agent client and session", () => {
     ]);
     expect(omp.capabilities()).toMatchObject({
       supportsMcpServers: false,
-      supportsNativePaseoTools: true,
+      supportsNativeGravityTools: true,
     });
   });
 
@@ -150,7 +150,7 @@ describe("OMP agent client and session", () => {
     await omp.start({ modeId: "write" });
 
     expect(omp.launchConfiguration()).toEqual({
-      cwd: "/tmp/paseo-omp-agent-test",
+      cwd: "/tmp/gravity-omp-agent-test",
       protocolMode: "rpc-ui",
       modeId: "write",
       argv: ["omp", "--mode", "rpc-ui", "--approval-mode", "write"],
@@ -500,7 +500,7 @@ describe("OMP agent client and session", () => {
       cwd: "/workspace/resumed",
       protocolMode: "rpc-ui",
       modeId: "ask",
-      session: expect.stringMatching(/[\\/]paseo-omp-resume-.*[\\/]session\.jsonl$/),
+      session: expect.stringMatching(/[\\/]gravity-omp-resume-.*[\\/]session\.jsonl$/),
       argv: [
         "omp",
         "--mode",
@@ -510,7 +510,7 @@ describe("OMP agent client and session", () => {
         "--thinking",
         "high",
         "--session",
-        expect.stringMatching(/[\\/]paseo-omp-resume-.*[\\/]session\.jsonl$/),
+        expect.stringMatching(/[\\/]gravity-omp-resume-.*[\\/]session\.jsonl$/),
       ],
     });
     await expect(omp.history()).resolves.toEqual([

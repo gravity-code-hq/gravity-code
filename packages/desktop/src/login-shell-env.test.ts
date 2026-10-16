@@ -10,7 +10,7 @@ import { inheritLoginShellEnv } from "./login-shell-env";
 const zsh = "/bin/zsh";
 const describeIfZsh = existsSync(zsh) ? describe : describe.skip;
 const basePath = "/usr/bin:/bin:/usr/sbin:/sbin";
-const fakeHome = path.join(os.tmpdir(), "paseo-login-shell-env-fake-home");
+const fakeHome = path.join(os.tmpdir(), "gravity-login-shell-env-fake-home");
 type LoginShellEnvInput = NonNullable<Parameters<typeof inheritLoginShellEnv>[0]>;
 type LoginShellSpawnSync = NonNullable<LoginShellEnvInput["spawnSync"]>;
 
@@ -55,8 +55,8 @@ class RecordingLoginShellLogger {
 function createEnv(home: string): NodeJS.ProcessEnv {
   return {
     HOME: home,
-    USER: "paseo-test",
-    LOGNAME: "paseo-test",
+    USER: "gravity-test",
+    LOGNAME: "gravity-test",
     SHELL: zsh,
     PATH: basePath,
   };
@@ -108,7 +108,7 @@ function expectNoRawStdout(fields: Record<string, unknown>): void {
 }
 
 async function createShellHome(): Promise<string> {
-  return await mkdtemp(path.join(os.tmpdir(), "paseo-login-shell-env-"));
+  return await mkdtemp(path.join(os.tmpdir(), "gravity-login-shell-env-"));
 }
 
 describe("login shell env retry behavior", () => {
@@ -362,7 +362,7 @@ describe("login shell env retry behavior", () => {
   it("uses the configured shell env timeout", () => {
     const env = {
       ...createEnv(fakeHome),
-      PASEO_SHELL_ENV_TIMEOUT_MS: "1234",
+      GRAVITY_SHELL_ENV_TIMEOUT_MS: "1234",
     };
     const logger = new RecordingLoginShellLogger();
     const clock = createTestClock();
@@ -492,13 +492,13 @@ describeIfZsh("login shell env", () => {
   it("loads the user's zshrc while resolving the login shell env", async () => {
     const home = await createShellHome();
     homes.add(home);
-    await writeFile(path.join(home, ".zshrc"), "export PASEO_TEST_ZSHRC_LOADED=1\n");
+    await writeFile(path.join(home, ".zshrc"), "export GRAVITY_TEST_ZSHRC_LOADED=1\n");
     const env = createEnv(home);
     const logger = new RecordingLoginShellLogger();
 
     inheritLoginShellEnv({ env, logger });
 
-    expect(env.PASEO_TEST_ZSHRC_LOADED).toBe("1");
+    expect(env.GRAVITY_TEST_ZSHRC_LOADED).toBe("1");
     expect(logger.infos.map((entry) => entry.message)).toEqual([
       "[login-shell-env] start",
       "[login-shell-env] attempt applied",
@@ -506,6 +506,31 @@ describeIfZsh("login shell env", () => {
     ]);
     expect(logger.warnings).toEqual([]);
   });
+
+  it.each([false, true])(
+    "excludes macOS library overrides even when shell startup fails: %s",
+    async (shellFails) => {
+      const home = await createShellHome();
+      homes.add(home);
+      await writeFile(
+        path.join(home, ".zshrc"),
+        'export DYLD_LIBRARY_PATH="/opt/homebrew/lib"\nexport GRAVITY_TEST_ZSHRC_LOADED=1\n',
+      );
+      if (shellFails) {
+        await writeFile(path.join(home, ".zshenv"), "exit 42\n");
+      }
+      const env = createEnv(home);
+      env.DYLD_LIBRARY_PATH = "/inherited/lib";
+      env.DYLD_FALLBACK_LIBRARY_PATH = "/fallback/lib";
+      const logger = new RecordingLoginShellLogger();
+
+      inheritLoginShellEnv({ env, logger, platform: "darwin" });
+
+      expect(env.DYLD_LIBRARY_PATH).toBeUndefined();
+      expect(env.DYLD_FALLBACK_LIBRARY_PATH).toBe("/fallback/lib");
+      expect(env.GRAVITY_TEST_ZSHRC_LOADED).toBe(shellFails ? undefined : "1");
+    },
+  );
 
   it("keeps the inherited env and logs stdout diagnostics when shell startup fails", async () => {
     const home = await createShellHome();

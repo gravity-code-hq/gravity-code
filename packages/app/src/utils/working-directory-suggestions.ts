@@ -1,4 +1,4 @@
-import { scorePathMatch } from "@getpaseo/protocol/search/text-match";
+import { scorePathMatch } from "@gravity/protocol/search/text-match";
 
 export interface BuildWorkingDirectorySuggestionsInput {
   recommendedPaths: string[];

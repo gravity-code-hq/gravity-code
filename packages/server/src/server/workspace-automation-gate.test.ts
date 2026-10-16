@@ -12,14 +12,14 @@ describe("workspace automation gate", () => {
         kind: "change_request",
         forge: "github",
         number: 42,
-        headRepository: "contributor/paseo",
+        headRepository: "contributor/gravity",
       }),
     ).toThrowError(
       new WorkspaceAutomationBlockedError({
         kind: "change_request",
         forge: "github",
         number: 42,
-        headRepository: "contributor/paseo",
+        headRepository: "contributor/gravity",
       }),
     );
   });
@@ -39,8 +39,10 @@ describe("workspace automation gate", () => {
         kind: "change_request",
         forge,
         number: 42,
-        headRepository: "contributor/paseo",
+        headRepository: "contributor/gravity",
       }),
-    ).toBe(`Scripts are blocked for ${noun} #42 from contributor/paseo. Run setup to allow them.`);
+    ).toBe(
+      `Scripts are blocked for ${noun} #42 from contributor/gravity. Run setup to allow them.`,
+    );
   });
 });

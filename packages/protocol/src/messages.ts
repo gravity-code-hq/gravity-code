@@ -1,10 +1,20 @@
+import {
+  ProviderCommandCreateRequestSchema,
+  ProviderCommandCreateResponseSchema,
+  ProviderCustomizationsListRequestSchema,
+  ProviderCustomizationsListResponseSchema,
+} from "./provider-customizations.js";
+import {
+  ProviderMcpServersListRequestSchema,
+  ProviderMcpServersListResponseSchema,
+} from "./provider-mcp-servers.js";
 import { z } from "zod";
 import { TerminalActivitySchema } from "./terminal-activity.js";
 import { CLIENT_CAPS } from "./client-capabilities.js";
 import { AGENT_LIFECYCLE_STATUSES } from "./agent-lifecycle.js";
 import { MAX_EXPLICIT_AGENT_TITLE_CHARS } from "./agent-title-limits.js";
 import { AgentProviderSchema } from "./provider-manifest.js";
-import { ProviderPaseoToolsPolicySchema } from "./provider-config.js";
+import { ProviderGravityToolsPolicySchema } from "./provider-config.js";
 import { TOOL_CALL_ICON_NAMES } from "./agent-types.js";
 import { WORKSPACE_LABEL_COLORS } from "./workspace-labels.js";
 import {
@@ -44,6 +54,22 @@ import {
   ScheduleUpdateResponseSchema,
 } from "./schedule/rpc-schemas.js";
 import {
+  LinearGetStatusRequestSchema,
+  LinearConnectRequestSchema,
+  LinearDisconnectRequestSchema,
+  LinearTeamsListRequestSchema,
+  LinearIssuesListRequestSchema,
+  LinearIssuesGetRequestSchema,
+  LinearIssuesSetStateRequestSchema,
+  LinearGetStatusResponseSchema,
+  LinearConnectResponseSchema,
+  LinearDisconnectResponseSchema,
+  LinearTeamsListResponseSchema,
+  LinearIssuesListResponseSchema,
+  LinearIssuesGetResponseSchema,
+  LinearIssuesSetStateResponseSchema,
+} from "./linear/rpc-schemas.js";
+import {
   LoopRunRequestSchema,
   LoopListRequestSchema,
   LoopInspectRequestSchema,
@@ -62,33 +88,33 @@ import {
 } from "./browser-automation/rpc-schemas.js";
 import { BrowserAutomationHostCapabilitySchema } from "./browser-automation/capabilities.js";
 import {
-  PaseoConfigRawSchema,
-  PaseoLifecycleCommandRawSchema,
-  PaseoMetadataGenerationEntrySchema,
-  PaseoMetadataGenerationSchema,
-  PaseoScriptEntryRawSchema,
-  PaseoWorktreeConfigRawSchema,
-  PaseoConfigRevisionSchema,
+  GravityConfigRawSchema,
+  GravityLifecycleCommandRawSchema,
+  GravityMetadataGenerationEntrySchema,
+  GravityMetadataGenerationSchema,
+  GravityScriptEntryRawSchema,
+  GravityWorktreeConfigRawSchema,
+  GravityConfigRevisionSchema,
   ProjectConfigRpcErrorSchema,
-  type PaseoConfigRaw,
-  type PaseoConfigRevision,
-  type PaseoMetadataGeneration,
-  type PaseoMetadataGenerationEntry,
-  type PaseoScriptEntryRaw,
+  type GravityConfigRaw,
+  type GravityConfigRevision,
+  type GravityMetadataGeneration,
+  type GravityMetadataGenerationEntry,
+  type GravityScriptEntryRaw,
   type ProjectConfigRpcError,
-} from "./paseo-config-schema.js";
+} from "./gravity-config-schema.js";
 export {
-  PaseoConfigRawSchema,
-  PaseoLifecycleCommandRawSchema,
-  PaseoMetadataGenerationEntrySchema,
-  PaseoMetadataGenerationSchema,
-  PaseoScriptEntryRawSchema,
-  PaseoWorktreeConfigRawSchema,
-  type PaseoConfigRaw,
-  type PaseoConfigRevision,
-  type PaseoMetadataGeneration,
-  type PaseoMetadataGenerationEntry,
-  type PaseoScriptEntryRaw,
+  GravityConfigRawSchema,
+  GravityLifecycleCommandRawSchema,
+  GravityMetadataGenerationEntrySchema,
+  GravityMetadataGenerationSchema,
+  GravityScriptEntryRawSchema,
+  GravityWorktreeConfigRawSchema,
+  type GravityConfigRaw,
+  type GravityConfigRevision,
+  type GravityMetadataGeneration,
+  type GravityMetadataGenerationEntry,
+  type GravityScriptEntryRaw,
   type ProjectConfigRpcError,
 };
 // ---------------------------------------------------------------------------
@@ -120,7 +146,7 @@ const MutableDaemonProviderModelSchema = z
 
 const MutableDaemonProviderConfigSchema = z
   .object({
-    paseoTools: ProviderPaseoToolsPolicySchema.optional(),
+    gravityTools: ProviderGravityToolsPolicySchema.optional(),
     enabled: z.boolean().optional(),
     additionalModels: z.array(MutableDaemonProviderModelSchema).optional(),
   })
@@ -194,7 +220,7 @@ const MutableRelayConfigSchema = z
 
 export const PluginIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/);
 // Semver validation belongs at the manifest/runtime boundary, not on the wire.
-export const PluginRequirementsSchema = z.object({ paseo: z.string().optional() });
+export const PluginRequirementsSchema = z.object({ gravity: z.string().optional() });
 export type PluginRequirements = z.infer<typeof PluginRequirementsSchema>;
 
 export const DirectoryPluginSourceSchema = z
@@ -576,6 +602,7 @@ const ToolCallDetailPayloadSchema: z.ZodType<ToolCallDetail, unknown> = z.discri
     z.object({
       type: z.literal("shell"),
       command: z.string(),
+      description: z.string().optional(),
       cwd: z.string().optional(),
       output: z.string().optional(),
       exitCode: z.number().nullable().optional(),
@@ -712,6 +739,7 @@ export const AgentTimelineItemPayloadSchema: z.ZodType<AgentTimelineItem, unknow
     text: z.string(),
     messageId: z.string().optional(),
     clientMessageId: z.string().optional(),
+    inherited: z.boolean().optional(),
   }),
   z.object({
     type: z.literal("assistant_message"),
@@ -743,6 +771,7 @@ export const AgentTimelineItemPayloadSchema: z.ZodType<AgentTimelineItem, unknow
     type: z.literal("notification"),
     level: z.enum(["info", "warning", "error"]),
     message: z.string(),
+    forkSourceTitle: z.string().optional(),
   }),
   z.object({
     type: z.literal("compaction"),
@@ -1105,7 +1134,7 @@ export const GitHubPrAttachmentSchema = z.object({
 
 export const ForgeChangeRequestAttachmentSchema = z.object({
   type: z.literal("forge_change_request"),
-  mimeType: z.literal("application/paseo-forge-change-request"),
+  mimeType: z.literal("application/gravity-forge-change-request"),
   forge: z.string().optional().default("github"),
   number: z.number().int().positive(),
   title: z.string(),
@@ -1130,7 +1159,7 @@ export const GitHubIssueAttachmentSchema = z.object({
 
 export const ForgeIssueAttachmentSchema = z.object({
   type: z.literal("forge_issue"),
-  mimeType: z.literal("application/paseo-forge-issue"),
+  mimeType: z.literal("application/gravity-forge-issue"),
   forge: z.string().optional().default("github"),
   number: z.number().int().positive(),
   title: z.string(),
@@ -1157,6 +1186,18 @@ export const TextAttachmentSchema = z
     title: z.string().nullable().optional(),
     text: z.string(),
     externalResource: ExternalResourceAttachmentMetadataSchema.optional(),
+    forkHistory: z
+      .object({
+        sourceTitle: z.string(),
+        entries: z.array(
+          z.object({
+            item: AgentTimelineItemPayloadSchema,
+            timestamp: z.string(),
+            turnId: z.string().optional(),
+          }),
+        ),
+      })
+      .optional(),
   })
   .transform(({ contextKind, ...attachment }) => ({
     ...attachment,
@@ -1184,7 +1225,7 @@ export const ReviewAttachmentCommentSchema = z.object({
 
 export const ReviewAttachmentSchema = z.object({
   type: z.literal("review"),
-  mimeType: z.literal("application/paseo-review"),
+  mimeType: z.literal("application/gravity-review"),
   cwd: z.string(),
   mode: z.enum(["uncommitted", "base"]),
   baseRef: z.string().nullable().optional(),
@@ -1428,6 +1469,18 @@ export const DaemonConfigReloadRequestSchema = z.object({
   requestId: z.string(),
 });
 
+// The repository is fixed by the daemon (GRAVITY_GITHUB_REPO) so a client can
+// never make the host's GitHub identity star an arbitrary repository.
+export const GitHubRepoStarGetStatusRequestSchema = z.object({
+  type: z.literal("github.repo_star.get_status.request"),
+  requestId: z.string(),
+});
+
+export const GitHubRepoStarAddRequestSchema = z.object({
+  type: z.literal("github.repo_star.add.request"),
+  requestId: z.string(),
+});
+
 export const HubManagementDaemonConnectRequestSchema = z.object({
   type: z.literal("hub.management.daemon.connect.request"),
   requestId: z.string(),
@@ -1611,8 +1664,8 @@ export const WriteProjectConfigRequestMessageSchema = z.object({
   type: z.literal("write_project_config_request"),
   requestId: z.string(),
   repoRoot: z.string(),
-  config: PaseoConfigRawSchema,
-  expectedRevision: PaseoConfigRevisionSchema.nullable(),
+  config: GravityConfigRawSchema,
+  expectedRevision: GravityConfigRevisionSchema.nullable(),
 });
 
 // ============================================================================
@@ -1772,6 +1825,32 @@ export const ProviderDiagnosticRequestMessageSchema = z.object({
 export const ProviderUsageListRequestMessageSchema = z.object({
   type: z.literal("provider.usage.list.request"),
   requestId: z.string(),
+});
+
+export const ProviderAccountsListRequestMessageSchema = z.object({
+  type: z.literal("provider.accounts.list.request"),
+  requestId: z.string(),
+  refresh: z.boolean().optional(),
+});
+
+export const ProviderAccountsAddCurrentRequestMessageSchema = z.object({
+  type: z.literal("provider.accounts.add_current.request"),
+  requestId: z.string(),
+  providerId: z.string(),
+});
+
+export const ProviderAccountsActivateRequestMessageSchema = z.object({
+  type: z.literal("provider.accounts.activate.request"),
+  requestId: z.string(),
+  providerId: z.string(),
+  accountId: z.string(),
+});
+
+export const ProviderAccountsRemoveRequestMessageSchema = z.object({
+  type: z.literal("provider.accounts.remove.request"),
+  requestId: z.string(),
+  providerId: z.string(),
+  accountId: z.string(),
 });
 
 export const ResumeAgentRequestMessageSchema = z.object({
@@ -2370,8 +2449,8 @@ export const StashPopRequestSchema = z.object({
 export const StashListRequestSchema = z.object({
   type: z.literal("stash_list_request"),
   cwd: z.string(),
-  /** If true, only return paseo-created stashes. Default true. */
-  paseoOnly: z.boolean().optional(),
+  /** If true, only return gravity-created stashes. Default true. */
+  gravityOnly: z.boolean().optional(),
   requestId: z.string(),
 });
 
@@ -2447,15 +2526,15 @@ export const DirectorySuggestionsRequestSchema = z.object({
   requestId: z.string(),
 });
 
-export const PaseoWorktreeListRequestSchema = z.object({
-  type: z.literal("paseo_worktree_list_request"),
+export const GravityWorktreeListRequestSchema = z.object({
+  type: z.literal("gravity_worktree_list_request"),
   cwd: z.string().optional(),
   repoRoot: z.string().optional(),
   requestId: z.string(),
 });
 
-export const PaseoWorktreeArchiveRequestSchema = z.object({
-  type: z.literal("paseo_worktree_archive_request"),
+export const GravityWorktreeArchiveRequestSchema = z.object({
+  type: z.literal("gravity_worktree_archive_request"),
   worktreePath: z.string().optional(),
   repoRoot: z.string().optional(),
   branchName: z.string().optional(),
@@ -2469,7 +2548,7 @@ export const PaseoWorktreeArchiveRequestSchema = z.object({
   // Scope of the archive operation. "workspace" archives a single workspace record
   // (today's default UI behavior). "worktree" archives every active workspace whose
   // cwd resolves to the target directory, then removes the directory if it is
-  // Paseo-owned. Omitted/unknown values default to "workspace" for old-client safety.
+  // Gravity-owned. Omitted/unknown values default to "workspace" for old-client safety.
   scope: z.enum(["workspace", "worktree"]).optional().default("workspace"),
   // COMPAT(worktreeDiskDeletion): added in v0.1.97, ignored as of v0.1.97
   // (disk removal derived from scope + last-reference + ownership); field
@@ -2483,8 +2562,8 @@ export const FirstAgentContextSchema = z.object({
   attachments: AgentAttachmentsSchema,
 });
 
-export const CreatePaseoWorktreeRequestSchema = z.object({
-  type: z.literal("create_paseo_worktree_request"),
+export const CreateGravityWorktreeRequestSchema = z.object({
+  type: z.literal("create_gravity_worktree_request"),
   cwd: z.string(),
   projectId: z.string().optional(),
   worktreeSlug: z.string().optional(),
@@ -2586,7 +2665,7 @@ export const ArchiveWorkspaceRequestSchema = z.object({
 
 // Create a new workspace record. Unlike open_project, this never deduplicates by
 // directory: it always produces a fresh workspace. The source discriminates
-// between an existing local directory and a newly created paseo worktree.
+// between an existing local directory and a newly created gravity worktree.
 export const WorkspaceCreateRequestSchema = z.object({
   type: z.literal("workspace.create.request"),
   workspaceId: z
@@ -2782,6 +2861,19 @@ export const FileEntryDeleteRequestSchema = z.object({
   type: z.literal("fs.entry.delete.request"),
   cwd: z.string(),
   path: z.string(),
+  requestId: z.string(),
+});
+
+export const FileContentSearchRequestSchema = z.object({
+  type: z.literal("fs.content.search.request"),
+  cwd: z.string(),
+  query: z.string(),
+  caseSensitive: z.boolean().optional(),
+  wholeWord: z.boolean().optional(),
+  regex: z.boolean().optional(),
+  include: z.string().optional(),
+  exclude: z.string().optional(),
+  maxResults: z.number().int().positive().optional(),
   requestId: z.string(),
 });
 
@@ -3143,6 +3235,7 @@ export const SubscriptionReleaseResponseSchema = z.object({
 });
 
 export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
+  ProviderCommandCreateRequestSchema,
   BrowserHostRegisterRequestSchema,
   SubscriptionReleaseRequestSchema,
   SessionEventsSetSubscriptionRequestSchema,
@@ -3181,6 +3274,8 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   DaemonGetStatusRequestSchema,
   DaemonGetPairingOfferRequestSchema,
   DaemonConfigReloadRequestSchema,
+  GitHubRepoStarGetStatusRequestSchema,
+  GitHubRepoStarAddRequestSchema,
   HubManagementDaemonConnectRequestSchema,
   HubManagementDaemonGetStatusRequestSchema,
   HubManagementDaemonDisconnectRequestSchema,
@@ -3222,6 +3317,12 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   RefreshProvidersSnapshotRequestMessageSchema,
   ProviderDiagnosticRequestMessageSchema,
   ProviderUsageListRequestMessageSchema,
+  ProviderCustomizationsListRequestSchema,
+  ProviderMcpServersListRequestSchema,
+  ProviderAccountsListRequestMessageSchema,
+  ProviderAccountsAddCurrentRequestMessageSchema,
+  ProviderAccountsActivateRequestMessageSchema,
+  ProviderAccountsRemoveRequestMessageSchema,
   ResumeAgentRequestMessageSchema,
   ImportAgentRequestMessageSchema,
   RefreshAgentRequestMessageSchema,
@@ -3274,9 +3375,9 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   ForgeSearchRequestSchema,
   GitHubSearchRequestSchema,
   DirectorySuggestionsRequestSchema,
-  PaseoWorktreeListRequestSchema,
-  PaseoWorktreeArchiveRequestSchema,
-  CreatePaseoWorktreeRequestSchema,
+  GravityWorktreeListRequestSchema,
+  GravityWorktreeArchiveRequestSchema,
+  CreateGravityWorktreeRequestSchema,
   WorkspaceSetupStatusRequestSchema,
   WorkspaceSetupRunRequestSchema,
   LegacyListAvailableEditorsRequestSchema,
@@ -3300,6 +3401,7 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   FileEntryRenameRequestSchema,
   FileEntryDuplicateRequestSchema,
   FileEntryDeleteRequestSchema,
+  FileContentSearchRequestSchema,
   ProjectIconRequestSchema,
   ProjectIconGetRequestSchema,
   FileDownloadTokenRequestSchema,
@@ -3340,6 +3442,13 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   ScheduleDeleteRequestSchema,
   ScheduleRunOnceRequestSchema,
   ScheduleUpdateRequestSchema,
+  LinearGetStatusRequestSchema,
+  LinearConnectRequestSchema,
+  LinearDisconnectRequestSchema,
+  LinearTeamsListRequestSchema,
+  LinearIssuesListRequestSchema,
+  LinearIssuesGetRequestSchema,
+  LinearIssuesSetStateRequestSchema,
   LoopRunRequestSchema,
   LoopListRequestSchema,
   LoopInspectRequestSchema,
@@ -3576,6 +3685,8 @@ export const ServerInfoStatusPayloadSchema = z
         pluginTimelineItems: z.boolean().optional(),
         // COMPAT(skillManagement): added in v0.4.0, remove gate after 2027-08-16.
         skillManagement: z.boolean().optional(),
+        providerCustomizations: z.boolean().optional(),
+        providerCommandCreation: z.boolean().optional(),
         // COMPAT(terminalRestoreModes): added in v0.1.81, remove gate after 2026-11-23.
         "terminal-restore-modes": z.boolean().optional(),
         // COMPAT(terminalInputModeReplay): added in v0.2.6, remove gate after 2027-02-02.
@@ -3604,6 +3715,8 @@ export const ServerInfoStatusPayloadSchema = z
         workspaceFileEditing: z.boolean().optional(),
         // COMPAT(providerUsageList): added in v0.1.98, drop the gate when daemon floor >= v0.1.98.
         providerUsageList: z.boolean().optional(),
+        // COMPAT(providerAccounts): added after v0.8.0, remove gate after 2027-03-23.
+        providerAccounts: z.boolean().optional(),
         // COMPAT(agentDetach): added in v0.1.98, remove gate after 2026-12-19 once daemon floor >= v0.1.98.
         agentDetach: z.boolean().optional(),
         // COMPAT(agentThinkingUpdate): added in v0.2.4, remove gate after 2027-01-28.
@@ -3612,8 +3725,11 @@ export const ServerInfoStatusPayloadSchema = z
         daemonDiagnostics: z.boolean().optional(),
         // COMPAT(daemonSelfUpdate): added in v0.1.93, remove gate after 2026-12-13.
         daemonSelfUpdate: z.boolean().optional(),
+        // COMPAT(githubRepoStar): added after v0.8.0, remove gate after 2027-03-24.
+        githubRepoStar: z.boolean().optional(),
         // COMPAT(agentForkContext): added in v0.1.102, remove gate after 2026-12-28.
         agentForkContext: z.boolean().optional(),
+        agentForkHistory: z.boolean().optional(),
         // COMPAT(agentForkContextCursor): added in v0.1.108, remove gate after 2027-01-14.
         agentForkContextCursor: z.boolean().optional(),
         // COMPAT(providerSubagents): added in v0.1.107, remove gate after 2027-01-12.
@@ -3669,6 +3785,8 @@ export const ServerInfoStatusPayloadSchema = z
         fsEntryOps: z.boolean().optional(),
         // COMPAT(fsEntryDuplicate): added in v0.3.0, remove gate after 2027-02-09.
         fsEntryDuplicate: z.boolean().optional(),
+        // COMPAT(fsContentSearch): added in v0.8.3, remove gate after 2027-04-09.
+        fsContentSearch: z.boolean().optional(),
         // COMPAT(checkoutDiscardChanges): added in v0.3.0, remove gate after 2027-02-08.
         checkoutDiscardChanges: z.boolean().optional(),
         // COMPAT(agentProfiles): added in v0.3.2, remove gate after 2027-02-11.
@@ -3678,6 +3796,9 @@ export const ServerInfoStatusPayloadSchema = z
         agentProfiles: z.boolean().optional(),
         // COMPAT(agentConfigApply): added in v0.3.2, remove gate after 2027-02-11.
         agentConfigApply: z.boolean().optional(),
+        // COMPAT(linearIntegration): added in v0.8.1, remove gate after 2027-03-24.
+        linearIntegration: z.boolean().optional(),
+        linearIssuePagination: z.boolean().optional(),
       })
       .optional(),
   })
@@ -3816,7 +3937,7 @@ export const ProjectCheckoutLiteNotGitPayloadSchema = z
     currentBranch: z.null(),
     remoteUrl: z.null(),
     worktreeRoot: z.null().optional(),
-    isPaseoOwnedWorktree: z.literal(false),
+    isGravityOwnedWorktree: z.literal(false),
     mainRepoRoot: z.null(),
   })
   .transform((value) => ({
@@ -3824,14 +3945,14 @@ export const ProjectCheckoutLiteNotGitPayloadSchema = z
     worktreeRoot: null,
   }));
 
-export const ProjectCheckoutLiteGitNonPaseoPayloadSchema = z
+export const ProjectCheckoutLiteGitNonGravityPayloadSchema = z
   .object({
     cwd: z.string(),
     isGit: z.literal(true),
     currentBranch: z.string().nullable(),
     remoteUrl: z.string().nullable(),
     worktreeRoot: z.string().optional(),
-    isPaseoOwnedWorktree: z.literal(false),
+    isGravityOwnedWorktree: z.literal(false),
     mainRepoRoot: z.string().nullable().optional().default(null),
   })
   .transform((value) => ({
@@ -3839,14 +3960,14 @@ export const ProjectCheckoutLiteGitNonPaseoPayloadSchema = z
     worktreeRoot: value.worktreeRoot ?? value.cwd,
   }));
 
-export const ProjectCheckoutLiteGitPaseoPayloadSchema = z
+export const ProjectCheckoutLiteGitGravityPayloadSchema = z
   .object({
     cwd: z.string(),
     isGit: z.literal(true),
     currentBranch: z.string().nullable(),
     remoteUrl: z.string().nullable(),
     worktreeRoot: z.string().optional(),
-    isPaseoOwnedWorktree: z.literal(true),
+    isGravityOwnedWorktree: z.literal(true),
     mainRepoRoot: z.string(),
   })
   .transform((value) => ({
@@ -3856,8 +3977,8 @@ export const ProjectCheckoutLiteGitPaseoPayloadSchema = z
 
 export const ProjectCheckoutLitePayloadSchema = z.union([
   ProjectCheckoutLiteNotGitPayloadSchema,
-  ProjectCheckoutLiteGitNonPaseoPayloadSchema,
-  ProjectCheckoutLiteGitPaseoPayloadSchema,
+  ProjectCheckoutLiteGitNonGravityPayloadSchema,
+  ProjectCheckoutLiteGitGravityPayloadSchema,
 ]);
 
 export const ProjectPlacementPayloadSchema = z.object({
@@ -3888,7 +4009,7 @@ const WorkspaceGitRuntimePayloadSchema = z
   .object({
     currentBranch: z.string().nullable().optional(),
     remoteUrl: z.string().nullable().optional(),
-    isPaseoOwnedWorktree: z.boolean().optional(),
+    isGravityOwnedWorktree: z.boolean().optional(),
     isDirty: z.boolean().nullable().optional(),
     aheadBehind: z
       .object({
@@ -3965,7 +4086,7 @@ export const WorkspaceDescriptorPayloadSchema = z
     projectRootPath: z.string(),
     workspaceDirectory: z.string().optional(),
     // COMPAT(worktreeSlug): added in v0.2.6, remove optional after 2027-01-31.
-    // Present only for Paseo-owned worktrees; this is the basename of their root directory.
+    // Present only for Gravity-owned worktrees; this is the basename of their root directory.
     worktreeSlug: z.string().optional(),
     projectKind: z.enum(["git", "non_git", "directory"]),
     // COMPAT(workspaces): keep legacy directory workspace kind parseable.
@@ -4994,6 +5115,25 @@ export const DaemonConfigReloadResponseSchema = z.object({
     .passthrough(),
 });
 
+export const GitHubRepoStarGetStatusResponseSchema = z.object({
+  type: z.literal("github.repo_star.get_status.response"),
+  payload: z.object({
+    requestId: z.string(),
+    repo: z.string(),
+    // null when the host cannot tell: gh missing, signed out, offline, or timed out.
+    starred: z.boolean().nullable(),
+  }),
+});
+
+export const GitHubRepoStarAddResponseSchema = z.object({
+  type: z.literal("github.repo_star.add.response"),
+  payload: z.object({
+    requestId: z.string(),
+    repo: z.string(),
+    success: z.boolean(),
+  }),
+});
+
 export const DiagnosticsResponseSchema = z.object({
   type: z.literal("diagnostics.response"),
   payload: z
@@ -5023,8 +5163,8 @@ export const ReadProjectConfigResponseMessageSchema = z.object({
       requestId: z.string(),
       repoRoot: z.string(),
       ok: z.literal(true),
-      config: PaseoConfigRawSchema.nullable(),
-      revision: PaseoConfigRevisionSchema.nullable(),
+      config: GravityConfigRawSchema.nullable(),
+      revision: GravityConfigRevisionSchema.nullable(),
       hasUncommittedWorktreeSetupChanges: z.boolean().optional(),
     }),
     z.object({
@@ -5045,8 +5185,8 @@ export const WriteProjectConfigResponseMessageSchema = z.object({
       requestId: z.string(),
       repoRoot: z.string(),
       ok: z.literal(true),
-      config: PaseoConfigRawSchema,
-      revision: PaseoConfigRevisionSchema,
+      config: GravityConfigRawSchema,
+      revision: GravityConfigRevisionSchema,
       hasUncommittedWorktreeSetupChanges: z.boolean().optional(),
     }),
     z.object({
@@ -5133,7 +5273,7 @@ const CheckoutStatusCommonSchema = z.object({
 
 const CheckoutStatusNotGitSchema = CheckoutStatusCommonSchema.extend({
   isGit: z.literal(false),
-  isPaseoOwnedWorktree: z.literal(false),
+  isGravityOwnedWorktree: z.literal(false),
   repoRoot: z.null(),
   currentBranch: z.null(),
   isDirty: z.null(),
@@ -5145,9 +5285,9 @@ const CheckoutStatusNotGitSchema = CheckoutStatusCommonSchema.extend({
   remoteUrl: z.null(),
 });
 
-const CheckoutStatusGitNonPaseoSchema = CheckoutStatusCommonSchema.extend({
+const CheckoutStatusGitNonGravitySchema = CheckoutStatusCommonSchema.extend({
   isGit: z.literal(true),
-  isPaseoOwnedWorktree: z.literal(false),
+  isGravityOwnedWorktree: z.literal(false),
   repoRoot: z.string(),
   mainRepoRoot: z.string().nullable().optional().default(null),
   currentBranch: z.string().nullable(),
@@ -5160,9 +5300,9 @@ const CheckoutStatusGitNonPaseoSchema = CheckoutStatusCommonSchema.extend({
   remoteUrl: z.string().nullable(),
 });
 
-const CheckoutStatusGitPaseoSchema = CheckoutStatusCommonSchema.extend({
+const CheckoutStatusGitGravitySchema = CheckoutStatusCommonSchema.extend({
   isGit: z.literal(true),
-  isPaseoOwnedWorktree: z.literal(true),
+  isGravityOwnedWorktree: z.literal(true),
   repoRoot: z.string(),
   mainRepoRoot: z.string(),
   currentBranch: z.string().nullable(),
@@ -5179,8 +5319,8 @@ export const CheckoutStatusResponseSchema = z.object({
   type: z.literal("checkout_status_response"),
   payload: z.union([
     CheckoutStatusNotGitSchema,
-    CheckoutStatusGitNonPaseoSchema,
-    CheckoutStatusGitPaseoSchema,
+    CheckoutStatusGitNonGravitySchema,
+    CheckoutStatusGitGravitySchema,
   ]),
 });
 
@@ -5320,8 +5460,8 @@ export const CheckoutStatusUpdateSchema = z.object({
   payload: z
     .union([
       CheckoutStatusNotGitSchema,
-      CheckoutStatusGitNonPaseoSchema,
-      CheckoutStatusGitPaseoSchema,
+      CheckoutStatusGitNonGravitySchema,
+      CheckoutStatusGitGravitySchema,
     ])
     .and(CheckoutStatusUpdateMetadataSchema),
 });
@@ -5743,7 +5883,7 @@ const StashEntrySchema = z.object({
   index: z.number().int().min(0),
   message: z.string(),
   branch: z.string().nullable(),
-  isPaseo: z.boolean(),
+  isGravity: z.boolean(),
 });
 
 export const StashSaveResponseSchema = z.object({
@@ -5855,24 +5995,24 @@ export const DirectorySuggestionsResponseSchema = z.object({
   }),
 });
 
-const PaseoWorktreeSchema = z.object({
+const GravityWorktreeSchema = z.object({
   worktreePath: z.string(),
   createdAt: z.string(),
   branchName: z.string().nullable().optional(),
   head: z.string().nullable().optional(),
 });
 
-export const PaseoWorktreeListResponseSchema = z.object({
-  type: z.literal("paseo_worktree_list_response"),
+export const GravityWorktreeListResponseSchema = z.object({
+  type: z.literal("gravity_worktree_list_response"),
   payload: z.object({
-    worktrees: z.array(PaseoWorktreeSchema),
+    worktrees: z.array(GravityWorktreeSchema),
     error: CheckoutErrorSchema.nullable(),
     requestId: z.string(),
   }),
 });
 
-export const PaseoWorktreeArchiveResponseSchema = z.object({
-  type: z.literal("paseo_worktree_archive_response"),
+export const GravityWorktreeArchiveResponseSchema = z.object({
+  type: z.literal("gravity_worktree_archive_response"),
   payload: z.object({
     success: z.boolean(),
     removedAgents: z.array(z.string()).optional(),
@@ -5881,8 +6021,8 @@ export const PaseoWorktreeArchiveResponseSchema = z.object({
   }),
 });
 
-export const CreatePaseoWorktreeResponseSchema = z.object({
-  type: z.literal("create_paseo_worktree_response"),
+export const CreateGravityWorktreeResponseSchema = z.object({
+  type: z.literal("create_gravity_worktree_response"),
   payload: z.object({
     workspace: WorkspaceDescriptorPayloadSchema.nullable(),
     error: z.string().nullable(),
@@ -5984,6 +6124,32 @@ export const FileEntryDeleteResponseSchema = z.object({
     cwd: z.string(),
     path: z.string(),
     success: z.boolean(),
+    error: z.string().nullable(),
+    requestId: z.string(),
+  }),
+});
+
+export const FileContentSearchMatchSchema = z.object({
+  line: z.number().int().positive(),
+  column: z.number().int().positive(),
+  length: z.number().int().nonnegative(),
+  text: z.string(),
+  textStart: z.number().int().nonnegative(),
+  textEnd: z.number().int().nonnegative(),
+});
+
+export const FileContentSearchFileSchema = z.object({
+  path: z.string(),
+  matches: z.array(FileContentSearchMatchSchema),
+});
+
+export const FileContentSearchResponseSchema = z.object({
+  type: z.literal("fs.content.search.response"),
+  payload: z.object({
+    cwd: z.string(),
+    files: z.array(FileContentSearchFileSchema),
+    totalMatches: z.number().int().nonnegative(),
+    truncated: z.boolean(),
     error: z.string().nullable(),
     requestId: z.string(),
   }),
@@ -6194,6 +6360,73 @@ export const ProviderUsageListResponseMessageSchema = z.object({
     requestId: z.string(),
     fetchedAt: z.string(),
     providers: z.array(ProviderUsageSchema),
+  }),
+});
+
+export const ProviderAccountSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  organizationName: z.string().nullable(),
+  displayName: z.string().nullable(),
+  planLabel: z.string().nullable(),
+  isActive: z.boolean(),
+  /** The stored refresh token was rejected; the account must be logged into again. */
+  reloginRequired: z.boolean(),
+  addedAt: z.string(),
+  usage: ProviderUsageSchema.nullable(),
+});
+
+/** The login the provider CLI is using right now, whether or not Gravity has saved it. */
+export const ProviderAccountsLiveLoginSchema = z.object({
+  email: z.string(),
+  organizationName: z.string().nullable(),
+  accountId: z.string().nullable(),
+  isUsable: z.boolean(),
+  planLabel: z.string().nullable().optional(),
+  usage: ProviderUsageSchema.nullable().optional(),
+});
+
+export const ProviderAccountsProviderSchema = z.object({
+  providerId: z.string(),
+  displayName: z.string(),
+  liveLogin: ProviderAccountsLiveLoginSchema.nullable(),
+  accounts: z.array(ProviderAccountSchema),
+  error: z.string().nullable(),
+});
+
+export const ProviderAccountsListResponseMessageSchema = z.object({
+  type: z.literal("provider.accounts.list.response"),
+  payload: z.object({
+    requestId: z.string(),
+    fetchedAt: z.string(),
+    providers: z.array(ProviderAccountsProviderSchema),
+  }),
+});
+
+export const ProviderAccountsAddCurrentResponseMessageSchema = z.object({
+  type: z.literal("provider.accounts.add_current.response"),
+  payload: z.object({
+    requestId: z.string(),
+    providerId: z.string(),
+    account: ProviderAccountSchema,
+  }),
+});
+
+export const ProviderAccountsActivateResponseMessageSchema = z.object({
+  type: z.literal("provider.accounts.activate.response"),
+  payload: z.object({
+    requestId: z.string(),
+    providerId: z.string(),
+    accountId: z.string(),
+  }),
+});
+
+export const ProviderAccountsRemoveResponseMessageSchema = z.object({
+  type: z.literal("provider.accounts.remove.response"),
+  payload: z.object({
+    requestId: z.string(),
+    providerId: z.string(),
+    accountId: z.string(),
   }),
 });
 
@@ -6654,6 +6887,7 @@ export const AgentSkillsImportLegacySelectionResponseSchema = z.object({
 });
 
 export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
+  ProviderCommandCreateResponseSchema,
   BrowserHostRegisterResponseSchema,
   SubscriptionReleaseResponseSchema,
   SessionEventsSetSubscriptionResponseSchema,
@@ -6753,6 +6987,8 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   DaemonGetStatusResponseSchema,
   DaemonGetPairingOfferResponseSchema,
   DaemonConfigReloadResponseSchema,
+  GitHubRepoStarGetStatusResponseSchema,
+  GitHubRepoStarAddResponseSchema,
   HubManagementDaemonConnectResponseSchema,
   HubManagementDaemonGetStatusResponseSchema,
   HubManagementDaemonDisconnectResponseSchema,
@@ -6815,9 +7051,9 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   ForgeSearchResponseSchema,
   GitHubSearchResponseSchema,
   DirectorySuggestionsResponseSchema,
-  PaseoWorktreeListResponseSchema,
-  PaseoWorktreeArchiveResponseSchema,
-  CreatePaseoWorktreeResponseSchema,
+  GravityWorktreeListResponseSchema,
+  GravityWorktreeArchiveResponseSchema,
+  CreateGravityWorktreeResponseSchema,
   FileExplorerResponseSchema,
   FileSubscribeResponseSchema,
   FileUnsubscribeResponseSchema,
@@ -6826,6 +7062,7 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   FileEntryRenameResponseSchema,
   FileEntryDuplicateResponseSchema,
   FileEntryDeleteResponseSchema,
+  FileContentSearchResponseSchema,
   FileUpdateSchema,
   ProjectIconResponseSchema,
   ProjectIconGetResponseSchema,
@@ -6840,6 +7077,12 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   RefreshProvidersSnapshotResponseMessageSchema,
   ProviderDiagnosticResponseMessageSchema,
   ProviderUsageListResponseMessageSchema,
+  ProviderCustomizationsListResponseSchema,
+  ProviderMcpServersListResponseSchema,
+  ProviderAccountsListResponseMessageSchema,
+  ProviderAccountsAddCurrentResponseMessageSchema,
+  ProviderAccountsActivateResponseMessageSchema,
+  ProviderAccountsRemoveResponseMessageSchema,
   ListCommandsResponseSchema,
   ListTerminalsResponseSchema,
   TerminalsChangedSchema,
@@ -6866,6 +7109,13 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   ScheduleDeleteResponseSchema,
   ScheduleRunOnceResponseSchema,
   ScheduleUpdateResponseSchema,
+  LinearGetStatusResponseSchema,
+  LinearConnectResponseSchema,
+  LinearDisconnectResponseSchema,
+  LinearTeamsListResponseSchema,
+  LinearIssuesListResponseSchema,
+  LinearIssuesGetResponseSchema,
+  LinearIssuesSetStateResponseSchema,
   LoopRunResponseSchema,
   LoopListResponseSchema,
   LoopInspectResponseSchema,
@@ -7006,6 +7256,8 @@ export type ListAvailableProvidersResponse = z.infer<typeof ListAvailableProvide
 export type DaemonGetStatusResponse = z.infer<typeof DaemonGetStatusResponseSchema>;
 export type DaemonGetPairingOfferResponse = z.infer<typeof DaemonGetPairingOfferResponseSchema>;
 export type DaemonConfigReloadResponse = z.infer<typeof DaemonConfigReloadResponseSchema>;
+export type GitHubRepoStarGetStatusResponse = z.infer<typeof GitHubRepoStarGetStatusResponseSchema>;
+export type GitHubRepoStarAddResponse = z.infer<typeof GitHubRepoStarAddResponseSchema>;
 export type DiagnosticsResponse = z.infer<typeof DiagnosticsResponseSchema>;
 export type GetProvidersSnapshotResponseMessage = z.infer<
   typeof GetProvidersSnapshotResponseMessageSchema
@@ -7026,6 +7278,21 @@ export type ProviderUsageDetail = z.infer<typeof ProviderUsageDetailSchema>;
 export type ProviderUsageListResponseMessage = z.infer<
   typeof ProviderUsageListResponseMessageSchema
 >;
+export type ProviderAccount = z.infer<typeof ProviderAccountSchema>;
+export type ProviderAccountsLiveLogin = z.infer<typeof ProviderAccountsLiveLoginSchema>;
+export type ProviderAccountsProvider = z.infer<typeof ProviderAccountsProviderSchema>;
+export type ProviderAccountsListResponseMessage = z.infer<
+  typeof ProviderAccountsListResponseMessageSchema
+>;
+export type ProviderAccountsAddCurrentResponseMessage = z.infer<
+  typeof ProviderAccountsAddCurrentResponseMessageSchema
+>;
+export type ProviderAccountsActivateResponseMessage = z.infer<
+  typeof ProviderAccountsActivateResponseMessageSchema
+>;
+export type ProviderAccountsRemoveResponseMessage = z.infer<
+  typeof ProviderAccountsRemoveResponseMessageSchema
+>;
 export type ChatCreateResponse = z.infer<typeof ChatCreateResponseSchema>;
 export type ChatListResponse = z.infer<typeof ChatListResponseSchema>;
 export type ChatInspectResponse = z.infer<typeof ChatInspectResponseSchema>;
@@ -7042,6 +7309,13 @@ export type ScheduleResumeResponse = z.infer<typeof ScheduleResumeResponseSchema
 export type ScheduleDeleteResponse = z.infer<typeof ScheduleDeleteResponseSchema>;
 export type ScheduleRunOnceResponse = z.infer<typeof ScheduleRunOnceResponseSchema>;
 export type ScheduleUpdateResponse = z.infer<typeof ScheduleUpdateResponseSchema>;
+export type LinearGetStatusResponse = z.infer<typeof LinearGetStatusResponseSchema>;
+export type LinearConnectResponse = z.infer<typeof LinearConnectResponseSchema>;
+export type LinearDisconnectResponse = z.infer<typeof LinearDisconnectResponseSchema>;
+export type LinearTeamsListResponse = z.infer<typeof LinearTeamsListResponseSchema>;
+export type LinearIssuesListResponse = z.infer<typeof LinearIssuesListResponseSchema>;
+export type LinearIssuesGetResponse = z.infer<typeof LinearIssuesGetResponseSchema>;
+export type LinearIssuesSetStateResponse = z.infer<typeof LinearIssuesSetStateResponseSchema>;
 export type LoopRunResponse = z.infer<typeof LoopRunResponseSchema>;
 export type LoopListResponse = z.infer<typeof LoopListResponseSchema>;
 export type LoopInspectResponse = z.infer<typeof LoopInspectResponseSchema>;
@@ -7110,6 +7384,13 @@ export type ScheduleResumeRequest = z.infer<typeof ScheduleResumeRequestSchema>;
 export type ScheduleDeleteRequest = z.infer<typeof ScheduleDeleteRequestSchema>;
 export type ScheduleRunOnceRequest = z.infer<typeof ScheduleRunOnceRequestSchema>;
 export type ScheduleUpdateRequest = z.infer<typeof ScheduleUpdateRequestSchema>;
+export type LinearGetStatusRequest = z.infer<typeof LinearGetStatusRequestSchema>;
+export type LinearConnectRequest = z.infer<typeof LinearConnectRequestSchema>;
+export type LinearDisconnectRequest = z.infer<typeof LinearDisconnectRequestSchema>;
+export type LinearTeamsListRequest = z.infer<typeof LinearTeamsListRequestSchema>;
+export type LinearIssuesListRequest = z.infer<typeof LinearIssuesListRequestSchema>;
+export type LinearIssuesGetRequest = z.infer<typeof LinearIssuesGetRequestSchema>;
+export type LinearIssuesSetStateRequest = z.infer<typeof LinearIssuesSetStateRequestSchema>;
 export type LoopRunRequest = z.infer<typeof LoopRunRequestSchema>;
 export type LoopListRequest = z.infer<typeof LoopListRequestSchema>;
 export type LoopInspectRequest = z.infer<typeof LoopInspectRequestSchema>;
@@ -7225,13 +7506,13 @@ export type GitHubSearchKind = z.infer<typeof GitHubSearchKindSchema>;
 export type GitHubSearchRequest = z.infer<typeof GitHubSearchRequestSchema>;
 export type GitHubSearchResponse = z.infer<typeof GitHubSearchResponseSchema>;
 export type ChangeRequestCheckoutSource = z.infer<typeof ChangeRequestCheckoutSourceSchema>;
-export type CreatePaseoWorktreeRequest = z.infer<typeof CreatePaseoWorktreeRequestSchema>;
+export type CreateGravityWorktreeRequest = z.infer<typeof CreateGravityWorktreeRequestSchema>;
 export type DirectorySuggestionsRequest = z.infer<typeof DirectorySuggestionsRequestSchema>;
 export type DirectorySuggestionsResponse = z.infer<typeof DirectorySuggestionsResponseSchema>;
-export type PaseoWorktreeListRequest = z.infer<typeof PaseoWorktreeListRequestSchema>;
-export type PaseoWorktreeListResponse = z.infer<typeof PaseoWorktreeListResponseSchema>;
-export type PaseoWorktreeArchiveRequest = z.infer<typeof PaseoWorktreeArchiveRequestSchema>;
-export type PaseoWorktreeArchiveResponse = z.infer<typeof PaseoWorktreeArchiveResponseSchema>;
+export type GravityWorktreeListRequest = z.infer<typeof GravityWorktreeListRequestSchema>;
+export type GravityWorktreeListResponse = z.infer<typeof GravityWorktreeListResponseSchema>;
+export type GravityWorktreeArchiveRequest = z.infer<typeof GravityWorktreeArchiveRequestSchema>;
+export type GravityWorktreeArchiveResponse = z.infer<typeof GravityWorktreeArchiveResponseSchema>;
 export type WorkspaceSetupStatusRequest = z.infer<typeof WorkspaceSetupStatusRequestSchema>;
 export type WorkspaceSetupRunRequest = z.infer<typeof WorkspaceSetupRunRequestSchema>;
 export type LegacyListAvailableEditorsRequest = z.infer<
@@ -7267,6 +7548,10 @@ export type FileEntryDuplicateRequest = z.infer<typeof FileEntryDuplicateRequest
 export type FileEntryDuplicateResponse = z.infer<typeof FileEntryDuplicateResponseSchema>;
 export type FileEntryDeleteRequest = z.infer<typeof FileEntryDeleteRequestSchema>;
 export type FileEntryDeleteResponse = z.infer<typeof FileEntryDeleteResponseSchema>;
+export type FileContentSearchRequest = z.infer<typeof FileContentSearchRequestSchema>;
+export type FileContentSearchResponse = z.infer<typeof FileContentSearchResponseSchema>;
+export type FileContentSearchMatch = z.infer<typeof FileContentSearchMatchSchema>;
+export type FileContentSearchFile = z.infer<typeof FileContentSearchFileSchema>;
 export type FileWriteResult = z.infer<typeof FileWriteResultSchema>;
 export type FileUpdate = z.infer<typeof FileUpdateSchema>;
 export type ProjectIconRequest = z.infer<typeof ProjectIconRequestSchema>;

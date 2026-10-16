@@ -1,8 +1,8 @@
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
+import { QueuedMessages } from "@/composer/queued-messages";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   View,
-  Pressable,
   Text,
   StyleSheet as RNStyleSheet,
   type PressableStateCallbackType,
@@ -23,12 +23,9 @@ import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { useShallow } from "zustand/shallow";
 import {
-  ArrowUp,
   Square,
-  Pencil,
   AudioLines,
   CircleDot,
-  FileText,
   GitPullRequest,
   Image as ImageIcon,
   ClipboardPaste,
@@ -70,6 +67,7 @@ import {
   queueComposerMessage,
   removeComposerAttachmentAtIndex,
   sendQueuedComposerMessageNow,
+  sendAllQueuedComposerMessagesNow,
   toggleForgeAttachmentFromPicker,
   uploadFileAttachments,
   type AttachmentPersister,
@@ -84,6 +82,7 @@ import { useShortcutKeys } from "@/hooks/use-shortcut-keys";
 import { AutocompletePopover } from "@/components/ui/autocomplete-popover";
 import type { AutocompleteOption } from "@/components/ui/autocomplete";
 import { useAgentAutocomplete } from "@/hooks/use-agent-autocomplete";
+import type { InputCommand } from "@/components/ui/text-input/command-ranges";
 import { usePluginClientSlashCommands } from "@/plugins/client-slash-commands";
 import {
   executePluginClientSlashCommand,
@@ -113,7 +112,7 @@ import { useAppSettings } from "@/hooks/use-settings";
 import { RenderProfile } from "@/utils/render-profiler";
 import { AfterPaintPublication } from "@/composer/after-paint-publication";
 import { isWeb, isNative } from "@/constants/platform";
-import type { ForgeSearchItem } from "@getpaseo/protocol/messages";
+import type { ForgeSearchItem } from "@gravity/protocol/messages";
 import type {
   AttachmentMetadata,
   ComposerAttachment,
@@ -128,7 +127,12 @@ import { useWorkspaceAttachmentsForScopes } from "@/attachments/workspace-attach
 import { droppedItemsToPickedFiles } from "@/composer/attachments/drop";
 import { getFileTypeLabel } from "@/attachments/file-types";
 import { Combobox, ComboboxItem, type ComboboxOption } from "@/components/ui/combobox";
-import { AttachmentLabel, AttachmentPill, AttachmentThumbnail } from "@/components/attachment-pill";
+import {
+  AttachmentLabel,
+  AttachmentPill,
+  AttachmentThumbnail,
+  FileAttachmentChip,
+} from "@/components/attachment-pill";
 import { AttachmentLightbox, type ImageLightboxSource } from "@/components/attachment-lightbox";
 import { openExternalUrl } from "@/utils/open-external-url";
 import { useIsDictationReady } from "@/hooks/use-is-dictation-ready";
@@ -144,6 +148,7 @@ import { PluginResourceAttachmentPill, usePluginAttachmentPicker } from "@/plugi
 import { resolveClientSlashCommand, type ClientSlashCommand } from "@/client-slash-commands";
 import {
   appendWorkspaceFileAttachment,
+  createWorkspaceFileAttachment,
   getWorkspaceFileAttachmentKey,
   getWorkspaceFileAttachmentSubtitle,
 } from "@/attachments/workspace-file";
@@ -162,6 +167,7 @@ const composerImageAttachmentPersister: Pick<
 };
 
 type QueuedMessage = QueuedComposerMessage;
+type QueuedComposerMessageContent = Pick<QueuedComposerMessage, "text" | "attachments">;
 
 type AttachmentListUpdater =
   | UserComposerAttachment[]
@@ -170,7 +176,6 @@ type AttachmentListUpdater =
 const EMPTY_ATTACHMENT_SCOPE_KEYS: readonly string[] = [];
 
 function noop() {}
-const noopCallback = () => {};
 
 function resolveComposerButtonIconSize(): number {
   return isWeb ? ICON_SIZE.md : ICON_SIZE.lg;
@@ -239,7 +244,9 @@ function resolveCheckoutRemoteUrl(
 
 function buildCancelButtonStyle(isConnected: boolean, isCancellingAgent: boolean): object[] {
   const disabled = !isConnected || isCancellingAgent ? styles.buttonDisabled : undefined;
-  return [styles.cancelButton, disabled].filter((value): value is object => Boolean(value));
+  return [styles.actionButton, styles.cancelButton, disabled].filter((value): value is object =>
+    Boolean(value),
+  );
 }
 
 function buildRealtimeVoiceButtonStyle(
@@ -364,34 +371,6 @@ function renderAttachmentTray(args: RenderAttachmentTrayArgs): ReactElement | nu
           labels,
         }),
       )}
-    </View>
-  );
-}
-
-interface RenderQueueTrackArgs {
-  queuedMessages: readonly QueuedMessage[];
-  handleEditQueuedMessage: (id: string) => void;
-  handleSendQueuedNow: (id: string) => Promise<void>;
-  editLabel: string;
-  sendNowLabel: string;
-}
-
-function renderQueueTrack(args: RenderQueueTrackArgs): ReactElement | null {
-  const { queuedMessages, handleEditQueuedMessage, handleSendQueuedNow, editLabel, sendNowLabel } =
-    args;
-  if (queuedMessages.length === 0) return null;
-  return (
-    <View style={styles.queueTrack}>
-      {queuedMessages.map((item) => (
-        <QueuedMessageRow
-          key={item.id}
-          item={item}
-          onEdit={handleEditQueuedMessage}
-          onSendNow={handleSendQueuedNow}
-          editLabel={editLabel}
-          sendNowLabel={sendNowLabel}
-        />
-      ))}
     </View>
   );
 }
@@ -656,53 +635,7 @@ function resolveMessageInputPassthroughAction(
   }
 }
 
-interface QueuedMessageRowProps {
-  item: QueuedMessage;
-  onEdit: (id: string) => void;
-  onSendNow: (id: string) => void;
-  editLabel: string;
-  sendNowLabel: string;
-}
-
-function QueuedMessageRow({
-  item,
-  onEdit,
-  onSendNow,
-  editLabel,
-  sendNowLabel,
-}: QueuedMessageRowProps) {
-  const handleEdit = useCallback(() => {
-    onEdit(item.id);
-  }, [onEdit, item.id]);
-  const handleSendNow = useCallback(() => {
-    onSendNow(item.id);
-  }, [onSendNow, item.id]);
-  return (
-    <View style={styles.queueItem}>
-      <Text style={styles.queueText} numberOfLines={2} ellipsizeMode="tail">
-        {item.text}
-      </Text>
-      <View style={styles.queueActions}>
-        <Pressable
-          onPress={handleEdit}
-          style={styles.queueActionButton}
-          accessibilityLabel={editLabel}
-          accessibilityRole="button"
-        >
-          <ThemedPencil size={ICON_SIZE.sm} uniProps={iconForegroundMapping} />
-        </Pressable>
-        <Pressable
-          onPress={handleSendNow}
-          style={[styles.queueActionButton, styles.queueSendButton]}
-          accessibilityLabel={sendNowLabel}
-          accessibilityRole="button"
-        >
-          <ThemedArrowUp size={ICON_SIZE.sm} uniProps={iconAccentForegroundMapping} />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
+const NO_COMMANDS: readonly InputCommand[] = [];
 
 interface ImageAttachmentPillProps {
   attachment: Extract<ComposerAttachment, { kind: "image" }>;
@@ -816,20 +749,14 @@ function FileAttachmentPill({
   }, [onRemove, index]);
   const fileName = attachment.attachment.fileName;
   return (
-    <AttachmentPill
+    <FileAttachmentChip
       testID="composer-file-attachment-pill"
-      onOpen={noopCallback}
       onRemove={handleRemove}
-      openAccessibilityLabel={fileName}
+      fileName={fileName}
+      detail={getFileTypeLabel(fileName) ?? t("message.attachments.file")}
       removeAccessibilityLabel={removeLabel}
       disabled={disabled}
-    >
-      <AttachmentLabel
-        icon={filePillIcon}
-        title={fileName}
-        subtitle={getFileTypeLabel(fileName) ?? t("message.attachments.file")}
-      />
-    </AttachmentPill>
+    />
   );
 }
 
@@ -852,21 +779,20 @@ function WorkspaceFileAttachmentPill({
     onRemove(index);
   }, [index, onRemove]);
   const fileName = attachment.path.split("/").pop() ?? attachment.path;
+  const lineRange =
+    attachment.selection.kind === "line_range"
+      ? `${attachment.selection.startLine}–${attachment.selection.endLine}`
+      : undefined;
   return (
-    <AttachmentPill
+    <FileAttachmentChip
       testID="composer-workspace-file-attachment-pill"
-      onOpen={noopCallback}
       onRemove={handleRemove}
-      openAccessibilityLabel={fileName}
+      fileName={fileName}
+      detail={getWorkspaceFileAttachmentSubtitle(attachment)}
+      lineRange={lineRange}
       removeAccessibilityLabel={removeLabel}
       disabled={disabled}
-    >
-      <AttachmentLabel
-        icon={filePillIcon}
-        title={fileName}
-        subtitle={getWorkspaceFileAttachmentSubtitle(attachment)}
-      />
-    </AttachmentPill>
+    />
   );
 }
 
@@ -996,7 +922,6 @@ function resolveContextWindowValues(
 }
 
 interface ComposerCancelButtonProps {
-  buttonIconSize: number;
   cancelButtonStyle: (object | undefined)[];
   handleCancelAgent: () => void;
   isConnected: boolean;
@@ -1006,7 +931,6 @@ interface ComposerCancelButtonProps {
 }
 
 function ComposerCancelButton({
-  buttonIconSize,
   cancelButtonStyle,
   handleCancelAgent,
   isConnected,
@@ -1018,9 +942,9 @@ function ComposerCancelButton({
     ? t("composer.cancel.cancelingAgent")
     : t("composer.cancel.stopAgent");
   const icon = isCancellingAgent ? (
-    <LoadingSpinner size="small" color="white" />
+    <ThemedLoadingSpinner size="small" uniProps={iconForegroundMapping} />
   ) : (
-    <Square size={buttonIconSize} color="white" fill="white" />
+    <ThemedSquare size={ICON_SIZE.sm} strokeWidth={0} uniProps={stopIconMapping} />
   );
   const shortcutNode = agentInterruptKeys ? <Shortcut chord={agentInterruptKeys} /> : null;
   return (
@@ -1350,10 +1274,19 @@ function ComposerContentImpl({
     [blurOnSubmit, clearDraft, replaceUserInput, resetSuppression, setSelectedAttachments],
   );
 
+  const attachMentionedFile = useCallback(
+    (path: string) => {
+      const attachment = createWorkspaceFileAttachment({ path });
+      setSelectedAttachments((current) => appendWorkspaceFileAttachment(current, attachment));
+    },
+    [setSelectedAttachments],
+  );
+
   const autocomplete = useAgentAutocomplete({
     userInput,
     cursorIndex,
     setUserInput: replaceUserInput,
+    onFileSelect: attachMentionedFile,
     serverId,
     agentId,
     draftConfig: commandDraftConfig,
@@ -1858,24 +1791,70 @@ function ComposerContentImpl({
     [agentId, queueWriter, replaceUserInput, setSelectedAttachments],
   );
 
-  const handleSendQueuedNow = useCallback(
-    async (id: string) => {
+  const [isSendingQueue, setIsSendingQueue] = useState(false);
+
+  const handleDeleteQueuedMessage = useCallback(
+    (id: string) => {
+      if (isSendingQueue) return;
+      queueWriter.write((previous) => {
+        const remaining = (previous.get(agentId) ?? []).filter((item) => item.id !== id);
+        const next = new Map(previous);
+        if (remaining.length > 0) {
+          next.set(agentId, remaining);
+        } else {
+          next.delete(agentId);
+        }
+        return next;
+      });
+    },
+    [agentId, isSendingQueue, queueWriter],
+  );
+
+  const handleDeleteAllQueued = useCallback(() => {
+    if (isSendingQueue) return;
+    queueWriter.write((previous) => {
+      const next = new Map(previous);
+      next.delete(agentId);
+      return next;
+    });
+  }, [agentId, isSendingQueue, queueWriter]);
+
+  const sendQueuedNow = useCallback(
+    async (id: string | null) => {
+      if (isSendingQueue || !isConnected || isComposerLocked) return;
       if (!sendAgentMessageRef.current && !onSubmitMessageRef.current) return;
-      // Reuse the regular send path; server-side send atomically interrupts any active run.
-      const result = await sendQueuedComposerMessageNow({
+      setIsSendingQueue(true);
+      setSendError(null);
+      const input = {
         agentId,
-        messageId: id,
         queue: queueWriter,
-        submitMessage: ({ text, attachments: queuedAttachments }) =>
+        submitMessage: ({ text, attachments: queuedAttachments }: QueuedComposerMessageContent) =>
           submitMessage(text, queuedAttachments),
         failedToSendMessage: t("composer.errors.failedToSend"),
-      });
-      if (result.status === "failed") {
-        setSendError(result.errorMessage);
+      };
+      try {
+        const result =
+          id === null
+            ? await sendAllQueuedComposerMessagesNow(input)
+            : await sendQueuedComposerMessageNow({ ...input, messageId: id });
+        if (result.status === "failed") {
+          setSendError(result.errorMessage);
+        }
+      } finally {
+        setIsSendingQueue(false);
       }
     },
-    [agentId, queueWriter, submitMessage, t],
+    [agentId, isComposerLocked, isConnected, isSendingQueue, queueWriter, submitMessage, t],
   );
+  const handleSendQueuedNow = useCallback((id: string) => sendQueuedNow(id), [sendQueuedNow]);
+  const handleSendAllQueuedNow = useCallback(() => sendQueuedNow(null), [sendQueuedNow]);
+  const handleSendOldestQueuedMessage = useCallback(() => {
+    const oldest = queuedMessages[0];
+    if (!oldest) return false;
+    if (isSendingQueue || !isConnected || isComposerLocked) return false;
+    void sendQueuedNow(oldest.id);
+    return true;
+  }, [isComposerLocked, isConnected, isSendingQueue, queuedMessages, sendQueuedNow]);
 
   const handleQueue = useCallback(
     (payload: MessagePayload) => {
@@ -1929,7 +1908,6 @@ function ComposerContentImpl({
   const activeActionContent = useMemo(
     () => (
       <ComposerCancelButton
-        buttonIconSize={buttonIconSize}
         cancelButtonStyle={cancelButtonStyle}
         handleCancelAgent={handleCancelAgent}
         isConnected={isConnected}
@@ -1938,15 +1916,7 @@ function ComposerContentImpl({
         t={t}
       />
     ),
-    [
-      agentInterruptKeys,
-      buttonIconSize,
-      cancelButtonStyle,
-      handleCancelAgent,
-      isCancellingAgent,
-      isConnected,
-      t,
-    ],
+    [agentInterruptKeys, cancelButtonStyle, handleCancelAgent, isCancellingAgent, isConnected, t],
   );
 
   const rightContent = useMemo(
@@ -2243,16 +2213,26 @@ function ComposerContentImpl({
     [handleOpenAttachment, handleRemoveAttachment, isComposerLocked, selectedAttachments, t],
   );
 
-  const queueList = useMemo(
-    () =>
-      renderQueueTrack({
-        queuedMessages,
-        handleEditQueuedMessage,
-        handleSendQueuedNow,
-        editLabel: t("composer.attachments.editQueuedMessage"),
-        sendNowLabel: t("composer.attachments.sendQueuedMessageNow"),
-      }),
-    [handleEditQueuedMessage, handleSendQueuedNow, queuedMessages, t],
+  const queueCommands = mode.showAutocomplete ? autocomplete.commands : NO_COMMANDS;
+  const queueList = (
+    <QueuedMessages
+      key={`${serverId}:${agentId}`}
+      queuedMessages={queuedMessages}
+      commands={queueCommands}
+      handleEditQueuedMessage={handleEditQueuedMessage}
+      handleDeleteQueuedMessage={handleDeleteQueuedMessage}
+      deleteLabel={t("composer.attachments.deleteQueuedMessage")}
+      handleSendQueuedNow={handleSendQueuedNow}
+      handleSendAllQueuedNow={handleSendAllQueuedNow}
+      handleDeleteAllQueued={handleDeleteAllQueued}
+      deleteAllLabel={t("composer.attachments.deleteAllQueued")}
+      isSendingQueue={isSendingQueue}
+      disabled={isSendingQueue || !isConnected || isComposerLocked}
+      queuedLabel={t("composer.attachments.queuedCount", { count: queuedMessages.length })}
+      sendAllLabel={t("composer.attachments.sendAllQueuedNow")}
+      editLabel={t("composer.attachments.editQueuedMessage")}
+      sendNowLabel={t("composer.attachments.sendQueuedMessageNow")}
+    />
   );
 
   const messageInputContainerRef = useRef<View>(null);
@@ -2310,9 +2290,9 @@ function ComposerContentImpl({
         {/* Input area */}
         <View style={inputAreaContainerStyle}>
           <View style={styles.inputAreaContent}>
-            {queueList}
             {sendErrorNode}
 
+            {queueList}
             <View ref={messageInputContainerRef} style={styles.messageInputContainer}>
               <ComposerAutocomplete
                 visible={autocompleteVisible}
@@ -2324,11 +2304,14 @@ function ComposerContentImpl({
                 errorMessage={autocomplete.errorMessage}
                 loadingText={autocomplete.loadingText}
                 emptyText={autocomplete.emptyText}
+                fileMode={autocomplete.mode === "file"}
+                onHighlight={autocomplete.onHighlight}
               />
 
               {/* MessageInput handles everything: text, dictation, attachments, all buttons */}
               <RenderProfile id="MessageInput">
                 <StableMessageInput
+                  commands={mode.showAutocomplete ? autocomplete.commands : undefined}
                   ref={messageInputRef}
                   value={userInput}
                   onChangeText={setUserInput}
@@ -2362,6 +2345,7 @@ function ComposerContentImpl({
                   isAgentRunning={isAgentRunning}
                   defaultSendBehavior={activeSendBehavior}
                   onQueue={handleQueue}
+                  onSendOldestQueuedMessage={handleSendOldestQueuedMessage}
                   onSubmitLoadingPress={submitLoadingPressHandler}
                   onKeyPress={handleCommandKeyPress}
                   onSelectionChange={handleSelectionChange}
@@ -2436,7 +2420,6 @@ const styles = StyleSheet.create((theme: Theme) => ({
     flexShrink: 1,
     width: "100%",
     maxWidth: MAX_CONTENT_WIDTH,
-    gap: theme.spacing[3],
   },
   messageInputContainer: {
     flexShrink: 1,
@@ -2445,12 +2428,6 @@ const styles = StyleSheet.create((theme: Theme) => ({
     gap: theme.spacing[3],
   },
   cancelButton: {
-    width: 28,
-    height: 28,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.palette.red[600],
-    alignItems: "center",
-    justifyContent: "center",
     marginLeft: theme.spacing[1],
   },
   rightControls: {
@@ -2499,61 +2476,35 @@ const styles = StyleSheet.create((theme: Theme) => ({
   buttonDisabled: {
     opacity: 0.5,
   },
-  queueTrack: {
-    flexDirection: "column",
-    gap: theme.spacing[2],
-  },
-  queueItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing[3],
-    paddingVertical: theme.spacing[2],
-    backgroundColor: theme.colors.surface1,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: theme.borderWidth[1],
-    borderColor: theme.colors.border,
-    gap: theme.spacing[2],
-  },
-  queueText: {
-    flex: 1,
-    color: theme.colors.foreground,
-    fontSize: theme.fontSize.base,
-  },
-  queueActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-  },
-  queueActionButton: {
+  actionButton: {
     width: 32,
     height: 32,
     borderRadius: theme.borderRadius.full,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.surface2,
-  },
-  queueSendButton: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: theme.colors.surface3,
   },
   sendErrorText: {
+    marginBottom: theme.spacing[3],
     color: theme.colors.palette.red[500],
     fontSize: theme.fontSize.base,
   },
 })) as unknown as Record<string, object>;
 
-const ThemedPencil = withUnistyles(Pencil);
-const ThemedArrowUp = withUnistyles(ArrowUp);
+const ThemedSquare = withUnistyles(Square);
+const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
 const ThemedGitPullRequest = withUnistyles(GitPullRequest);
 const ThemedCircleDot = withUnistyles(CircleDot);
 const ThemedAudioLines = withUnistyles(AudioLines);
 const ThemedPaperclip = withUnistyles(Paperclip);
 const ThemedImageIcon = withUnistyles(ImageIcon);
 const ThemedClipboardPaste = withUnistyles(ClipboardPaste);
-const ThemedFileText = withUnistyles(FileText);
 const iconForegroundMapping = (theme: Theme) => ({ color: theme.colors.foreground });
 const iconForegroundMutedMapping = (theme: Theme) => ({ color: theme.colors.foregroundMuted });
-const iconAccentForegroundMapping = (theme: Theme) => ({ color: theme.colors.accentForeground });
+const stopIconMapping = (theme: Theme) => ({
+  color: theme.colors.foreground,
+  fill: theme.colors.foreground,
+});
 
 function renderForgeAttachmentIcon(icon: string): ReactElement {
   return (
@@ -2567,4 +2518,3 @@ const githubPrPillIcon = (
 const githubIssuePillIcon = (
   <ThemedCircleDot size={ICON_SIZE.sm} uniProps={iconForegroundMutedMapping} />
 );
-const filePillIcon = <ThemedFileText size={ICON_SIZE.sm} uniProps={iconForegroundMutedMapping} />;

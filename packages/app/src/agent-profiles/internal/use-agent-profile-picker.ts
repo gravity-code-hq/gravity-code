@@ -49,8 +49,9 @@ export interface UseAgentProfilePickerInput {
   /**
    * Providers this composer can actually run; pass a stable reference. A profile
    * naming anything else is hidden rather than shown as a row that cannot do
-   * what it says — a live agent is one provider's process and cannot switch, and
-   * the draft form ignores a provider the host does not offer.
+   * what it says — a live agent is one provider's process and cannot switch in
+   * place (switching providers forks it into a draft), and the draft form
+   * ignores a provider the host does not offer.
    */
   availableProviders: readonly string[];
   target: AgentProfileApplyTarget;

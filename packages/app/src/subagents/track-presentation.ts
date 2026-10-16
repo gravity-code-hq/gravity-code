@@ -7,7 +7,7 @@ import { isFinishedSubagent } from "./archive-finished";
 import { providerSubagentLifecycleStatus } from "./provider-store";
 
 function presentationStatus(row: SubagentRow) {
-  if (row.kind === "paseo") {
+  if (row.kind === "gravity") {
     if (row.turn.phase === "open") return "running";
     return row.status === "running" ? "idle" : row.status;
   }

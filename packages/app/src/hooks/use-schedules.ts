@@ -33,12 +33,16 @@ export interface UseSchedulesResult {
   isRefetching: boolean;
 }
 
-export function useSchedules(): UseSchedulesResult {
-  const hosts = useHosts();
+export function useSchedules(options?: { serverId?: string | null }): UseSchedulesResult {
+  const allHosts = useHosts();
   const runtime = getHostRuntimeStore();
+  const scopedServerId = options?.serverId ?? null;
   const hostInputs = useMemo<ScheduleHostInput[]>(
-    () => hosts.map((host) => ({ serverId: host.serverId, serverName: host.label })),
-    [hosts],
+    () =>
+      allHosts
+        .filter((host) => scopedServerId === null || host.serverId === scopedServerId)
+        .map((host) => ({ serverId: host.serverId, serverName: host.label })),
+    [allHosts, scopedServerId],
   );
   const serverIds = useMemo(() => hostInputs.map((host) => host.serverId), [hostInputs]);
   const connectionStatuses = useHostRuntimeConnectionStatuses(serverIds);

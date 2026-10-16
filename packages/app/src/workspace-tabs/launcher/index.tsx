@@ -17,7 +17,7 @@ import { pluginPanelSupportsLocation } from "@/plugins/workspace-panels/location
 import { buildSettingsHostSectionRoute } from "@/utils/host-routes";
 import type { NewTabSelection } from "@/workspace-tabs/new-tab";
 import type { WorkspaceTabTarget } from "@/workspace-tabs/model";
-import type { TerminalProfile } from "@getpaseo/protocol/messages";
+import type { TerminalProfile } from "@gravity/protocol/messages";
 import { panelSupportsHost, type PaneHost } from "@/panels/panel-manifest";
 import {
   getPanelRegistration,
@@ -28,7 +28,7 @@ import { ensurePanelsRegistered } from "@/panels/register-panels";
 import {
   getTerminalProfileIcon,
   resolveTerminalProfiles,
-} from "@getpaseo/protocol/terminal-profiles";
+} from "@gravity/protocol/terminal-profiles";
 import { getBuiltInLaunchOrder, type BuiltInLaunchItemId } from "./internal/catalog";
 
 export type WorkspaceTabLaunchPurpose = "primary" | "supporting";
@@ -157,7 +157,7 @@ export function useWorkspaceTabLaunchCatalog(input: {
         id: "diff",
         label: diffPresentation.label(t),
         Icon: diffPresentation.icon,
-        shortcutActionId: "workspace-tab-target-changes",
+        shortcutActionId: "workspace-tab-target-diff",
         disabled: false,
         panelKind: "working_diff",
         toggleTarget: null,

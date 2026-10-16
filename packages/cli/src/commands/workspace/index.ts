@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { withOutput } from "../../output/index.js";
 import { addJsonAndDaemonHostOptions } from "../../utils/command-options.js";
 import { runArchiveCommand } from "./archive.js";
@@ -20,9 +20,12 @@ export function createWorkspaceCommand(): Command {
   addJsonAndDaemonHostOptions(
     workspace
       .command("create")
-      .description("Create a workspace")
-      .requiredOption("--isolation <local|worktree>", "Workspace isolation")
-      .option("--path <path>", "Local directory or source checkout (default: current)")
+      .description("Create a worktree-backed workspace")
+      // COMPAT(workspaceIsolationFlag): the Local choice left the CLI in v0.8.0.
+      // Scripts written against `--isolation local` keep working for directories
+      // that cannot host a worktree. Remove after 2027-03-25.
+      .addOption(new Option("--isolation <local|worktree>", "Workspace isolation").hideHelp())
+      .option("--path <path>", "Source checkout (default: current directory)")
       .option("--project <id>", "Existing project id")
       .option("--title <title>", "Workspace title")
       .option(

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { beforeEach, afterEach, describe, expect, it } from "vitest";
 import { startGitCommandMetrics, stopGitCommandMetrics } from "@server/utils/run-git-command.js";
 
-import { getCheckoutDiff } from "./checkout-git.js";
+import { getCheckoutDiff, type CheckoutDiffResult } from "./checkout-git.js";
 
 function initRepoWithTrackedChanges(fileCount: number): { tempDir: string; repoDir: string } {
   const tempDir = realpathSync(mkdtempSync(join(tmpdir(), "checkout-git-batch-test-")));
@@ -45,6 +45,38 @@ describe("checkout git diff batching", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
+  it("publishes readable tracked and untracked patches before syntax highlighting", async () => {
+    writeFileSync(join(repoDir, "tracked.ts"), "const value = 1;\n");
+    execFileSync("git", ["add", "tracked.ts"], { cwd: repoDir });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "code"], { cwd: repoDir });
+    writeFileSync(join(repoDir, "tracked.ts"), "const value = 2;\n");
+    writeFileSync(join(repoDir, "new.ts"), "export const added = true;\n");
+    const previews: CheckoutDiffResult[] = [];
+    const result = await getCheckoutDiff(
+      repoDir,
+      { mode: "uncommitted", includeStructured: true },
+      undefined,
+      (preview) => previews.push(preview),
+    );
+    expect(previews).toHaveLength(1);
+    const preview = previews[0];
+    expect(preview.diff).toBe(result.diff);
+    expect(preview.structured?.map((file) => file.path)).toEqual(
+      result.structured?.map((file) => file.path),
+    );
+    for (const path of ["tracked.ts", "new.ts"]) {
+      const plain = preview.structured?.find((file) => file.path === path);
+      const highlighted = result.structured?.find((file) => file.path === path);
+      expect(plain?.hunks[0].lines.find((line) => line.type === "add")?.tokens).toBeUndefined();
+      expect(
+        highlighted?.hunks[0].lines.find((line) => line.type === "add")?.tokens,
+      ).toContainEqual({
+        text: "const",
+        style: "keyword",
+      });
+    }
+  });
+
   it("collects ordinary tracked patches with one bounded Git command", async () => {
     startGitCommandMetrics();
     const result = await getCheckoutDiff(repoDir, {
@@ -58,6 +90,27 @@ describe("checkout git diff batching", () => {
     expect(
       metrics.commands.filter(({ args }) => args[0] === "diff" && args.includes("--")),
     ).toHaveLength(1);
+  });
+
+  it("preserves every untracked patch across batches, including binary files", async () => {
+    for (let index = 0; index < 17; index++) {
+      writeFileSync(
+        join(repoDir, `new-${index.toString().padStart(2, "0")}.txt`),
+        `new ${index}\n`,
+      );
+    }
+    writeFileSync(join(repoDir, "new-binary.bin"), Buffer.from([0, 255, 0]));
+    const result = await getCheckoutDiff(repoDir, { mode: "uncommitted", includeStructured: true });
+    const added = result.structured?.filter((file) => file.isNew);
+    expect(added?.map((file) => [file.path, file.additions, file.status])).toEqual([
+      ...Array.from({ length: 17 }, (_, index) => [
+        `new-${index.toString().padStart(2, "0")}.txt`,
+        1,
+        "ok",
+      ]),
+      ["new-binary.bin", 0, "binary"],
+    ]);
+    expect(result.structured).toHaveLength(38);
   });
 
   it("batches committed file contents and preserves the highlighted diff", async () => {

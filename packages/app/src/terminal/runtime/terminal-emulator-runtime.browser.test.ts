@@ -1,7 +1,9 @@
 import { page } from "@vitest/browser/context";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { TerminalInputModeState } from "@getpaseo/protocol/terminal-input-mode";
+import type { TerminalInputModeState } from "@gravity/protocol/terminal-input-mode";
 import { encodeTerminalOutput, TerminalEmulatorRuntime } from "./terminal-emulator-runtime";
+import { bindZoomTarget, dispatchContentZoom } from "@/zoom/target.web";
+import { stepTextZoom, type TextZoomState } from "@/zoom/text-size";
 
 vi.mock("@xterm/addon-webgl", () => ({
   WebglAddon: class WebglAddon {
@@ -155,7 +157,7 @@ function expectNoForcedSameSizeClaim(input: {
 }
 
 function getBrowserTerminal(): BrowserTerminal {
-  const terminal = window.__paseoTerminal as BrowserTerminal | undefined;
+  const terminal = window.__gravityTerminal as BrowserTerminal | undefined;
   if (!terminal) {
     throw new Error("Expected xterm to be exposed for browser test inspection");
   }
@@ -196,15 +198,50 @@ afterEach(() => {
 });
 
 describe("terminal emulator runtime in a real browser", () => {
+  it("refits only the focused terminal when text zoom changes and restores its font on reset", async () => {
+    await page.viewport(1000, 800);
+    const first = createTerminalHost({ width: 640, height: 320 });
+    const firstTerminal = window.__gravityTerminal;
+    const second = createTerminalHost({ width: 640, height: 320 });
+    second.root.style.top = "340px";
+    first.runtime.setFont({ fontSize: 14 });
+    second.runtime.setFont({ fontSize: 14 });
+    await settleMountRefits();
+    const firstSize = latestSize(first.sizes);
+    const secondSize = latestSize(second.sizes);
+    let state: TextZoomState = { override: null, revision: 0 };
+    const unbind = bindZoomTarget(first.root, ".xterm-helper-textarea", (direction) => {
+      state = stepTextZoom(state, direction, 14);
+      first.runtime.setFont({ fontSize: state.override ?? 14 });
+    });
+    try {
+      first.runtime.focus();
+      expect(dispatchContentZoom("in")).toBe(true);
+      expect(dispatchContentZoom("in")).toBe(true);
+      await expect.poll(() => latestSize(first.sizes).cols).toBeLessThan(firstSize.cols);
+      expect(firstTerminal?.options.fontSize).toBe(16);
+      const zoomedColumns = latestSize(first.sizes).cols;
+      expect(first.root.getBoundingClientRect().width).toBe(640);
+      expect(second.root.getBoundingClientRect().width).toBe(640);
+      expect(latestSize(second.sizes)).toEqual(secondSize);
+      expect(first.inputs).toEqual([]);
+      expect(dispatchContentZoom("reset")).toBe(true);
+      expect(firstTerminal?.options.fontSize).toBe(14);
+      await expect.poll(() => latestSize(first.sizes).cols).toBeGreaterThan(zoomedColumns);
+      expect(latestSize(first.sizes).rows).toBe(firstSize.rows);
+    } finally {
+      unbind();
+    }
+  });
   it("passes configured scrollback to xterm", async () => {
     await page.viewport(900, 600);
     createTerminalHost({ width: 720, height: 360, scrollback: 42_000 });
 
     await waitFor({
-      predicate: () => window.__paseoTerminal !== undefined,
+      predicate: () => window.__gravityTerminal !== undefined,
     });
 
-    expect(window.__paseoTerminal?.options.scrollback).toBe(42_000);
+    expect(window.__gravityTerminal?.options.scrollback).toBe(42_000);
   });
 
   it("updates scrollback on the mounted xterm", async () => {
@@ -212,14 +249,14 @@ describe("terminal emulator runtime in a real browser", () => {
     const mounted = createTerminalHost({ width: 720, height: 360, scrollback: 10_000 });
 
     await waitFor({
-      predicate: () => window.__paseoTerminal !== undefined,
+      predicate: () => window.__gravityTerminal !== undefined,
     });
-    const terminal = window.__paseoTerminal;
+    const terminal = window.__gravityTerminal;
 
     mounted.runtime.setScrollback({ lines: 42_000 });
 
-    expect(window.__paseoTerminal).toBe(terminal);
-    expect(window.__paseoTerminal?.options.scrollback).toBe(42_000);
+    expect(window.__gravityTerminal).toBe(terminal);
+    expect(window.__gravityTerminal?.options.scrollback).toBe(42_000);
   });
 
   it("does not claim PTY ownership from passive mount refits", async () => {

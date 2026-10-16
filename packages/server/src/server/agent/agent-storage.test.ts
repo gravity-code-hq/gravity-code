@@ -162,7 +162,7 @@ describe("AgentStorage", () => {
           systemPrompt: "Be terse and explicit.",
           providerOptions: { allowedTools: ["Read"] },
           mcpServers: {
-            paseo: {
+            gravity: {
               type: "stdio",
               command: "node",
               args: ["/tmp/mcp-stdio-socket-bridge-cli.mjs", "--socket", "/tmp/test.sock"],
@@ -180,7 +180,7 @@ describe("AgentStorage", () => {
     expect(record.config?.model).toBe("gpt-5.1");
     expect(record.config?.systemPrompt).toBe("Be terse and explicit.");
     expect(record.config?.mcpServers).toEqual({
-      paseo: {
+      gravity: {
         type: "stdio",
         command: "node",
         args: ["/tmp/mcp-stdio-socket-bridge-cli.mjs", "--socket", "/tmp/test.sock"],
@@ -193,6 +193,32 @@ describe("AgentStorage", () => {
     const [persisted] = await reloaded.list();
     expect(persisted.cwd).toBe("/tmp/project");
     expect(persisted.config?.providerOptions).toEqual({ allowedTools: ["Read"] });
+  });
+
+  test("applySnapshot persists and reloads context usage", async () => {
+    await storage.applySnapshot(
+      createManagedAgent({
+        id: "agent-usage",
+        cwd: "/tmp/project",
+        lastUsage: {
+          inputTokens: 12,
+          outputTokens: 3,
+          totalCostUsd: 0.5,
+          contextWindowMaxTokens: 200_000,
+          contextWindowUsedTokens: 72_000,
+        },
+      }),
+    );
+
+    const reloaded = new AgentStorage(storagePath, logger);
+    const persisted = await reloaded.get("agent-usage");
+    expect(persisted?.lastUsage).toEqual({
+      inputTokens: 12,
+      outputTokens: 3,
+      totalCostUsd: 0.5,
+      contextWindowMaxTokens: 200_000,
+      contextWindowUsedTokens: 72_000,
+    });
   });
 
   test("applySnapshot stores and reloads featureValues when present", async () => {

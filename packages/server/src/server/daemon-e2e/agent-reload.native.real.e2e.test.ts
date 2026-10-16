@@ -14,13 +14,14 @@ import {
   getRealProviderRuntimeSettings,
 } from "./real-provider-test-config.js";
 import { DaemonClient } from "../test-utils/daemon-client.js";
-import { createTestPaseoDaemon, type TestPaseoDaemon } from "../test-utils/paseo-daemon.js";
+import { createTestGravityDaemon, type TestGravityDaemon } from "../test-utils/gravity-daemon.js";
 
 type NativeProvider = "claude" | "codex" | "opencode";
 
 interface ReloadConversation {
   rememberToken: () => Promise<string>;
   reloadAndRecallToken: (sessionId: string) => Promise<void>;
+  forkAndRecallToken: () => Promise<void>;
 }
 
 async function withNativeConversation(
@@ -28,11 +29,11 @@ async function withNativeConversation(
   run: (conversation: ReloadConversation) => Promise<void>,
 ): Promise<void> {
   const secret = `RELOAD_${provider.toUpperCase()}_7F31`;
-  const root = mkdtempSync(path.join(tmpdir(), `paseo-reload-${provider}-`));
+  const root = mkdtempSync(path.join(tmpdir(), `gravity-reload-${provider}-`));
   const cwd = path.join(root, "workspace");
   mkdirSync(cwd);
   const logger = pino({ level: "warn" });
-  let daemon: TestPaseoDaemon | undefined;
+  let daemon: TestGravityDaemon | undefined;
   let client: DaemonClient | undefined;
   let openCode: OpenCodeAgentClient | undefined;
   let openCodeRuntimeRoot: string | undefined;
@@ -54,7 +55,7 @@ async function withNativeConversation(
       providerClient = openCode;
       config = getRealProviderConfig("opencode");
     }
-    daemon = await createTestPaseoDaemon({
+    daemon = await createTestGravityDaemon({
       agentClients: { [provider]: providerClient },
       logger,
       pluginsEnabled: false,
@@ -67,6 +68,56 @@ async function withNativeConversation(
     const manager = daemon.daemon.agentManager;
     const connectedClient = client;
     await run({
+      forkAndRecallToken: async () => {
+        const context = await connectedClient.buildAgentForkContext(agent.id);
+        expect(context.attachment?.forkHistory?.entries.length).toBeGreaterThan(0);
+        const fork = await connectedClient.createAgent({ provider, cwd, ...config });
+        const { buildAgentPrompt } = await import("../agent/prompt-attachments.js");
+        const response = await manager.runAgent(
+          fork.id,
+          buildAgentPrompt(
+            "What token did I ask you to remember? Reply with only that token. Do not use tools.",
+            undefined,
+            [context.attachment!],
+          ),
+        );
+        expect(response.finalText).toContain(secret);
+        await manager.flush();
+        const assertForkTimeline = async () => {
+          const timeline = await connectedClient.fetchAgentTimeline(fork.id, {
+            direction: "tail",
+            limit: 0,
+            projection: "canonical",
+          });
+          expect(
+            timeline.entries.filter(
+              ({ item }) => item.type === "notification" && item.forkSourceTitle !== undefined,
+            ),
+          ).toHaveLength(1);
+          expect(
+            timeline.entries.filter(({ item }) => item.type === "user_message" && item.inherited),
+          ).toHaveLength(1);
+          expect(
+            timeline.entries.some(
+              ({ item }) =>
+                item.type === "user_message" && item.text.includes("<chat-history-summary>"),
+            ),
+          ).toBe(false);
+          expect(
+            timeline.entries.some(
+              ({ item }) => item.type === "assistant_message" && item.text.includes(secret),
+            ),
+          ).toBe(true);
+        };
+        await assertForkTimeline();
+        await connectedClient.refreshAgent(fork.id);
+        await assertForkTimeline();
+        await manager.closeAgent(fork.id);
+        // Resume through storage, including a fresh read of the provider transcript.
+        await connectedClient.fetchAgent(fork.id);
+        await assertForkTimeline();
+        await manager.closeAgent(fork.id);
+      },
       rememberToken: async () => {
         const first = await manager.runAgent(
           agent.id,
@@ -114,8 +165,19 @@ async function withNativeConversation(
 }
 
 // Opt in: real requests using local Claude/Codex auth and the OpenRouter test setup.
+test.runIf(process.env.GRAVITY_NATIVE_RELOAD_QA === "1").each(["claude", "codex"] as const)(
+  "%s fork retains history and context across refresh and resume",
+  async (provider) => {
+    await withNativeConversation(provider, async (conversation) => {
+      await conversation.rememberToken();
+      await conversation.forkAndRecallToken();
+    });
+  },
+  180_000,
+);
+
 test
-  .runIf(process.env.PASEO_NATIVE_RELOAD_QA === "1")
+  .runIf(process.env.GRAVITY_NATIVE_RELOAD_QA === "1")
   .each(["claude", "codex", "opencode"] as const)(
   "%s retains its session and conversation through repeated refresh RPCs",
   async (provider) => {

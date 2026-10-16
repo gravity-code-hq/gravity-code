@@ -32,7 +32,6 @@ import {
   selectBranchInPicker,
   selectGitHubPrInPicker,
   selectPickerOptionByKeyboard,
-  selectWorkspaceIsolation,
   submitNewWorkspacePrompt,
 } from "../support/helpers/new-workspace";
 import {
@@ -447,10 +446,9 @@ test.describe("New workspace flow", () => {
         serverId,
         workspaceId: openedProject.workspaceId,
       });
-      await expectWorkspaceHeader(page, {
-        title: openedProject.workspaceName,
-        subtitle: openedProject.projectDisplayName,
-      });
+      await expect(page.getByTestId("workspace-header-title").filter({ visible: true })).toHaveText(
+        `${openedProject.projectDisplayName}: ${openedProject.workspaceName}`,
+      );
 
       await openGlobalNewWorkspaceComposer(page);
       await expectNewWorkspaceProjectSelected(page, openedProject.projectDisplayName);
@@ -466,6 +464,7 @@ test.describe("New workspace flow", () => {
       });
       createdWorktreeDirectories.add(createdWorkspace.workspaceDirectory);
 
+      expect(path.basename(createdWorkspace.workspaceDirectory)).toBe("hello-from-e2e");
       expect(createdWorkspace.workspaceId).not.toBe(openedProject.workspaceId);
       await expect(page).toHaveURL(
         buildHostWorkspaceRoute(serverId, createdWorkspace.workspaceId),
@@ -479,10 +478,9 @@ test.describe("New workspace flow", () => {
       );
       await expect(createdWorkspaceRow).toBeVisible({ timeout: 30_000 });
 
-      await expectWorkspaceHeader(page, {
-        title: createdWorkspace.workspaceName,
-        subtitle: openedProject.projectDisplayName,
-      });
+      await expect(page.getByTestId("workspace-header-title").filter({ visible: true })).toHaveText(
+        `${openedProject.projectDisplayName}: ${createdWorkspace.workspaceName}`,
+      );
 
       const activeWorkspaceDeckEntry = page
         .getByTestId(`workspace-deck-entry-${serverId}:${createdWorkspace.workspaceId}`)
@@ -723,7 +721,6 @@ test.describe("New workspace flow", () => {
         projectKey: openedProject.projectKey,
         projectDisplayName: openedProject.projectDisplayName,
       });
-      await selectWorkspaceIsolation(page, "worktree");
       await openStartingRefPicker(page);
       await selectBranchInPicker(page, "dev");
 
@@ -771,7 +768,6 @@ test.describe("New workspace flow", () => {
         projectKey: openedProject.projectKey,
         projectDisplayName: openedProject.projectDisplayName,
       });
-      await selectWorkspaceIsolation(page, "worktree");
       return openedProject;
     }
 
@@ -905,7 +901,6 @@ test.describe("New workspace flow", () => {
         projectKey: openedProject.projectKey,
         projectDisplayName: openedProject.projectDisplayName,
       });
-      await selectWorkspaceIsolation(page, "worktree");
 
       await openBranchPicker(page);
       await expectPickerOpen(page);
@@ -930,7 +925,6 @@ test.describe("New workspace flow", () => {
         projectKey: openedProject.projectKey,
         projectDisplayName: openedProject.projectDisplayName,
       });
-      await selectWorkspaceIsolation(page, "worktree");
 
       await openBranchPicker(page);
       await expectPickerOpen(page);
@@ -960,7 +954,6 @@ test.describe("New workspace flow", () => {
         projectKey: openedProject.projectKey,
         projectDisplayName: openedProject.projectDisplayName,
       });
-      await selectWorkspaceIsolation(page, "worktree");
       await openStartingRefPicker(page);
       await selectGitHubPrInPicker(page, pr.number);
 
@@ -996,7 +989,6 @@ test.describe("New workspace flow", () => {
       projectKey: openedProject.projectKey,
       projectDisplayName: openedProject.projectDisplayName,
     });
-    await selectWorkspaceIsolation(page, "worktree");
     await openStartingRefPicker(page);
     await selectBranchInPicker(page, "main");
 
@@ -1054,7 +1046,6 @@ test.describe("New workspace flow", () => {
       projectKey: openedProject.projectKey,
       projectDisplayName: openedProject.projectDisplayName,
     });
-    await selectWorkspaceIsolation(page, "worktree");
     await pasteGithubPrUrl(page, context, pr.url);
     await expectStartingRefPickerTriggerPr(page, {
       number: pr.number,
@@ -1102,7 +1093,6 @@ test.describe("New workspace flow", () => {
         projectKey: openedProject.projectKey,
         projectDisplayName: openedProject.projectDisplayName,
       });
-      await selectWorkspaceIsolation(page, "worktree");
       await openStartingRefPicker(page);
       await selectGitHubPrInPicker(page, pr.number);
       await submitNewWorkspaceWithoutPrompt(page);

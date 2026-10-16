@@ -63,10 +63,10 @@ test.describe("Worktree restore after daemon restart", () => {
     const nowIso = new Date().toISOString();
     await page.addInitScript(
       ({ host, preferences }) => {
-        localStorage.setItem("@paseo:e2e", "1");
-        localStorage.setItem("@paseo:daemon-registry", JSON.stringify([host]));
-        localStorage.removeItem("@paseo:settings");
-        localStorage.setItem("@paseo:create-agent-preferences", JSON.stringify(preferences));
+        localStorage.setItem("@gravity:e2e", "1");
+        localStorage.setItem("@gravity:daemon-registry", JSON.stringify([host]));
+        localStorage.removeItem("@gravity:settings");
+        localStorage.setItem("@gravity:create-agent-preferences", JSON.stringify(preferences));
       },
       {
         host: buildSeededHost({
@@ -83,7 +83,7 @@ test.describe("Worktree restore after daemon restart", () => {
   test("after archiving a worktree and restarting the daemon, History shows the worktree branch (not main) before any restore", async ({
     page,
   }) => {
-    // A paseo worktree is cut on its own branch named after the slug, and the
+    // A gravity worktree is cut on its own branch named after the slug, and the
     // worktree workspace is displayed under the same name. These are the values
     // the History table cells must show after restore — never "main".
     const worktreeSlug = `restart-restore-${randomUUID().slice(0, 8)}`;
@@ -131,12 +131,10 @@ test.describe("Worktree restore after daemon restart", () => {
     // KEY ASSERTION: reproduce the screenshot state. Right after the daemon
     // restart, with NO restore and NO row click, the rendered History table cells
     // (fed by each agent row's projectPlacement via fetch_agent_history) must read
-    // the worktree branch and the worktree workspace name — never "main".
+    // the worktree branch — never "main".
     const branchCell = page.getByTestId(`agent-row-branch-${serverId}-${agent.id}`);
-    const workspaceCell = page.getByTestId(`agent-row-workspace-${serverId}-${agent.id}`);
 
     await expect(branchCell).toBeVisible({ timeout: 60_000 });
     await expect(branchCell).toHaveText(worktreeSlug, { timeout: 60_000 });
-    await expect(workspaceCell).toHaveText(worktree.workspaceName, { timeout: 60_000 });
   });
 });

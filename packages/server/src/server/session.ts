@@ -1,10 +1,14 @@
+import {
+  handleProviderCommandCreateRequest,
+  handleProviderCustomizationsRequest,
+} from "./session/provider/provider-customizations-session.js";
 import type { BrowserToolsBroker } from "./browser-tools/broker.js";
-import { BrowserAutomationHostCapabilitySchema } from "@getpaseo/protocol/browser-automation/capabilities";
-import type { SessionEventSubscription } from "@getpaseo/protocol/messages";
+import { BrowserAutomationHostCapabilitySchema } from "@gravity/protocol/browser-automation/capabilities";
+import type { SessionEventSubscription } from "@gravity/protocol/messages";
 import { relative } from "node:path";
 import { isAbsolute } from "node:path";
 import { CreationService } from "./creation/index.js";
-import type { CreationSnapshot, AgentCreateRequest } from "@getpaseo/protocol/messages";
+import type { CreationSnapshot, AgentCreateRequest } from "@gravity/protocol/messages";
 import type { MessageReceipts } from "./message-receipts/index.js";
 import equal from "fast-deep-equal";
 import { SessionDelivery, type OwnedSubscription } from "./session/owned-subscriptions/index.js";
@@ -12,8 +16,8 @@ import { v4 as uuidv4 } from "uuid";
 import { lstat, mkdir, mkdtemp, rename, rm, stat } from "node:fs/promises";
 import { basename, resolve, sep } from "path";
 import { homedir } from "node:os";
-import { CLIENT_CAPS, type ClientCapability } from "@getpaseo/protocol/client-capabilities";
-import { formatPluginSourceReference } from "@getpaseo/protocol/plugin-source-reference";
+import { CLIENT_CAPS, type ClientCapability } from "@gravity/protocol/client-capabilities";
+import { formatPluginSourceReference } from "@gravity/protocol/plugin-source-reference";
 import {
   serializeAgentStreamEvent,
   type AgentSnapshotPayload,
@@ -37,8 +41,8 @@ import type {
   TerminalWorkspaceContributionChangedEvent,
 } from "../terminal/terminal-manager.js";
 import { TerminalSessionController } from "../terminal/terminal-session-controller.js";
-import type { TerminalActivity } from "@getpaseo/protocol/terminal-activity";
-import type { BinaryFrame } from "@getpaseo/protocol/binary-frames/index";
+import type { TerminalActivity } from "@gravity/protocol/terminal-activity";
+import type { BinaryFrame } from "@gravity/protocol/binary-frames/index";
 import { CursorError } from "./pagination/cursor.js";
 import { SortablePager, type SortSpec } from "./pagination/sortable-pager.js";
 import { describeAgentHistoryMatches, rankAgentHistoryCandidates } from "./agent-history-search.js";
@@ -55,10 +59,7 @@ import {
   waitForAgentRunStartWithTimeout,
   unarchiveAgentState,
 } from "./agent/agent-prompt.js";
-import {
-  resolveCreateAgentTitles,
-  resolveFirstAgentPromptTitle,
-} from "./agent/create-agent-title.js";
+import { resolveCreateAgentTitles } from "./agent/create-agent-title.js";
 import { respondToAgentPermission } from "./agent/permission-response.js";
 import type { VoiceCallerContext, VoiceSpeakHandler } from "./voice-types.js";
 import type { ScriptHealthState } from "./script-health-monitor.js";
@@ -71,9 +72,9 @@ import {
 import type { DaemonConfigStore } from "./daemon-config-store.js";
 import { loadPersistedConfig } from "./persisted-config.js";
 import { releaseWorkspaceServicePortPlan } from "./workspace-service-port-registry.js";
-import { getErrorMessage, getErrorMessageOr } from "@getpaseo/protocol/error-utils";
-import { getAgentStatusPriority } from "@getpaseo/protocol/agent-state-bucket";
-import { getParentAgentIdFromLabels } from "@getpaseo/protocol/agent-labels";
+import { getErrorMessage, getErrorMessageOr } from "@gravity/protocol/error-utils";
+import { getAgentStatusPriority } from "@gravity/protocol/agent-state-bucket";
+import { getParentAgentIdFromLabels } from "@gravity/protocol/agent-labels";
 import type { WorkspaceGitRuntimeSnapshot, WorkspaceGitService } from "./workspace-git-service.js";
 import type { ProjectUpdate } from "./workspace-reconciliation-service.js";
 import {
@@ -177,6 +178,8 @@ import {
 } from "./session/checkout/git-metadata-generator.js";
 import { ScheduleSession } from "./session/schedule/schedule-session.js";
 import { ProviderCatalogSession } from "./session/provider/provider-catalog-session.js";
+import { ProviderAccountsSession } from "./session/provider/provider-accounts-session.js";
+import { LinearSession } from "./session/linear/linear-session.js";
 import { WorkspaceFilesSession } from "./session/files/workspace-files-session.js";
 import { AgentConfigSession } from "./session/agent-config/agent-config-session.js";
 import { ProjectConfigSession } from "./session/project-config/project-config-session.js";
@@ -228,7 +231,13 @@ import {
   type GitHubService,
 } from "../services/github-service.js";
 import type { ForgeService } from "../services/forge-service.js";
+import {
+  resolveGravityRepoStarService,
+  type GravityRepoStarService,
+} from "../services/gravity-repo-star.js";
 import type { ProviderUsageService } from "../services/quota-fetcher/service.js";
+import type { ProviderAccountsService } from "../services/provider-accounts/service.js";
+import type { LinearService } from "./linear/service.js";
 import {
   resolveWorkspaceRootAgent,
   summarizeFetchWorkspacesEntries,
@@ -238,19 +247,19 @@ import {
 } from "./workspace-directory.js";
 import { shouldEmitPendingBootstrapUpdate } from "./workspace-bootstrap-dedupe.js";
 import {
-  createPaseoWorktree,
-  type CreatePaseoWorktreeInput,
-  type CreatePaseoWorktreeResult,
-} from "./paseo-worktree-service.js";
+  createGravityWorktree,
+  type CreateGravityWorktreeInput,
+  type CreateGravityWorktreeResult,
+} from "./gravity-worktree-service.js";
 import { WorkspaceAutoName } from "./workspace-auto-name.js";
 import {
   buildAgentSessionConfig as buildWorktreeAgentSessionConfig,
-  createPaseoWorktreeWorkflow as createWorktreeWorkflow,
-  type CreatePaseoWorktreeSetupContinuationInput,
-  type CreatePaseoWorktreeWorkflowResult,
-  handleCreatePaseoWorktreeRequest as handleCreateWorktreeRequest,
-  handlePaseoWorktreeArchiveRequest as handleWorktreeArchiveRequest,
-  handlePaseoWorktreeListRequest as handleWorktreeListRequest,
+  createGravityWorktreeWorkflow as createWorktreeWorkflow,
+  type CreateGravityWorktreeSetupContinuationInput,
+  type CreateGravityWorktreeWorkflowResult,
+  handleCreateGravityWorktreeRequest as handleCreateWorktreeRequest,
+  handleGravityWorktreeArchiveRequest as handleWorktreeArchiveRequest,
+  handleGravityWorktreeListRequest as handleWorktreeListRequest,
   handleWorkspaceSetupStatusRequest as handleWorkspaceSetupStatusRequestMessage,
   handleWorkspaceSetupRunRequest as handleWorkspaceSetupRunRequestMessage,
 } from "./worktree-session.js";
@@ -264,7 +273,7 @@ function resolveWorkspaceSetupRuntime(
   return runtime ?? new WorkspaceSetupRuntime();
 }
 import { WorktreeRequestError, toWorktreeWireError } from "./worktree-errors.js";
-import { parseGitRemoteLocation } from "@getpaseo/protocol/git-remote";
+import { parseGitRemoteLocation } from "@gravity/protocol/git-remote";
 import {
   createProjectDirectory,
   ProjectDirectoryRequestError,
@@ -377,7 +386,6 @@ type CreateAgentRequestMessage = Extract<SessionInboundMessage, { type: "create_
 interface ResolvedSessionCreateAgentIntent {
   config: AgentSessionConfig;
   intent: CreateAgentIntent;
-  createdDirectoryWorkspace: boolean;
 }
 
 type FetchWorkspacesRequestMessage = Extract<
@@ -451,7 +459,7 @@ export interface SessionOptions {
   logger: pino.Logger;
   downloadTokenStore: DownloadTokenStore;
   pushNotifications: PushNotifications;
-  paseoHome: string;
+  gravityHome: string;
   worktreesRoot?: string;
   agentManager: AgentManager;
   agentStorage: AgentStorage;
@@ -465,6 +473,7 @@ export interface SessionOptions {
   scheduleService: ScheduleService;
   checkoutDiffManager: CheckoutDiffManager;
   github?: ForgeService;
+  gravityRepoStar?: GravityRepoStarService;
   createAgentMcpTransport?: AgentMcpTransportFactory;
   // Injected so tests can substitute the git branch rename without module mocks;
   // defaults to the real checkout-git implementation.
@@ -475,27 +484,27 @@ export interface SessionOptions {
   pluginRuntime?: {
     before: import("./plugins/lifecycle/index.js").PluginLifecycle["before"];
     emit: import("./plugins/lifecycle/index.js").PluginLifecycle["emit"];
-    listPlugins(): import("@getpaseo/protocol/messages").PluginListItem[];
-    getLogs(pluginId: string): import("@getpaseo/protocol/messages").PluginLogEntry[];
+    listPlugins(): import("@gravity/protocol/messages").PluginListItem[];
+    getLogs(pluginId: string): import("@gravity/protocol/messages").PluginLogEntry[];
     installDirectory(input: {
       path: string;
       id?: string;
-    }): Promise<import("@getpaseo/protocol/messages").PluginListItem>;
+    }): Promise<import("@gravity/protocol/messages").PluginListItem>;
     inspectDirectory(path: string): Promise<{ id: string }>;
     installSource(input: {
       source: string;
       id?: string;
       ref?: string;
-    }): Promise<import("@getpaseo/protocol/messages").PluginListItem>;
+    }): Promise<import("@gravity/protocol/messages").PluginListItem>;
     statusSources(
       pluginId?: string,
-    ): Promise<import("@getpaseo/protocol/messages").PluginSourceStatusItem[]>;
+    ): Promise<import("@gravity/protocol/messages").PluginSourceStatusItem[]>;
     updateSources(
       pluginId?: string,
-    ): Promise<import("@getpaseo/protocol/messages").PluginSourceUpdateItem[]>;
-    reloadPlugin(pluginId: string): Promise<import("@getpaseo/protocol/messages").PluginListItem>;
-    enablePlugin(pluginId: string): Promise<import("@getpaseo/protocol/messages").PluginListItem>;
-    disablePlugin(pluginId: string): Promise<import("@getpaseo/protocol/messages").PluginListItem>;
+    ): Promise<import("@gravity/protocol/messages").PluginSourceUpdateItem[]>;
+    reloadPlugin(pluginId: string): Promise<import("@gravity/protocol/messages").PluginListItem>;
+    enablePlugin(pluginId: string): Promise<import("@gravity/protocol/messages").PluginListItem>;
+    disablePlugin(pluginId: string): Promise<import("@gravity/protocol/messages").PluginListItem>;
     removePlugin(pluginId: string): Promise<void>;
     subscribe(listener: (pluginId: string) => void): () => void;
     subscribeSettings?(listener: (pluginId: string, settingsId: string) => void): () => void;
@@ -510,6 +519,8 @@ export interface SessionOptions {
   terminalManager: TerminalManager | null;
   providerSnapshotManager: ProviderSnapshotManager;
   providerUsageService: ProviderUsageService;
+  providerAccountsService: ProviderAccountsService;
+  linearService: LinearService;
   hubExecutionAgents?: HubExecutionAgents;
   hubRelationships?: HubRelationshipManagement;
   serviceProxy?: ServiceProxySubsystem;
@@ -700,7 +711,7 @@ export class Session {
     | ((workspace: PersistedWorkspaceRecord) => Promise<void>)
     | null;
   private readonly sessionLogger: pino.Logger;
-  private readonly paseoHome: string;
+  private readonly gravityHome: string;
   private readonly projectIcons: ProjectIconReader;
   private readonly worktreesRoot: string | undefined;
   private readonly rewindInitiators = new Map<string, object | undefined>();
@@ -712,6 +723,7 @@ export class Session {
   private readonly directorySync: DirectorySyncService;
   private readonly filesystem: SessionFileSystem;
   private readonly github: ForgeService;
+  private readonly gravityRepoStar: GravityRepoStarService;
   private readonly renameCurrentBranch: typeof renameCurrentBranchDefault;
   private readonly workspaceGitService: WorkspaceGitService;
   private readonly workspaceAutoName: WorkspaceAutoName;
@@ -773,6 +785,8 @@ export class Session {
   private readonly checkoutSession: CheckoutSession;
   private readonly scheduleSession: ScheduleSession;
   private readonly providerCatalogSession: ProviderCatalogSession;
+  private readonly providerAccountsSession: ProviderAccountsSession;
+  private readonly linearSession: LinearSession;
   private readonly workspaceFilesSession: WorkspaceFilesSession;
   private readonly agentConfigSession: AgentConfigSession;
   private readonly projectConfigSession: ProjectConfigSession;
@@ -799,7 +813,7 @@ export class Session {
       logger,
       downloadTokenStore,
       pushNotifications,
-      paseoHome,
+      gravityHome,
       worktreesRoot,
       agentManager,
       agentStorage,
@@ -811,6 +825,7 @@ export class Session {
       scheduleService,
       checkoutDiffManager,
       github,
+      gravityRepoStar,
       renameCurrentBranch,
       workspaceGitService,
       workspaceAutoName,
@@ -823,6 +838,8 @@ export class Session {
       terminalManager,
       providerSnapshotManager,
       providerUsageService,
+      providerAccountsService,
+      linearService,
       serviceProxy,
       scriptRuntimeStore,
       workspaceSetupSnapshots,
@@ -854,10 +871,10 @@ export class Session {
     this.onLifecycleIntent = onLifecycleIntent ?? null;
     this.onWorkspaceRecovered = onWorkspaceRecovered ?? null;
     this.pushNotifications = pushNotifications;
-    this.paseoHome = paseoHome;
+    this.gravityHome = gravityHome;
     this.messageReceipts = options.messageReceipts;
     this.creationService = options.creationService;
-    this.projectIcons = new ProjectIconReader(paseoHome);
+    this.projectIcons = new ProjectIconReader(gravityHome);
     this.worktreesRoot = worktreesRoot;
     this.pluginRuntime = pluginRuntime;
     this.orchestrationSkills = orchestrationSkills;
@@ -873,7 +890,7 @@ export class Session {
         hasBinaryChannel: () => this.onBinaryMessage !== null,
       },
       downloadTokenStore,
-      paseoHome,
+      gravityHome,
       logger: this.sessionLogger,
     });
     this.agentManager = agentManager;
@@ -884,6 +901,7 @@ export class Session {
     this.workspaceLabelService = resolveWorkspaceLabelService(workspaceLabelService);
     this.filesystem = filesystem ?? nodeSessionFileSystem;
     this.github = github ?? createGitHubService();
+    this.gravityRepoStar = resolveGravityRepoStarService(gravityRepoStar);
     this.renameCurrentBranch = renameCurrentBranch ?? renameCurrentBranchDefault;
     this.workspaceGitService = workspaceGitService;
     this.gitMutation = createGitMutationService({
@@ -900,7 +918,7 @@ export class Session {
       logger: this.sessionLogger,
     });
     this.workspaceRecovery = createWorkspaceRecoveryService({
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       worktreesRoot: this.worktreesRoot,
       getWorkspace: (workspaceId) => this.workspaceRegistry.get(workspaceId),
       getProject: (projectId) => this.projectRegistry.get(projectId),
@@ -930,7 +948,7 @@ export class Session {
           getFocusedSelection: (cwd) => this.getFocusedAgentSelectionForCwd(cwd),
         }),
       }),
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       worktreesRoot: this.worktreesRoot,
       logger: this.sessionLogger,
     });
@@ -981,6 +999,16 @@ export class Session {
       providerUsageService,
       logger: this.sessionLogger,
     });
+    this.providerAccountsSession = new ProviderAccountsSession({
+      host: { emit: (msg) => this.emit(msg) },
+      providerAccountsService,
+      logger: this.sessionLogger,
+    });
+    this.linearSession = new LinearSession({
+      host: { emit: (msg) => this.emit(msg) },
+      linearService,
+      logger: this.sessionLogger,
+    });
     this.agentConfigSession = new AgentConfigSession({
       host: {
         emit: (msg) => this.emit(msg),
@@ -1016,7 +1044,7 @@ export class Session {
         emitLifecycleIntent: (intent) => this.emitLifecycleIntent(intent),
       },
       clientId: this.clientId,
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       serverId,
       daemonVersion,
       daemonRuntimeConfig,
@@ -1085,14 +1113,14 @@ export class Session {
       logger: this.sessionLogger,
     });
     this.createAgentLifecycleDispatch = new CreateAgentLifecycleDispatch({
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       worktreesRoot: this.worktreesRoot,
       agentManager: this.agentManager,
       agentStorage: this.agentStorage,
       github: this.github,
       workspaceGitService: this.workspaceGitService,
-      createPaseoWorktreeWorkflow: (input, workflowOptions) =>
-        this.createPaseoWorktreeWorkflow(input, workflowOptions),
+      createGravityWorktreeWorkflow: (input, workflowOptions) =>
+        this.createGravityWorktreeWorkflow(input, workflowOptions),
       archiveAgentForClose: (agentId) => this.archiveAgentForClose(agentId),
       findWorkspaceIdForCwd: (cwd) => this.findWorkspaceIdForCwd(cwd),
       listActiveWorkspaces: () => this.listActiveWorkspaceRefs(),
@@ -1134,7 +1162,7 @@ export class Session {
       wantsStatusUpdates: () => this.wantsEvent("script_status_update"),
       assertAutomationAllowed: (workspaceId) =>
         assertWorkspaceAutomationAllowedForWorkspace(this.workspaceRegistry, workspaceId),
-      globalServicePorts: loadPersistedConfig(this.paseoHome).worktrees?.servicePorts,
+      globalServicePorts: loadPersistedConfig(this.gravityHome).worktrees?.servicePorts,
     });
     this.workspaceDirectory = new WorkspaceDirectory({
       logger: this.sessionLogger,
@@ -2282,7 +2310,7 @@ export class Session {
       this.dispatchPluginDirectoryMessage(msg) ??
       this.dispatchPluginMessage(msg) ??
       this.dispatchTerminalMessage(msg) ??
-      this.dispatchScheduleMessage(msg) ??
+      this.dispatchServiceMessage(msg) ??
       this.dispatchMiscMessage(msg);
     if (promise) await promise;
   }
@@ -2836,12 +2864,12 @@ export class Session {
         return this.handleFetchWorkspacesRequest(msg);
       case "project.list.request":
         return this.handleProjectListRequest(msg);
-      case "paseo_worktree_list_request":
-        return this.handlePaseoWorktreeListRequest(msg);
-      case "paseo_worktree_archive_request":
-        return this.handlePaseoWorktreeArchiveRequest(msg);
-      case "create_paseo_worktree_request":
-        return this.handleCreatePaseoWorktreeRequest(msg);
+      case "gravity_worktree_list_request":
+        return this.handleGravityWorktreeListRequest(msg);
+      case "gravity_worktree_archive_request":
+        return this.handleGravityWorktreeArchiveRequest(msg);
+      case "create_gravity_worktree_request":
+        return this.handleCreateGravityWorktreeRequest(msg);
       // COMPAT(desktopEditorBridge): added in v0.1.88, remove after 2026-12-03 once old clients no longer call daemon editor RPCs.
       case "list_available_editors_request":
         return this.handleLegacyListAvailableEditorsRequest(msg);
@@ -2918,6 +2946,8 @@ export class Session {
         return this.workspaceFilesSession.handleFileEntryDuplicateRequest(msg);
       case "fs.entry.delete.request":
         return this.workspaceFilesSession.handleFileEntryDeleteRequest(msg);
+      case "fs.content.search.request":
+        return this.workspaceFilesSession.handleFileContentSearchRequest(msg);
       case "project_icon_request":
         return this.workspaceFilesSession.handleProjectIconRequest(msg);
       case "project.icon.get.request":
@@ -2963,8 +2993,24 @@ export class Session {
         return this.providerCatalogSession.handleRefreshProvidersSnapshotRequest(msg);
       case "provider_diagnostic_request":
         return this.providerCatalogSession.handleProviderDiagnosticRequest(msg);
+      case "provider.mcp_servers.list.request":
+        return this.providerCatalogSession.handleProviderMcpServersListRequest(msg);
+      case "provider.customizations.list.request":
+        return handleProviderCustomizationsRequest(msg, {
+          emit: (message) => this.emit(message),
+        });
+      case "provider.commands.create.request":
+        return handleProviderCommandCreateRequest(msg, { emit: (message) => this.emit(message) });
       case "provider.usage.list.request":
         return this.providerCatalogSession.handleProviderUsageListRequest(msg);
+      case "provider.accounts.list.request":
+        return this.providerAccountsSession.handleListRequest(msg);
+      case "provider.accounts.add_current.request":
+        return this.providerAccountsSession.handleAddCurrentRequest(msg);
+      case "provider.accounts.activate.request":
+        return this.providerAccountsSession.handleActivateRequest(msg);
+      case "provider.accounts.remove.request":
+        return this.providerAccountsSession.handleRemoveRequest(msg);
       default:
         return undefined;
     }
@@ -3010,6 +3056,32 @@ export class Session {
     }
   }
 
+  /** Daemon-side services that are not agents or workspaces: schedules and Linear. */
+  private dispatchServiceMessage(msg: SessionInboundMessage): Promise<void> | undefined {
+    return this.dispatchScheduleMessage(msg) ?? this.dispatchLinearMessage(msg);
+  }
+
+  private dispatchLinearMessage(msg: SessionInboundMessage): Promise<void> | undefined {
+    switch (msg.type) {
+      case "linear.get_status.request":
+        return this.linearSession.handleGetStatusRequest(msg);
+      case "linear.connect.request":
+        return this.linearSession.handleConnectRequest(msg);
+      case "linear.disconnect.request":
+        return this.linearSession.handleDisconnectRequest(msg);
+      case "linear.teams.list.request":
+        return this.linearSession.handleTeamsListRequest(msg);
+      case "linear.issues.list.request":
+        return this.linearSession.handleIssuesListRequest(msg);
+      case "linear.issues.get.request":
+        return this.linearSession.handleIssuesGetRequest(msg);
+      case "linear.issues.set_state.request":
+        return this.linearSession.handleIssuesSetStateRequest(msg);
+      default:
+        return undefined;
+    }
+  }
+
   private async dispatchMiscMessage(msg: SessionInboundMessage): Promise<void> {
     switch (msg.type) {
       case "list_commands_request":
@@ -3026,6 +3098,26 @@ export class Session {
         this.emit({
           type: "push.unregister.response",
           payload: { requestId: msg.requestId },
+        });
+        return;
+      case "github.repo_star.get_status.request":
+        this.emit({
+          type: "github.repo_star.get_status.response",
+          payload: {
+            requestId: msg.requestId,
+            repo: this.gravityRepoStar.repo,
+            starred: await this.gravityRepoStar.getStarred(),
+          },
+        });
+        return;
+      case "github.repo_star.add.request":
+        this.emit({
+          type: "github.repo_star.add.response",
+          payload: {
+            requestId: msg.requestId,
+            repo: this.gravityRepoStar.repo,
+            success: await this.gravityRepoStar.star(),
+          },
         });
         return;
     }
@@ -3477,7 +3569,7 @@ export class Session {
     const { projectId, requestId } = request;
     try {
       const updated = await setProjectCustomIcon({
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         projectId,
         source: request.source,
         projects: this.projectRegistry,
@@ -3566,7 +3658,7 @@ export class Session {
 
         await this.projectRegistry.remove(resolvedProjectId);
         await removeProjectCustomIcon({
-          paseoHome: this.paseoHome,
+          gravityHome: this.gravityHome,
           projectId: resolvedProjectId,
         }).catch((error) => {
           this.sessionLogger.warn(
@@ -4181,7 +4273,7 @@ export class Session {
       }`,
     );
 
-    let createdWorktreeForCleanup: CreatePaseoWorktreeWorkflowResult | null = null;
+    let createdWorktreeForCleanup: CreateGravityWorktreeWorkflowResult | null = null;
     let createdAgentId: string | null = null;
     try {
       const requestedCwd = resolve(config.cwd);
@@ -4200,7 +4292,6 @@ export class Session {
         ...(trimmedPrompt ? { prompt: trimmedPrompt } : {}),
         ...(attachments && attachments.length > 0 ? { attachments } : {}),
       };
-      const workspacePromptTitle = resolveFirstAgentPromptTitle(firstAgentContext);
       const createdWorktree = await this.createAgentLifecycleDispatch.createWorktreeForRequest({
         cwd: config.cwd,
         target: worktree,
@@ -4211,7 +4302,6 @@ export class Session {
       const resolvedIntent = await this.resolveSessionCreateAgentIntent({
         request: msg,
         createdWorktree,
-        workspacePromptTitle,
       });
       const resolvedCwd = resolve(resolvedIntent.config.cwd);
       if (!(await this.filesystem.isDirectory(resolvedCwd))) {
@@ -4223,7 +4313,7 @@ export class Session {
           agentManager: this.agentManager,
           agentStorage: this.agentStorage,
           logger: this.sessionLogger,
-          paseoHome: this.paseoHome,
+          gravityHome: this.gravityHome,
           worktreesRoot: this.worktreesRoot,
           providerSnapshotManager: this.providerSnapshotManager,
         },
@@ -4253,16 +4343,6 @@ export class Session {
       );
       createdAgentId = snapshot.id;
       await this.agentUpdates.forwardLiveAgent(snapshot);
-      if (resolvedIntent.createdDirectoryWorkspace && trimmedPrompt) {
-        this.workspaceAutoName.scheduleForDirectory(
-          {
-            workspaceId: resolvedIntent.intent.workspaceId,
-            cwd: resolvedIntent.config.cwd,
-            firstAgentContext,
-          },
-          { currentSelection: this.getFocusedAgentSelectionForCwd(resolvedIntent.config.cwd) },
-        );
-      }
       this.createAgentLifecycleDispatch.registerAutoArchiveIfRequested({
         autoArchive,
         agentId: snapshot.id,
@@ -4284,8 +4364,7 @@ export class Session {
 
   private async resolveSessionCreateAgentIntent(input: {
     request: CreateAgentRequestMessage;
-    createdWorktree: CreatePaseoWorktreeWorkflowResult | null;
-    workspacePromptTitle: string | null;
+    createdWorktree: CreateGravityWorktreeWorkflowResult | null;
   }): Promise<ResolvedSessionCreateAgentIntent> {
     const { request, createdWorktree } = input;
     const callerAgent = request.callerAgentId
@@ -4317,7 +4396,7 @@ export class Session {
         workspaceId: await this.workspaceProvisioning.resolveOrCreateWorkspaceIdForCreateAgent({
           createdWorktree: null,
           cwd: config.cwd,
-          initialTitle: input.workspacePromptTitle,
+          initialTitle: null,
         }),
         cwd: config.cwd,
       }),
@@ -4327,7 +4406,6 @@ export class Session {
     return {
       config,
       intent,
-      createdDirectoryWorkspace: !createdWorktree && !request.workspaceId && !callerAgent,
     };
   }
 
@@ -4723,17 +4801,17 @@ export class Session {
     firstAgentContext?: FirstAgentContext,
   ): Promise<{
     sessionConfig: AgentSessionConfig;
-    setupContinuation?: CreatePaseoWorktreeWorkflowResult["setupContinuation"];
+    setupContinuation?: CreateGravityWorktreeWorkflowResult["setupContinuation"];
     createdWorkspaceId?: string;
   }> {
     return buildWorktreeAgentSessionConfig(
       {
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         worktreesRoot: this.worktreesRoot,
         sessionLogger: this.sessionLogger,
         workspaceGitService: this.workspaceGitService,
-        createPaseoWorktree: (input, serviceOptions) =>
-          this.createPaseoWorktreeWorkflow(input, {
+        createGravityWorktree: (input, serviceOptions) =>
+          this.createGravityWorktreeWorkflow(input, {
             ...serviceOptions,
             setupContinuation: {
               kind: "agent",
@@ -5046,26 +5124,26 @@ export class Session {
     }
   }
 
-  private async handlePaseoWorktreeListRequest(
-    msg: Extract<SessionInboundMessage, { type: "paseo_worktree_list_request" }>,
+  private async handleGravityWorktreeListRequest(
+    msg: Extract<SessionInboundMessage, { type: "gravity_worktree_list_request" }>,
   ): Promise<void> {
     return handleWorktreeListRequest(
       {
         emit: (message) => this.emit(message),
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         workspaceGitService: this.workspaceGitService,
       },
       msg,
     );
   }
 
-  private async handlePaseoWorktreeArchiveRequest(
-    msg: Extract<SessionInboundMessage, { type: "paseo_worktree_archive_request" }>,
+  private async handleGravityWorktreeArchiveRequest(
+    msg: Extract<SessionInboundMessage, { type: "gravity_worktree_archive_request" }>,
   ): Promise<void> {
     return handleWorktreeArchiveRequest(
       {
-        paseoHome: this.paseoHome,
-        paseoWorktreesBaseRoot: this.worktreesRoot,
+        gravityHome: this.gravityHome,
+        gravityWorktreesBaseRoot: this.worktreesRoot,
         github: this.github,
         workspaceGitService: this.workspaceGitService,
         agentManager: this.agentManager,
@@ -5538,7 +5616,7 @@ export class Session {
     }
 
     const worktreeSlug =
-      workspace.isPaseoOwnedWorktree && workspace.worktreeRoot
+      workspace.isGravityOwnedWorktree && workspace.worktreeRoot
         ? basename(workspace.worktreeRoot)
         : undefined;
 
@@ -5583,7 +5661,7 @@ export class Session {
     return {
       currentBranch: snapshot.git.currentBranch,
       remoteUrl: snapshot.git.remoteUrl,
-      isPaseoOwnedWorktree: snapshot.git.isPaseoOwnedWorktree,
+      isGravityOwnedWorktree: snapshot.git.isGravityOwnedWorktree,
       isDirty: snapshot.git.isDirty,
       aheadBehind: snapshot.git.aheadBehind,
       aheadOfOrigin: snapshot.git.aheadOfOrigin,
@@ -5628,7 +5706,7 @@ export class Session {
   }
 
   private async describeCreatedWorktreeWorkspace(
-    result: CreatePaseoWorktreeResult,
+    result: CreateGravityWorktreeResult,
   ): Promise<WorkspaceDescriptorPayload> {
     const projectRecord = await this.projectRegistry.get(result.workspace.projectId);
     return {
@@ -5662,7 +5740,7 @@ export class Session {
       gitRuntime: {
         currentBranch: result.worktree.branchName || null,
         remoteUrl: null,
-        isPaseoOwnedWorktree: true,
+        isGravityOwnedWorktree: true,
         isDirty: false,
         aheadBehind: null,
         aheadOfOrigin: null,
@@ -5860,13 +5938,13 @@ export class Session {
     await this.restoreWorkspaceAndEmit(record.workspaceId);
   }
 
-  private async createPaseoWorktree(
-    input: CreatePaseoWorktreeInput,
+  private async createGravityWorktree(
+    input: CreateGravityWorktreeInput,
     options?: {
       resolveDefaultBranch?: (repoRoot: string) => Promise<string>;
     },
-  ): Promise<CreatePaseoWorktreeResult> {
-    const result = await createPaseoWorktree(input, {
+  ): Promise<CreateGravityWorktreeResult> {
+    const result = await createGravityWorktree(input, {
       github: this.github,
       ...(options?.resolveDefaultBranch
         ? { resolveDefaultBranch: options.resolveDefaultBranch }
@@ -5895,7 +5973,7 @@ export class Session {
         cwd: workspace.cwd,
         kind: workspace.kind,
         worktreeRoot: workspace.worktreeRoot,
-        isPaseoOwnedWorktree: workspace.isPaseoOwnedWorktree,
+        isGravityOwnedWorktree: workspace.isGravityOwnedWorktree,
         mainRepoRoot: workspace.mainRepoRoot,
       }));
   }
@@ -6640,6 +6718,10 @@ export class Session {
       const transformed = await this.pluginRuntime.before("workspace.create", input);
       creationRequest = { ...transformed, type, requestId };
     }
+    // A "directory" source attaches a workspace to an existing folder. The app
+    // and CLI stopped offering it in v0.8.0 and only send it for a project that
+    // is not a git checkout; the daemon keeps honoring it for those, for Docker
+    // hosts with one mounted checkout, and for older clients.
     return creationRequest.source.kind === "directory"
       ? this.handleWorkspaceCreateLocal(creationRequest, workspaceId)
       : this.handleWorkspaceCreateWorktree(creationRequest, workspaceId);
@@ -6660,10 +6742,9 @@ export class Session {
     }
 
     const explicitTitle = request.title?.trim() || null;
-    const promptTitle = resolveFirstAgentPromptTitle(request.firstAgentContext);
     const workspace = await this.workspaceProvisioning.createWorkspaceForDirectory(
       cwd,
-      explicitTitle ?? promptTitle,
+      explicitTitle,
       request.source.projectId,
       { expectsInitialAgent: Boolean(request.firstAgentContext), workspaceId },
     );
@@ -6681,17 +6762,6 @@ export class Session {
           "Background snapshot refresh failed after workspace.create",
         );
       });
-    if (request.firstAgentContext) {
-      const firstAgentContext = request.firstAgentContext;
-      this.workspaceAutoName.scheduleForDirectory(
-        {
-          workspaceId: workspace.workspaceId,
-          cwd: workspace.cwd,
-          firstAgentContext,
-        },
-        { currentSelection: this.getFocusedAgentSelectionForCwd(workspace.cwd) },
-      );
-    }
     return descriptor;
   }
 
@@ -6714,7 +6784,7 @@ export class Session {
 
     const sourceCwd = await resolveWorktreeSourceCwd(source, this.projectRegistry);
 
-    const result = await this.createPaseoWorktreeWorkflow(
+    const result = await this.createGravityWorktreeWorkflow(
       {
         cwd: sourceCwd,
         workspaceId,
@@ -7046,7 +7116,7 @@ export class Session {
         }
       }
 
-      const cloneStagingPath = await mkdtemp(resolve(targetParent, ".paseo-clone-"));
+      const cloneStagingPath = await mkdtemp(resolve(targetParent, ".gravity-clone-"));
       try {
         await runGitCommand(["clone", repo.cloneUrl, cloneStagingPath], {
           cwd: targetParent,
@@ -7221,35 +7291,35 @@ export class Session {
     });
   }
 
-  private async handleCreatePaseoWorktreeRequest(
-    request: Extract<SessionInboundMessage, { type: "create_paseo_worktree_request" }>,
+  private async handleCreateGravityWorktreeRequest(
+    request: Extract<SessionInboundMessage, { type: "create_gravity_worktree_request" }>,
   ): Promise<void> {
     return handleCreateWorktreeRequest(
       {
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         worktreesRoot: this.worktreesRoot,
         describeWorkspaceRecord: (result) => this.describeCreatedWorktreeWorkspace(result),
         emit: (message) => this.emit(message),
         sessionLogger: this.sessionLogger,
-        createPaseoWorktreeWorkflow: (input) => this.createPaseoWorktreeWorkflow(input),
+        createGravityWorktreeWorkflow: (input) => this.createGravityWorktreeWorkflow(input),
       },
       request,
     );
   }
 
-  private async createPaseoWorktreeWorkflow(
-    input: CreatePaseoWorktreeInput,
+  private async createGravityWorktreeWorkflow(
+    input: CreateGravityWorktreeInput,
     options?: {
       resolveDefaultBranch?: (repoRoot: string) => Promise<string>;
-      setupContinuation?: CreatePaseoWorktreeSetupContinuationInput;
+      setupContinuation?: CreateGravityWorktreeSetupContinuationInput;
     },
-  ): Promise<CreatePaseoWorktreeWorkflowResult> {
+  ): Promise<CreateGravityWorktreeWorkflowResult> {
     return createWorktreeWorkflow(
       {
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         worktreesRoot: this.worktreesRoot,
-        createPaseoWorktree: (workflowInput, serviceOptions) =>
-          this.createPaseoWorktree(workflowInput, serviceOptions),
+        createGravityWorktree: (workflowInput, serviceOptions) =>
+          this.createGravityWorktree(workflowInput, serviceOptions),
         warmWorkspaceGitData: (workspace) => this.warmWorkspaceGitDataForWorkspace(workspace),
         autoNameWorkspaceBranchForFirstAgent: (autoNameInput) =>
           this.workspaceAutoName.scheduleForWorktree(autoNameInput, {
@@ -7305,7 +7375,7 @@ export class Session {
           clearWorkspaceAutomationBlock(this.workspaceRegistry, workspaceId),
         startWorkspaceSetup: (workspaceId, operation) =>
           this.workspaceSetupRuntime.start(workspaceId, operation),
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         worktreesRoot: this.worktreesRoot,
         emitWorkspaceUpdateForWorkspaceId: (workspaceId) =>
           this.emitWorkspaceUpdateForWorkspaceId(workspaceId),
@@ -7338,8 +7408,8 @@ export class Session {
 
       await archiveByScope(
         {
-          paseoHome: this.paseoHome,
-          paseoWorktreesBaseRoot: this.worktreesRoot,
+          gravityHome: this.gravityHome,
+          gravityWorktreesBaseRoot: this.worktreesRoot,
           github: this.github,
           workspaceGitService: this.workspaceGitService,
           agentManager: this.agentManager,
@@ -7908,7 +7978,7 @@ export class Session {
                     timestamp: new Date().toISOString(),
                     item: {
                       type: "assistant_message",
-                      text: "Please upgrade the Paseo app to view this subagent conversation.",
+                      text: "Please upgrade the Gravity app to view this subagent conversation.",
                     },
                   },
                 ],
@@ -8347,7 +8417,7 @@ export class Session {
       ...snapshot,
       status: "failed" as const,
       error:
-        "Workspace setup is blocked pending approval of code from a fork pull request. Update Paseo to review and run setup.",
+        "Workspace setup is blocked pending approval of code from a fork pull request. Update Gravity to review and run setup.",
     };
     return message.type === "workspace_setup_progress"
       ? { ...message, payload: { ...message.payload, ...legacySnapshot } }

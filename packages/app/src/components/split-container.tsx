@@ -111,6 +111,8 @@ interface SplitContainerProps {
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTabsToLeft: (tabId: string, paneTabs: WorkspaceTabDescriptor[]) => Promise<void> | void;
   onCloseTabsToRight: (tabId: string, paneTabs: WorkspaceTabDescriptor[]) => Promise<void> | void;
@@ -324,6 +326,8 @@ export function SplitContainer({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTabsToLeft,
   onCloseTabsToRight,
@@ -485,16 +489,22 @@ export function SplitContainer({
     [resizeExplorerSidebar, workspaceKey, workspaceShellWidth],
   );
   const renderRoot = useMemo(() => wrapRootPaneForStableMount(splitRoot.root), [splitRoot.root]);
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const data = asWorkspaceTabDragData(event.active.data.current);
-    if (!data) {
-      setActiveDragTabId(null);
-      setDropPreview(null);
-      setTabDropPreview(null);
-      return;
-    }
-    setActiveDragTabId(data.tabId);
-  }, []);
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const data = asWorkspaceTabDragData(event.active.data.current);
+      if (!data) {
+        setActiveDragTabId(null);
+        setDropPreview(null);
+        setTabDropPreview(null);
+        return;
+      }
+      setActiveDragTabId(data.tabId);
+      // A press that drifts past the activation distance becomes a drag and never fires onPress.
+      // Selecting on drag start, as browsers and editors do, keeps that press from being lost.
+      onSelectTabInPane(data.paneId, data.tabId);
+    },
+    [onSelectTabInPane],
+  );
 
   const handleDragCancel = useCallback(() => {
     setActiveDragTabId(null);
@@ -677,6 +687,8 @@ export function SplitContainer({
                   onCopyTerminalId={onCopyTerminalId}
                   onCopyFilePath={onCopyFilePath}
                   onReloadAgent={onReloadAgent}
+                  onCopyConversation={onCopyConversation}
+                  onDownloadConversation={onDownloadConversation}
                   onRenameTab={onRenameTab}
                   onCloseTabsToLeft={onCloseTabsToLeft}
                   onCloseTabsToRight={onCloseTabsToRight}
@@ -939,6 +951,8 @@ function SplitNodeView({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTabsToLeft,
   onCloseTabsToRight,
@@ -1027,6 +1041,8 @@ function SplitNodeView({
             onCopyTerminalId={onCopyTerminalId}
             onCopyFilePath={onCopyFilePath}
             onReloadAgent={onReloadAgent}
+            onCopyConversation={onCopyConversation}
+            onDownloadConversation={onDownloadConversation}
             onRenameTab={onRenameTab}
             onCloseTabsToLeft={onCloseTabsToLeft}
             onCloseTabsToRight={onCloseTabsToRight}
@@ -1079,6 +1095,8 @@ function SplitNodeView({
               onCopyTerminalId={onCopyTerminalId}
               onCopyFilePath={onCopyFilePath}
               onReloadAgent={onReloadAgent}
+              onCopyConversation={onCopyConversation}
+              onDownloadConversation={onDownloadConversation}
               onRenameTab={onRenameTab}
               onCloseTabsToLeft={onCloseTabsToLeft}
               onCloseTabsToRight={onCloseTabsToRight}
@@ -1139,6 +1157,8 @@ function SplitPaneView({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTabsToLeft,
   onCloseTabsToRight,
@@ -1274,6 +1294,8 @@ function SplitPaneView({
             onCopyTerminalId={onCopyTerminalId}
             onCopyFilePath={onCopyFilePath}
             onReloadAgent={onReloadAgent}
+            onCopyConversation={onCopyConversation}
+            onDownloadConversation={onDownloadConversation}
             onRenameTab={onRenameTab}
             onCloseTabsToLeft={handleCloseTabsToLeft}
             onCloseTabsToRight={handleCloseTabsToRight}

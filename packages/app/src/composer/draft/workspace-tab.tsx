@@ -32,30 +32,44 @@ import {
   shouldAllowEmptyDraftText,
   validateDraftSubmission,
 } from "@/composer/draft/workspace-tab-core";
-import type { AgentCapabilityFlags } from "@getpaseo/protocol/agent-types";
-import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { AgentCapabilityFlags, AgentTimelineItem } from "@gravity/protocol/agent-types";
+import type { AgentSnapshotPayload } from "@gravity/protocol/messages";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
 import type { WorkspaceComposerAttachment } from "@/attachments/types";
+import { recordAgentCreatedForGitHubStar } from "@/github-star";
 import {
   useDraftWorkspaceAttachmentScopeKey,
   useWorkspaceAttachmentScopeKey,
   useWorkspaceAttachmentsStore,
+  useWorkspaceAttachments,
 } from "@/attachments/workspace-attachments-store";
-import type { UserMessageImageAttachment } from "@/types/stream";
+import { hydrateStreamState, type UserMessageImageAttachment } from "@/types/stream";
 import {
   COMPACT_FORM_FACTOR_WIDTH,
   MAX_CONTENT_WIDTH,
   useIsCompactFormFactor,
 } from "@/constants/layout";
-import { isWeb } from "@/constants/platform";
+import { getIsElectronMac, isWeb } from "@/constants/platform";
 import {
   buildWorkspaceTabPersistenceKey,
   type WorkspaceDraftTabSetup,
 } from "@/workspace-tabs/model";
 import { openWorkspaceChanges } from "@/workspace-tabs/open-supporting-view";
 import { useSettings } from "@/hooks/use-settings";
+import { sendPowerCommand } from "@/desktop/power/use-power";
+import { getDesktopHost } from "@/desktop/host";
+import { useToast } from "@/contexts/toast-context";
 
 const EMPTY_PENDING_PERMISSIONS = new Map();
+
+function forkPreviewItem(item: AgentTimelineItem): AgentTimelineItem {
+  if (item.type === "user_message") return { ...item, inherited: true };
+  if (item.type === "tool_call" && item.status === "running") {
+    return { ...item, status: "canceled", error: null };
+  }
+  if (item.type === "compaction") return { ...item, status: "completed" };
+  return item;
+}
 const DRAFT_CAPABILITIES: AgentCapabilityFlags = {
   supportsStreaming: true,
   supportsSessionPersistence: false,
@@ -209,6 +223,10 @@ async function submitDraftCreateRequest(input: {
   };
   const creation = useWorkspaceDraftSubmissionStore.getState().creationByDraftId[input.draftId];
   const result = creation ? await creation.retry(options) : await client.createAgent(options);
+  // A pending creation belongs to the new-workspace screen, which counts it there.
+  if (!creation) {
+    recordAgentCreatedForGitHubStar();
+  }
 
   return {
     agentId: result.id,
@@ -329,6 +347,7 @@ export function WorkspaceDraftAgentTab({
   onOpenImportSheet,
 }: WorkspaceDraftAgentTabProps) {
   const { t } = useTranslation();
+  const toast = useToast();
   const insets = useSafeAreaInsets();
   const client = useHostRuntimeClient(serverId);
   const workspaceFields = useWorkspaceFields(serverId, workspaceId, (w) => ({
@@ -422,6 +441,39 @@ export function WorkspaceDraftAgentTab({
     workspaceId,
   });
   const draftAttachmentScopeKey = useDraftWorkspaceAttachmentScopeKey(draftId);
+  const draftAttachments = useWorkspaceAttachments(draftAttachmentScopeKey);
+  const forkHistory = draftAttachments.flatMap((attachment) =>
+    attachment.kind === "chat_history" && attachment.attachment.forkHistory
+      ? [attachment.attachment.forkHistory]
+      : [],
+  )[0];
+  const forkPreviewItems = useMemo(() => {
+    if (!forkHistory || !draftProvider) return [];
+    const events = forkHistory.entries.map((entry) => ({
+      event: {
+        type: "timeline" as const,
+        provider: draftProvider,
+        item: forkPreviewItem(entry.item),
+        turnId: entry.turnId,
+      },
+      timestamp: new Date(entry.timestamp),
+    }));
+    events.push({
+      event: {
+        type: "timeline",
+        provider: draftProvider,
+        turnId: undefined,
+        item: {
+          type: "notification",
+          level: "info",
+          message: `Forked from ${forkHistory.sourceTitle}`,
+          forkSourceTitle: forkHistory.sourceTitle,
+        },
+      },
+      timestamp: new Date(0),
+    });
+    return hydrateStreamState(events, { source: "canonical" });
+  }, [forkHistory, draftProvider]);
   const openInSidePane = useSettings((settings) => settings.openInSidePane);
   const attachmentScopeKeys = useMemo(
     () => [draftAttachmentScopeKey, workspaceAttachmentScopeKey].filter(Boolean),
@@ -511,15 +563,48 @@ export function WorkspaceDraftAgentTab({
       });
     },
     onCreateSuccess: ({ result }) => {
+      if (getIsElectronMac() && getDesktopHost()?.power) {
+        void sendPowerCommand({ action: "transfer", serverId, draftId, agentId: result.id }).catch(
+          (error) => {
+            toast.error(t("settings.general.power.error", { detail: String(error) }));
+          },
+        );
+      }
       clearDraftInput("sent");
       clearWorkspaceAttachments({ scopeKey: draftAttachmentScopeKey });
-      useWorkspaceDraftSubmissionStore.getState().clearDraftSetup({ draftId });
+      useWorkspaceDraftSubmissionStore.getState().clearAgentCreation({ draftId });
       onCreated(result);
     },
   });
   const turnPresentation = useMemo(
     () => resolveTurnPresentation(TURN_LIVENESS_IDLE, pendingMessageSubmissions.length > 0),
     [pendingMessageSubmissions],
+  );
+  const forkPreviewAgent = useMemo(() => {
+    if (!forkHistory || !draftProvider || !draftWorkingDirectory) return null;
+    return buildDraftAgentSnapshot({
+      attempt: { timestamp: new Date(0) },
+      serverId,
+      tabId,
+      workspaceDirectory: draftWorkingDirectory,
+      autoSubmitConfig,
+      composerState,
+      selectModelMessage: t("workspaceSetup.errors.selectModel"),
+    });
+  }, [
+    forkHistory,
+    draftProvider,
+    draftWorkingDirectory,
+    serverId,
+    tabId,
+    autoSubmitConfig,
+    composerState,
+    t,
+  ]);
+  const streamAgent = draftAgent ?? forkPreviewAgent;
+  const draftStreamItems = useMemo(
+    () => [...forkPreviewItems, ...submittedStreamItems],
+    [forkPreviewItems, submittedStreamItems],
   );
   useAgentControlCommandCenterActions({
     sourceId: `draft:${serverId}:${tabId}`,
@@ -624,22 +709,24 @@ export function WorkspaceDraftAgentTab({
   const composerAgentControls = useMemo(
     () => ({
       ...composerState.agentControls,
+      powerDraftId: draftId,
       onDropdownClose: handleDropdownCloseFocus,
       disabled: isSubmitting,
     }),
-    [composerState.agentControls, handleDropdownCloseFocus, isSubmitting],
+    [composerState.agentControls, draftId, handleDropdownCloseFocus, isSubmitting],
   );
   return (
     <ComposerViewport style={styles.container} bottomInset={insets.bottom}>
       <FileDropZone style={styles.container}>
         <View style={styles.contentContainer}>
-          {isSubmitting && draftAgent ? (
+          {streamAgent ? (
             <View style={styles.streamContainer}>
               <AgentStreamView
                 agentId={tabId}
                 serverId={serverId}
-                context={draftAgent}
-                streamItems={submittedStreamItems}
+                context={streamAgent}
+                streamItems={draftStreamItems}
+                readOnly
                 pendingMessageSubmissions={pendingMessageSubmissions}
                 turnPresentation={turnPresentation}
                 pendingPermissions={EMPTY_PENDING_PERMISSIONS}

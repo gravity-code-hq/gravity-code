@@ -1,4 +1,5 @@
 import type pino from "pino";
+import type { CheckoutDiffResult } from "../utils/checkout-git.js";
 import type { SubscribeCheckoutDiffRequest, SessionOutboundMessage } from "./messages.js";
 import type { WorkspaceGitRuntimeSnapshot, WorkspaceGitService } from "./workspace-git-service.js";
 import { expandTilde } from "../utils/path.js";
@@ -48,6 +49,7 @@ interface CheckoutDiffWatchTarget {
   latestPayload: CheckoutDiffSnapshotPayload | null;
   latestFingerprint: string | null;
   openPromise: Promise<void> | null;
+  initialPromise: Promise<CheckoutDiffSnapshotPayload> | null;
 }
 
 export interface CheckoutDiffSubscriptionRequest {
@@ -67,7 +69,7 @@ export class CheckoutDiffManager {
 
   constructor(options: {
     logger: pino.Logger;
-    paseoHome: string;
+    gravityHome: string;
     workspaceGitService: CheckoutDiffWorkspace;
   }) {
     this.workspaceGitService = options.workspaceGitService;
@@ -105,13 +107,10 @@ export class CheckoutDiffManager {
 
     try {
       await target.openPromise;
-      const initial =
-        target.latestPayload ??
-        (await this.computeCheckoutDiffSnapshot(target.cwd, target.compare, {
-          diffCwd: target.diffCwd,
-        }));
-      target.latestPayload = initial;
-      target.latestFingerprint = JSON.stringify(initial);
+      target.initialPromise ??= new Promise((resolve) => {
+        void this.refreshTarget(target, false, resolve);
+      });
+      const initial = target.latestPayload ?? (await target.initialPromise);
       return { initial, unsubscribe };
     } catch (error) {
       unsubscribe();
@@ -193,7 +192,7 @@ export class CheckoutDiffManager {
       mainRepoRoot: snapshot.git.mainRepoRoot,
       currentBranch: snapshot.git.currentBranch,
       remoteUrl: snapshot.git.remoteUrl,
-      isPaseoOwnedWorktree: snapshot.git.isPaseoOwnedWorktree,
+      isGravityOwnedWorktree: snapshot.git.isGravityOwnedWorktree,
       baseRef: snapshot.git.baseRef,
       aheadBehind: snapshot.git.aheadBehind,
       aheadOfOrigin: snapshot.git.aheadOfOrigin,
@@ -254,6 +253,7 @@ export class CheckoutDiffManager {
     cwd: string,
     compare: CheckoutDiffCompareInput,
     options?: { diffCwd?: string; force?: boolean; reason?: string },
+    onProgress?: (snapshot: CheckoutDiffSnapshotPayload) => void,
   ): Promise<CheckoutDiffSnapshotPayload> {
     const diffCwd = options?.diffCwd ?? cwd;
     try {
@@ -268,59 +268,76 @@ export class CheckoutDiffManager {
         options?.force
           ? { force: true, reason: options.reason ?? "checkout-diff-refresh" }
           : undefined,
+        onProgress ? (value) => onProgress(this.toSnapshot(cwd, value)) : undefined,
       );
-      if (diffResult.diffTooLarge) {
-        return {
-          cwd,
-          files: [],
-          diffTooLarge: true,
-          error: toCheckoutError(new Error("Diff too large to display")),
-        };
-      }
-      const files = [...(diffResult.structured ?? [])];
-      files.sort((a, b) => {
-        if (a.path === b.path) return 0;
-        return a.path < b.path ? -1 : 1;
-      });
-      return {
-        cwd,
-        files,
-        error: null,
-      };
+      return this.toSnapshot(cwd, diffResult);
     } catch (error) {
-      return {
-        cwd,
-        files: [],
-        error: toCheckoutError(error),
-      };
+      return { cwd, files: [], error: toCheckoutError(error) };
     }
   }
 
-  private async refreshTarget(target: CheckoutDiffWatchTarget, force: boolean): Promise<void> {
+  private toSnapshot(cwd: string, diffResult: CheckoutDiffResult): CheckoutDiffSnapshotPayload {
+    if (diffResult.diffTooLarge) {
+      return {
+        cwd,
+        files: [],
+        diffTooLarge: true,
+        error: toCheckoutError(new Error("Diff too large to display")),
+      };
+    }
+    const files = [...(diffResult.structured ?? [])];
+    files.sort((a, b) => {
+      if (a.path === b.path) return 0;
+      return a.path < b.path ? -1 : 1;
+    });
+    return {
+      cwd,
+      files,
+      error: null,
+    };
+  }
+
+  private async refreshTarget(
+    target: CheckoutDiffWatchTarget,
+    force: boolean,
+    onInitial?: (snapshot: CheckoutDiffSnapshotPayload) => void,
+  ): Promise<void> {
     if (target.refreshPromise) {
       target.refreshQueued = true;
       target.refreshQueuedForce ||= force;
+      await target.refreshPromise;
+      if (target.latestPayload) onInitial?.(target.latestPayload);
       return;
     }
 
+    const publish = (snapshot: CheckoutDiffSnapshotPayload) => {
+      const hadPayload = target.latestPayload !== null;
+      target.latestPayload = snapshot;
+      const fingerprint = JSON.stringify(snapshot);
+      if (fingerprint !== target.latestFingerprint) {
+        target.latestFingerprint = fingerprint;
+        if (hadPayload) {
+          for (const listener of target.listeners) listener(snapshot);
+        }
+      }
+      onInitial?.(snapshot);
+    };
     target.refreshPromise = (async () => {
       let currentForce = force;
       do {
         target.refreshQueued = false;
         target.refreshQueuedForce = false;
-        const snapshot = await this.computeCheckoutDiffSnapshot(target.cwd, target.compare, {
-          diffCwd: target.diffCwd,
-          force: currentForce,
-          ...(currentForce ? { reason: "working-tree-watch" } : {}),
-        });
-        target.latestPayload = snapshot;
-        const fingerprint = JSON.stringify(snapshot);
-        if (fingerprint !== target.latestFingerprint) {
-          target.latestFingerprint = fingerprint;
-          for (const listener of target.listeners) {
-            listener(snapshot);
-          }
-        }
+        const snapshot = await this.computeCheckoutDiffSnapshot(
+          target.cwd,
+          target.compare,
+          {
+            diffCwd: target.diffCwd,
+            force: currentForce,
+            ...(currentForce ? { reason: "working-tree-watch" } : {}),
+          },
+          target.latestPayload === null ? publish : undefined,
+        );
+        publish(snapshot);
         currentForce = target.refreshQueuedForce;
       } while (target.refreshQueued);
     })();
@@ -358,6 +375,7 @@ export class CheckoutDiffManager {
       latestPayload: null,
       latestFingerprint: null,
       openPromise: null,
+      initialPromise: null,
     };
     this.targets.set(targetKey, target);
     return target;

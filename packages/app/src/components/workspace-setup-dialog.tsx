@@ -1,5 +1,6 @@
-import type { CreateWorkspaceRequestOptions } from "@getpaseo/client/internal/daemon-client";
-import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
+import { workspaceDisplayName } from "@/workspace/display-name";
+import type { CreateWorkspaceRequestOptions } from "@gravity/client/internal/daemon-client";
+import type { AgentSnapshotPayload } from "@gravity/protocol/messages";
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
@@ -8,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { AdaptiveModalSheet, type SheetHeader } from "@/components/adaptive-modal-sheet";
 import { FileDropZone } from "@/components/file-drop/file-drop-zone";
 import { Composer } from "@/composer";
+import { recordAgentCreatedForGitHubStar } from "@/github-star";
 import { ProjectIconView } from "@/components/project-icon-view";
 import { ICON_SIZE } from "@/styles/theme";
 import { useToast } from "@/contexts/toast-context";
@@ -31,7 +33,7 @@ import {
 import type {
   CreateAgentRequestOptions,
   DaemonClient,
-} from "@getpaseo/client/internal/daemon-client";
+} from "@gravity/client/internal/daemon-client";
 import { projectIconPlaceholderLabelFromDisplayName } from "@/utils/project-display-name";
 import { navigateToAgent } from "@/utils/navigate-to-agent";
 import { navigateToWorkspace } from "@/stores/navigation-active-workspace-store";
@@ -51,17 +53,20 @@ function resolveWorkspaceTitle({
   displayName,
   sourceDirectory,
 }: {
-  workspace: { name?: string | null; projectDisplayName?: string | null } | null;
+  workspace: WorkspaceDescriptor | null;
   displayName: string;
   sourceDirectory: string;
 }): string {
-  return (
-    workspace?.name ||
-    workspace?.projectDisplayName ||
-    displayName ||
-    sourceDirectory.split(/[\\/]/).findLast(Boolean) ||
-    sourceDirectory
-  );
+  if (workspace) {
+    return workspaceDisplayName({
+      projectName: workspace.projectCustomName ?? workspace.projectDisplayName,
+      projectKind: workspace.projectKind,
+      workspaceDirectory: workspace.workspaceDirectory,
+      worktreeSlug: workspace.worktreeSlug,
+      currentBranch: workspace.gitRuntime?.currentBranch ?? null,
+    });
+  }
+  return displayName || sourceDirectory.split(/[\\/]/).findLast(Boolean) || sourceDirectory;
 }
 
 function buildChatDraftComposerArgs({
@@ -356,6 +361,7 @@ export function WorkspaceSetupDialog() {
         });
         if (!createdAgent) throw new Error("The daemon did not create the requested agent");
         const agent = createdAgent;
+        recordAgentCreatedForGitHubStar();
 
         if (!getIsStillActive()) {
           return;

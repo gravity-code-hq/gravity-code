@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { Pressable, Text, View, type LayoutChangeEvent } from "react-native";
 import {
+  Download,
   CopyX,
   ArrowLeftToLine,
   ArrowRightToLine,
@@ -114,6 +115,7 @@ const AGENT_TOOLTIP_TITLE_MAX_LENGTH = 80;
 
 const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
 const ThemedX = withUnistyles(X);
+const ThemedDownload = withUnistyles(Download);
 const ThemedCopy = withUnistyles(Copy);
 
 const ThemedRotateCw = withUnistyles(RotateCw);
@@ -401,6 +403,8 @@ function TabContextMenuItem({
 }) {
   const leading = useMemo(() => {
     switch (entry.icon) {
+      case "download":
+        return <ThemedDownload size={16} uniProps={mutedColorMapping} />;
       case "copy":
         return <ThemedCopy size={16} uniProps={mutedColorMapping} />;
       case "rotate-cw":
@@ -511,6 +515,8 @@ interface WorkspaceDesktopTabsRowProps {
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTabsToLeft: (tabId: string) => Promise<void> | void;
   onCloseTabsToRight: (tabId: string) => Promise<void> | void;
@@ -1004,6 +1010,8 @@ function ResolvedWorkspaceDesktopTabsRow({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTabsToLeft,
   onCloseTabsToRight,
@@ -1088,6 +1096,8 @@ function ResolvedWorkspaceDesktopTabsRow({
       closeRight: t("workspace.tabs.menu.closeRight"),
       closeOthers: t("workspace.tabs.menu.closeOthers"),
       reloadAgent: t("workspace.tabs.menu.reloadAgent"),
+      copyConversation: t("workspace.tabs.menu.copyConversation"),
+      downloadConversation: t("workspace.tabs.menu.downloadConversation"),
       reloadAgentTooltip: t("workspace.tabs.menu.reloadAgentTooltip"),
       close: t("workspace.tabs.menu.close"),
     }),
@@ -1260,6 +1270,8 @@ function ResolvedWorkspaceDesktopTabsRow({
           onCopyTerminalId={onCopyTerminalId}
           onCopyFilePath={onCopyFilePath}
           onReloadAgent={onReloadAgent}
+          onCopyConversation={onCopyConversation}
+          onDownloadConversation={onDownloadConversation}
           onRenameTab={onRenameTab}
           onCloseTabsToLeft={onCloseTabsToLeft}
           onCloseTabsToRight={onCloseTabsToRight}
@@ -1293,6 +1305,8 @@ function ResolvedWorkspaceDesktopTabsRow({
       onCopyResumeCommand,
       onNavigateTab,
       onReloadAgent,
+      onCopyConversation,
+      onDownloadConversation,
       onRenameTab,
       setHoveredCloseTabKey,
       tabMenuLabels,
@@ -1407,6 +1421,8 @@ function ResolvedDesktopTabChip({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTabsToLeft,
   onCloseTabsToRight,
@@ -1433,6 +1449,8 @@ function ResolvedDesktopTabChip({
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTabsToLeft: (tabId: string) => Promise<void> | void;
   onCloseTabsToRight: (tabId: string) => Promise<void> | void;
@@ -1461,6 +1479,8 @@ function ResolvedDesktopTabChip({
         onCopyTerminalId,
         onCopyFilePath,
         onReloadAgent,
+        onCopyConversation,
+        onDownloadConversation,
         onRenameTab,
         onCloseTab,
         onCloseTabsToLeft,
@@ -1481,6 +1501,8 @@ function ResolvedDesktopTabChip({
       onCopyResumeCommand,
       labels,
       onReloadAgent,
+      onCopyConversation,
+      onDownloadConversation,
       onRenameTab,
       tabCount,
     ],

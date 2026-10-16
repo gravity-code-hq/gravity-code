@@ -1,7 +1,7 @@
-import type { PaseoAgentHandle, PaseoClient } from "@getpaseo/client";
+import type { GravityAgentHandle, GravityClient } from "@gravity/client";
 
-export async function reviewInParallel(client: PaseoClient, cwd: string): Promise<string[]> {
-  const agents: PaseoAgentHandle[] = [];
+export async function reviewInParallel(client: GravityClient, cwd: string): Promise<string[]> {
+  const agents: GravityAgentHandle[] = [];
 
   try {
     agents.push(

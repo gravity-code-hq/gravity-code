@@ -17,7 +17,7 @@ On Android, open each example and drag up on its content to expand the sheet, th
 In FlatList, expand before using **Jump to last row**; row 100 should be visible. At the top of either
 list, drag down on a row to dismiss the sheet. In Form,
 press **Copy text**, long-press the input, and choose **Paste**. The input should contain
-“Copied from Paseo”. With the system keyboard enabled, focusing the input should keep it visible.
+“Copied from Gravity”. With the system keyboard enabled, focusing the input should keep it visible.
 
 Run the [native sheet regression](../../packages/app/e2e/mobile/modal-sheet/README.md) to check body
 dismissal, list scrolling and horizontal tabs together.

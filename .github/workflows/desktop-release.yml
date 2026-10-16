@@ -24,6 +24,15 @@ on:
           - macos
           - linux
           - windows
+      mac_arch:
+        description: "macOS architectures to build. Anything but all needs publish=false; the rollout job expects both manifests."
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - arm64
+          - x64
       checkout_ref:
         description: "Optional branch/ref to checkout while using tag for release metadata."
         required: false
@@ -44,7 +53,9 @@ on:
         type: string
 
 concurrency:
-  group: desktop-release-${{ github.ref }}
+  # No-publish dispatches only upload workflow artifacts, so each platform gets its own
+  # group and they build in parallel. Publishing runs share one group per ref.
+  group: desktop-release-${{ github.ref }}${{ github.event.inputs.publish == 'false' && format('-{0}-{1}', github.event.inputs.platform, github.event.inputs.mac_arch) || '' }}
   cancel-in-progress: false
 
 env:
@@ -84,7 +95,7 @@ jobs:
             fi
             gh release create "$RELEASE_TAG" \
               --repo "${{ github.repository }}" \
-              --title "Paseo $RELEASE_TAG" \
+              --title "Gravity $RELEASE_TAG" \
               --notes "" \
               --draft \
               $prerelease_flag || {
@@ -99,11 +110,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: macos-14
-            electron_arch: arm64
-          - runner: macos-15-intel
-            electron_arch: x64
+        include: ${{ fromJSON(github.event.inputs.mac_arch == 'arm64' && '[{"runner":"macos-14","electron_arch":"arm64"}]' || github.event.inputs.mac_arch == 'x64' && '[{"runner":"macos-15-intel","electron_arch":"x64"}]' || '[{"runner":"macos-14","electron_arch":"arm64"},{"runner":"macos-15-intel","electron_arch":"x64"}]') }}
     permissions:
       contents: write
       packages: read
@@ -126,7 +133,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
           registry-url: "https://npm.pkg.github.com"
-          scope: "@boudra"
+          scope: "@gravity-code-hq"
 
       - name: Install JS dependencies
         run: node scripts/npm-retry.mjs ci
@@ -154,13 +161,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EP_GH_IGNORE_TIME: true
+          # The Expo web export runs out of Node's default ~2 GB heap on hosted runners.
+          NODE_OPTIONS: --max-old-space-size=6144
           CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PASEO_DESKTOP_SMOKE: "1"
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
+          GRAVITY_DESKTOP_SMOKE: "1"
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
         run: |
           set -euo pipefail
           build_args=(-- --publish never --mac --${{ matrix.electron_arch }})
@@ -176,6 +185,20 @@ jobs:
           path: ${{ runner.temp }}/desktop-smoke
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Add fixed-name macOS assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="${DESKTOP_PACKAGE_PATH}/release"
+          arch="${{ matrix.electron_arch }}"
+          versioned_dmg="$(find "$release_dir" -maxdepth 1 -type f -name "*-${arch}.dmg" -print -quit)"
+          if [[ -z "$versioned_dmg" ]]; then
+            echo "::error::No ${arch} DMG found in $release_dir"
+            exit 1
+          fi
+          # Stable name so the website can link to releases/latest/download/gravity-macos-<arch>.dmg.
+          cp "$versioned_dmg" "$release_dir/gravity-macos-${arch}.dmg"
 
       - name: Upload desktop artifacts to release
         if: env.SHOULD_PUBLISH == 'true' && env.IS_SMOKE_TAG != 'true'
@@ -201,7 +224,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-macos-${{ matrix.electron_arch }}
-          path: ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.dmg
+          # The full publishable set, so a no-publish build can still be released by hand.
+          path: |
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.dmg
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.zip
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.blockmap
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.yml
+            !${{ env.DESKTOP_PACKAGE_PATH }}/release/builder-debug.yml
           retention-days: 7
 
       - name: Upload manifest artifact
@@ -237,7 +266,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
           registry-url: "https://npm.pkg.github.com"
-          scope: "@boudra"
+          scope: "@gravity-code-hq"
 
       - name: Install JS dependencies
         run: node scripts/npm-retry.mjs ci
@@ -268,8 +297,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EP_GH_IGNORE_TIME: true
-          PASEO_DESKTOP_SMOKE: "1"
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
+          # The Expo web export runs out of Node's default ~2 GB heap on hosted runners.
+          NODE_OPTIONS: --max-old-space-size=6144
+          GRAVITY_DESKTOP_SMOKE: "1"
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
         run: |
           set -euo pipefail
           build_args=(-- --publish never --linux --x64)
@@ -285,6 +316,19 @@ jobs:
           path: ${{ runner.temp }}/desktop-smoke
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Add fixed-name Linux assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="${DESKTOP_PACKAGE_PATH}/release"
+          versioned_deb="$(find "$release_dir" -maxdepth 1 -type f -name '*.deb' -print -quit)"
+          if [[ -z "$versioned_deb" ]]; then
+            echo "::error::No .deb found in $release_dir"
+            exit 1
+          fi
+          # Stable name so the website can link to releases/latest/download/gravity-linux-x64.deb.
+          cp "$versioned_deb" "$release_dir/gravity-linux-x64.deb"
 
       - name: Upload desktop artifacts to release
         if: env.SHOULD_PUBLISH == 'true' && env.IS_SMOKE_TAG != 'true'
@@ -310,7 +354,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-linux
-          path: ${{ env.DESKTOP_PACKAGE_PATH }}/release/*
+          # Packages and manifests only; the unpacked app directory is not a release asset.
+          path: |
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.deb
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.rpm
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.AppImage
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.tar.gz
+            ${{ env.DESKTOP_PACKAGE_PATH }}/release/*.yml
+            !${{ env.DESKTOP_PACKAGE_PATH }}/release/builder-debug.yml
           retention-days: 7
 
       - name: Upload manifest artifact
@@ -346,7 +397,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
           registry-url: "https://npm.pkg.github.com"
-          scope: "@boudra"
+          scope: "@gravity-code-hq"
 
       - name: Install JS dependencies
         run: node scripts/npm-retry.mjs ci
@@ -374,8 +425,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EP_GH_IGNORE_TIME: true
-          PASEO_DESKTOP_SMOKE: "1"
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
+          # The Expo web export runs out of Node's default ~2 GB heap on hosted runners.
+          NODE_OPTIONS: --max-old-space-size=6144
+          GRAVITY_DESKTOP_SMOKE: "1"
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
         run: |
           set -euo pipefail
           build_args=(-- --publish never --win --x64 --arm64)
@@ -457,7 +510,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
           registry-url: "https://npm.pkg.github.com"
-          scope: "@boudra"
+          scope: "@gravity-code-hq"
 
       - name: Install JS dependencies
         run: node scripts/npm-retry.mjs ci

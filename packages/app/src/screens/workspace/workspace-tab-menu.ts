@@ -17,6 +17,8 @@ export interface WorkspaceTabMenuLabels {
   closeRight: string;
   closeOthers: string;
   reloadAgent: string;
+  copyConversation: string;
+  downloadConversation: string;
   reloadAgentTooltip: string;
   close: string;
 }
@@ -33,6 +35,8 @@ export const DEFAULT_WORKSPACE_TAB_MENU_LABELS: WorkspaceTabMenuLabels = {
   closeRight: i18n.t("workspace.tabs.menu.closeRight"),
   closeOthers: i18n.t("workspace.tabs.menu.closeOthers"),
   reloadAgent: i18n.t("workspace.tabs.menu.reloadAgent"),
+  copyConversation: i18n.t("workspace.tabs.menu.copyConversation"),
+  downloadConversation: i18n.t("workspace.tabs.menu.downloadConversation"),
   reloadAgentTooltip: i18n.t("workspace.tabs.menu.reloadAgentTooltip"),
   close: i18n.t("workspace.tabs.menu.close"),
 };
@@ -43,6 +47,7 @@ export type WorkspaceTabMenuEntry =
       key: string;
       label: string;
       icon?:
+        | "download"
         | "copy"
         | "rotate-cw"
         | "arrow-left-to-line"
@@ -73,6 +78,8 @@ interface BuildWorkspaceTabMenuEntriesInput {
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTab: (tabId: string) => Promise<void> | void;
   onCloseTabsBefore: (tabId: string) => Promise<void> | void;
@@ -90,6 +97,8 @@ interface BuildWorkspaceDesktopTabActionsInput {
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTab: (tabId: string) => Promise<void> | void;
   onCloseTabsToLeft: (tabId: string) => Promise<void> | void;
@@ -177,6 +186,8 @@ export function buildWorkspaceTabMenuEntries(
     onCopyTerminalId,
     onCopyFilePath,
     onReloadAgent,
+    onCopyConversation,
+    onDownloadConversation,
     onRenameTab,
     onCloseTab,
     onCloseTabsBefore,
@@ -210,6 +221,30 @@ export function buildWorkspaceTabMenuEntries(
       testID: `${menuTestIDBase}-copy-agent-id`,
       onSelect: () => {
         void onCopyAgentId(agentId);
+      },
+    });
+  }
+
+  if (tab.target.kind === "agent") {
+    const { agentId } = tab.target;
+    entries.push({
+      kind: "item",
+      key: "copy-conversation",
+      label: labels.copyConversation,
+      icon: "copy",
+      testID: `${menuTestIDBase}-copy-conversation`,
+      onSelect: () => {
+        void onCopyConversation(agentId);
+      },
+    });
+    entries.push({
+      kind: "item",
+      key: "download-conversation",
+      label: labels.downloadConversation,
+      icon: "download",
+      testID: `${menuTestIDBase}-download-conversation`,
+      onSelect: () => {
+        void onDownloadConversation(agentId);
       },
     });
   }
@@ -338,6 +373,8 @@ export function buildWorkspaceDesktopTabActions(
       onCopyTerminalId: input.onCopyTerminalId,
       onCopyFilePath: input.onCopyFilePath,
       onReloadAgent: input.onReloadAgent,
+      onCopyConversation: input.onCopyConversation,
+      onDownloadConversation: input.onDownloadConversation,
       onRenameTab: input.onRenameTab,
       onCloseTab: input.onCloseTab,
       onCloseTabsBefore: input.onCloseTabsToLeft,

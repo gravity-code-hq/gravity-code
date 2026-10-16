@@ -1,11 +1,11 @@
-import { PluginClientStateProvider } from "@getpaseo/plugin/client/host";
+import { PluginClientStateProvider } from "@gravity/plugin/client/host";
 import type {
   PluginButtonBehavior,
   PluginButtonIcon,
   PluginButtonMenuEntry,
   PluginHostProps,
-} from "@getpaseo/plugin/client";
-import type { PluginTheme } from "@getpaseo/plugin";
+} from "@gravity/plugin/client";
+import type { PluginTheme } from "@gravity/plugin";
 import { useCallback, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";

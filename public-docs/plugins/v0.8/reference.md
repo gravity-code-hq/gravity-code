@@ -8,31 +8,31 @@ category: Plugins
 
 # Plugin reference
 
-> **For Paseo v0.8 beta.** Return to the [v0.8 quickstart](/docs/plugins/v0.8).
+> **For Gravity v0.8 beta.** Return to the [v0.8 quickstart](/docs/plugins/v0.8).
 
 Migrating an existing plugin? Follow the standalone [runtime-entry migration guide](/docs/plugins/v0.8/migration).
 
-Local plugins are directory sources installed into one Paseo daemon. A plugin can contribute:
+Local plugins are directory sources installed into one Gravity daemon. A plugin can contribute:
 
-- React Native surfaces and sidebar items to Paseo clients;
+- React Native surfaces and sidebar items to Gravity clients;
 - workspace and agent panels opened as workspace tabs;
 - global, workspace, and agent actions in the Command Center;
 - slash commands in the message composer;
 - transformed and daemon-pushed agent timeline rows;
 - light and dark themes in Settings → Appearance;
 - schema-validated RPC handlers running beside the daemon;
-- normal Paseo operations through the TypeScript SDK;
+- normal Gravity operations through the TypeScript SDK;
 - searchable external resources in the message composer.
 
-Plugin code is trusted and unsandboxed. Client surfaces run in the Paseo app. Backend contributions run in a subprocess with access to the daemon machine, including its files, processes, credentials, and network.
+Plugin code is trusted and unsandboxed. Client surfaces run in the Gravity app. Backend contributions run in a subprocess with access to the daemon machine, including its files, processes, credentials, and network.
 
 ## Project files
 
-`paseo plugin init /absolute/path/to/my-plugin` creates:
+`gravity plugin init /absolute/path/to/my-plugin` creates:
 
 ```text
 my-plugin/
-  paseo-plugin.json
+  gravity-plugin.json
   index.client.tsx
   index.server.ts
   client/greeting.tsx
@@ -42,17 +42,17 @@ my-plugin/
   tsconfig.json
 ```
 
-The required root manifest is `paseo-plugin.json`. It contains the default plugin ID and supported Paseo versions:
+The required root manifest is `gravity-plugin.json`. It contains the default plugin ID and supported Gravity versions:
 
 ```json
-{ "id": "my-plugin", "requirements": { "paseo": ">=0.8.0" } }
+{ "id": "my-plugin", "requirements": { "gravity": ">=0.8.0" } }
 ```
 
 ### Requirements
 
-`requirements` is an optional object. Its currently supported key, `paseo`, accepts an npm semver
-range. An omitted `requirements.paseo` means `<0.8.0`: the plugin predates the first breaking
-plugin release. Paseo 0.8 and later reject it with a link to the [migration guide](migration).
+`requirements` is an optional object. Its currently supported key, `gravity`, accepts an npm semver
+range. An omitted `requirements.gravity` means `<0.8.0`: the plugin predates the first breaking
+plugin release. Gravity 0.8 and later reject it with a link to the [migration guide](migration).
 Empty strings, invalid ranges, and unknown manifest requirement keys are rejected.
 
 | Range            | Compatible releases                                                          |
@@ -61,9 +61,9 @@ Empty strings, invalid ranges, and unknown manifest requirement keys are rejecte
 | `^0.8.0`         | 0.8.x releases, including prereleases                                        |
 | `>=0.8.3 <0.9.0` | 0.8.3 through the last 0.8 patch, including prereleases                      |
 
-Prerelease Paseo versions also satisfy a range their stable core (`major.minor.patch`) satisfies, so `0.8.0-beta.1` satisfies `>=0.8.0` but not `<0.8.0`.
+Prerelease Gravity versions also satisfy a range their stable core (`major.minor.patch`) satisfies, so `0.8.0-beta.1` satisfies `>=0.8.0` but not `<0.8.0`.
 
-`paseo plugin init` writes `>=` followed by the current CLI version and pins the matching SDK
+`gravity plugin init` writes `>=` followed by the current CLI version and pins the matching SDK
 for typechecking. Raise the minimum when adopting a newer API. Add an upper bound when a later
 release is incompatible; a minimum alone does not promise protection from future breaking changes.
 
@@ -73,16 +73,16 @@ Each connected app checks its own version before evaluating client code and show
 in Settings → Plugins. A compatible daemon does not make an older app compatible. A plugin with no
 client entry does not require the connected app to match.
 
-For example: `Plugin "review" requires Paseo >=0.8.0. Your daemon is 0.7.2.` Use a compatible plugin
+For example: `Plugin "review" requires Gravity >=0.8.0. Your daemon is 0.7.2.` Use a compatible plugin
 revision or update the named runtime. Releases before 0.8 do not understand this manifest field
 and cannot show this new diagnostic.
 
 ### Runtime entries
 
-| Entry              | Runtime               | Receives              | Required                                                                        |
-| ------------------ | --------------------- | --------------------- | ------------------------------------------------------------------------------- |
-| `index.client.tsx` | Paseo app, per client | `PluginClientContext` | When the plugin has any UI, callback, theme, or attachment source               |
-| `index.server.ts`  | Daemon subprocess     | `PluginServerContext` | When the plugin contributes handlers, hooks, settings persistence, or providers |
+| Entry              | Runtime                 | Receives              | Required                                                                        |
+| ------------------ | ----------------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `index.client.tsx` | Gravity app, per client | `PluginClientContext` | When the plugin has any UI, callback, theme, or attachment source               |
+| `index.server.ts`  | Daemon subprocess       | `PluginServerContext` | When the plugin contributes handlers, hooks, settings persistence, or providers |
 
 At least one entry is required; both accept `.ts` or `.tsx`. A directory that still has only the
 old `index.ts` fails to load and points at the [migration guide](/docs/plugins/v0.8/migration).
@@ -90,8 +90,8 @@ old `index.ts` fails to load and points at the [migration guide](/docs/plugins/v
 Plugin, surface, sidebar-item, workspace-panel, Command Center item, attachment-source, and
 slash-command IDs start with a lowercase letter and contain lowercase letters, numbers, or hyphens.
 
-The generated `package.json` installs `@getpaseo/plugin` and the other host modules as development
-dependencies for local typechecking and tests. Paseo supplies their runtime instances. Consumers do
+The generated `package.json` installs `@gravity/plugin` and the other host modules as development
+dependencies for local typechecking and tests. Gravity supplies their runtime instances. Consumers do
 not install them when adding the plugin.
 
 Every other module lives in one of three directories. Nesting inside them is fine; a module at the
@@ -105,31 +105,31 @@ plugin root is a compile error.
 
 ## Runtime modules
 
-Paseo builds each bundle from its matching entry. An import from `client/` into the daemon bundle,
+Gravity builds each bundle from its matching entry. An import from `client/` into the daemon bundle,
 from `server/` into the app bundle, or of a Node module anywhere in the app bundle is a compile
 error. Server imports of React, React Native, or client SDK entries also fail. Shared code imports
 only shared code: no Node, React, runtime-specific SDK entries, or runtime-specific types.
 
-The SDK root (`@getpaseo/plugin`) contains shared data, schemas, and runtime-neutral helpers only.
+The SDK root (`@gravity/plugin`) contains shared data, schemas, and runtime-neutral helpers only.
 Import client contexts and hooks from `/client`, server contexts and lifecycle contracts from
 `/server`, and UI from `/client/react-native` or `/client/ui`. These rules include type imports and transitive
 dependencies. `/client/host` is private to the app host; plugins cannot import it.
 
 ### Client runtime
 
-Paseo provides these modules to client code:
+Gravity provides these modules to client code:
 
-| Module                                 | Use it for                                                                                        |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `@getpaseo/plugin`                     | Shared data, `defineRpc`, `defineSettings`, `defineAttachmentSource`, `RpcInput`, and `RpcOutput` |
-| `@getpaseo/plugin/client/ui`           | Named, composable settings components                                                             |
-| `@getpaseo/plugin/client/react-native` | Paseo UI components and UI hooks                                                                  |
-| `@getpaseo/plugin/client`              | Client contribution contexts, `usePaseo`, `useRpc`, `useSettings`, and data hooks                 |
-| `@tanstack/react-query`                | Request state and caching                                                                         |
-| `react`                                | Components and hooks                                                                              |
-| `react/jsx-runtime`                    | Compiled JSX                                                                                      |
-| `react-native`                         | Cross-platform UI                                                                                 |
-| `zod`                                  | Shared schemas                                                                                    |
+| Module                                | Use it for                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `@gravity/plugin`                     | Shared data, `defineRpc`, `defineSettings`, `defineAttachmentSource`, `RpcInput`, and `RpcOutput` |
+| `@gravity/plugin/client/ui`           | Named, composable settings components                                                             |
+| `@gravity/plugin/client/react-native` | Gravity UI components and UI hooks                                                                |
+| `@gravity/plugin/client`              | Client contribution contexts, `useGravity`, `useRpc`, `useSettings`, and data hooks               |
+| `@tanstack/react-query`               | Request state and caching                                                                         |
+| `react`                               | Components and hooks                                                                              |
+| `react/jsx-runtime`                   | Compiled JSX                                                                                      |
+| `react-native`                        | Cross-platform UI                                                                                 |
+| `zod`                                 | Shared schemas                                                                                    |
 
 The host owns its paired React and renderer versions. The SDK's React peer range permits patch
 versions for tooling and Node consumers; it does not change the app's pinned React version or
@@ -137,7 +137,7 @@ guarantee compatibility with another host's renderer.
 
 These exact module specifiers use the host's runtime instances. A client bundle that requests another host module fails with `Module "<name>" is not available in plugin client code`.
 
-Do not import `lucide-react-native`, `react-native-svg`, or DOM libraries. Set contribution `icon` fields to a [Lucide icon name](https://lucide.dev/icons/); Paseo validates the name and renders the icon.
+Do not import `lucide-react-native`, `react-native-svg`, or DOM libraries. Set contribution `icon` fields to a [Lucide icon name](https://lucide.dev/icons/); Gravity validates the name and renders the icon.
 
 ### Cross-platform rules
 
@@ -183,8 +183,8 @@ Use `openSettings`, `openSurface`, and `openPanel` for your own registered contr
 
 ### Server runtime
 
-Paseo provides `@getpaseo/plugin`, `@getpaseo/plugin/server`,
-`@getpaseo/plugin/server/provider`, `@getpaseo/plugin/server/acp`, and `zod` to server code. Backend
+Gravity provides `@gravity/plugin`, `@gravity/plugin/server`,
+`@gravity/plugin/server/provider`, `@gravity/plugin/server/acp`, and `zod` to server code. Backend
 contributions run in a daemon subprocess with Node access to the host machine. Keep filesystem,
 process, credential, and other machine-local work under `server/`. A plugin without
 `index.server.ts` starts no subprocess.
@@ -195,7 +195,7 @@ Follow [Build a provider plugin](/docs/plugins/v0.8/providers) for direct and AC
 session lifecycle, composer settings, timeline renderers, testing, and distribution.
 
 Call `server.registerProvider()` with a `ProviderRegistration` from
-`@getpaseo/plugin/server/provider`. Its connection accepts inputs with `send()` and emits complete state
+`@gravity/plugin/server/provider`. Its connection accepts inputs with `send()` and emits complete state
 snapshots through `onEvent()`. `send()` reports acceptance only; prompt disposition, turns,
 configuration, persistence, permissions, and failures are events.
 
@@ -203,31 +203,31 @@ Use the single `session.prompt` input for messages, structured commands, steerin
 effects. Repeat `clientMessageId` on the live user timeline item and publish exactly one matching
 `session.prompt_result`. Publish provider-created children as sessions with `parentSessionId`.
 
-Provider settings are toggle/select descriptors that Paseo renders in the composer. Keep
+Provider settings are toggle/select descriptors that Gravity renders in the composer. Keep
 provider-private JSON under `providerOptions`. Host tools arrive as MCP servers in the complete
 session config.
 
-Paseo refreshes an agent by closing its current provider session and opening it with current
+Gravity refreshes an agent by closing its current provider session and opening it with current
 configuration and persistence. Providers re-read external state during `session.open`.
 
-Use `runAcpProvider()` from `@getpaseo/plugin/server/acp` to adapt a command-backed ACP. Add transformer
+Use `runAcpProvider()` from `@gravity/plugin/server/acp` to adapt a command-backed ACP. Add transformer
 hooks only for a vendor's discovery, configuration, notification, or tool-call differences.
 
 `ProviderRegistration.icon` is a file path relative to the plugin directory, such as `icon.svg`.
 It must resolve inside that directory to a regular SVG file no larger than 64 KiB. The SVG must be
 self-contained: scripts, styles, `foreignObject`, event-handler attributes, JavaScript URLs, and
 external `href` or `xlink:href` references are rejected. Fragment references such as `#mark` are
-allowed. Paseo reads and sanitizes the file when the plugin starts; the string is never an inline
+allowed. Gravity reads and sanitizes the file when the plugin starts; the string is never an inline
 SVG or URL.
 
 ## Entry point and cleanup
 
 Each present entry default-exports one contribution function and returns cleanup. Client entries
 receive `PluginClientContext`; server entries receive `PluginServerContext`. Client registration methods return idempotent removers, except header buttons and composer pills,
-which return `{ update, remove }` handles. The entry cleanup runs before Paseo removes remaining registrations.
+which return `{ update, remove }` handles. The entry cleanup runs before Gravity removes remaining registrations.
 
 ```ts
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 import { Main } from "./client/main";
 
 export default function contribute(client: PluginClientContext) {
@@ -236,14 +236,14 @@ export default function contribute(client: PluginClientContext) {
 }
 ```
 
-Cleanup can be async. Release timers, watchers, sockets, and other resources created by the plugin. Paseo also removes registrations, unmounts surfaces, rejects pending RPCs, closes the plugin's daemon session, and stops its subprocess on reload, disable, removal, disconnect, or daemon shutdown.
+Cleanup can be async. Release timers, watchers, sockets, and other resources created by the plugin. Gravity also removes registrations, unmounts surfaces, rejects pending RPCs, closes the plugin's daemon session, and stops its subprocess on reload, disable, removal, disconnect, or daemon shutdown.
 
 ## Lifecycle hooks
 
 In `index.server.ts`:
 
 ```ts
-import type { PluginServerContext } from "@getpaseo/plugin/server";
+import type { PluginServerContext } from "@gravity/plugin/server";
 
 export default function contribute(server: PluginServerContext) {
   server.on("agent.turn_ended", (event) => {
@@ -254,10 +254,10 @@ export default function contribute(server: PluginServerContext) {
 }
 ```
 
-| Register                        | Callback receives                  | Return                                                       |
-| ------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
-| `server.on(name, callback)`     | `(event, { paseo, signal })`       | `void` or `Promise<void>`                                    |
-| `server.before(name, callback)` | `({ request }, { paseo, signal })` | Modified request, or `undefined` to keep it; async supported |
+| Register                        | Callback receives                    | Return                                                       |
+| ------------------------------- | ------------------------------------ | ------------------------------------------------------------ |
+| `server.on(name, callback)`     | `(event, { gravity, signal })`       | `void` or `Promise<void>`                                    |
+| `server.before(name, callback)` | `({ request }, { gravity, signal })` | Modified request, or `undefined` to keep it; async supported |
 
 Hooks run on the daemon while the plugin is enabled, even with no app connected.
 
@@ -343,13 +343,13 @@ and directory lookup/import operations are unaffected.
 
 ### Send a follow-up when a turn ends
 
-Copy [server/inspect.ts](https://github.com/getpaseo/paseo/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts)
-into your plugin. The helper imports types from `@getpaseo/protocol/agent-types`; add
-`@getpaseo/protocol` at the same version as your plugin SDK to your development dependencies
+Copy [server/inspect.ts](https://github.com/gravity-code-hq/gravity/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts)
+into your plugin. The helper imports types from `@gravity/protocol/agent-types`; add
+`@gravity/protocol` at the same version as your plugin SDK to your development dependencies
 and install them before loading the plugin. `latestOutputText` joins text chunks after the latest user message.
 
 ```ts
-import type { PluginServerContext } from "@getpaseo/plugin/server";
+import type { PluginServerContext } from "@gravity/plugin/server";
 import { latestOutputText } from "./server/inspect";
 
 export default function contribute(server: PluginServerContext) {
@@ -360,7 +360,7 @@ export default function contribute(server: PluginServerContext) {
 
     const text = latestOutputText(event.timeline);
     if (/out of credits/i.test(text)) {
-      await context.paseo.agents.ref(event.agent.id).send("Try again.");
+      await context.gravity.agents.ref(event.agent.id).send("Try again.");
     }
   });
 
@@ -379,10 +379,10 @@ add limits or delays in your plugin when needed. Attachments and tool effects ar
 
 ### Answer a permission request
 
-Using `shellCommand` from the same [helper file](https://github.com/getpaseo/paseo/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts):
+Using `shellCommand` from the same [helper file](https://github.com/gravity-code-hq/gravity/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts):
 
 ```ts
-import type { PluginServerContext } from "@getpaseo/plugin/server";
+import type { PluginServerContext } from "@gravity/plugin/server";
 import { shellCommand } from "./server/inspect";
 
 export default function contribute(server: PluginServerContext) {
@@ -392,7 +392,7 @@ export default function contribute(server: PluginServerContext) {
       return;
     }
 
-    const agent = context.paseo.agents.ref(event.agent.id);
+    const agent = context.gravity.agents.ref(event.agent.id);
     if (/\brm\s+-rf\b/.test(command)) {
       await agent.respondToPermission({
         requestId: event.request.id,
@@ -439,7 +439,7 @@ plans, and mode changes; requesting permission does not end the turn.
 Agent events exclude internal utility agents. Archive events can precede runtime/worktree cleanup;
 `workspace.created` is not a setup barrier before agent startup.
 
-**Shared payload shapes** (`@getpaseo/plugin/server`):
+**Shared payload shapes** (`@gravity/plugin/server`):
 
 ```ts
 interface PluginHookAgent {
@@ -520,9 +520,9 @@ type PluginTurnOutcome =
 Creation request
   → agent.create hooks (plugin-ID order; registration order within each plugin)
   → resolve defaults and validate provider configuration
-  → derive launch configuration with Paseo runtime tools and daemon prompt
+  → derive launch configuration with Gravity runtime tools and daemon prompt
   → agent.session_open hooks (same ordering; env only)
-  → set PASEO_AGENT_ID and PASEO_AGENT_CWD
+  → set GRAVITY_AGENT_ID and GRAVITY_AGENT_CWD
   → open provider session and save agent configuration
 ```
 
@@ -540,7 +540,7 @@ saved; environment overrides are not persisted with it.
 
 | Contract                           | Behavior                                                                                                  |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `context.paseo`                    | Existing SDK connected to this daemon                                                                     |
+| `context.gravity`                  | Existing SDK connected to this daemon                                                                     |
 | `context.signal`                   | Aborted on invocation timeout or plugin stop; pass to external requests                                   |
 | Input data                         | Detached snapshot; change state through returned requests or SDK commands                                 |
 | Registration result                | Idempotent remover, e.g. `const remove = server.on(...); remove();`                                       |
@@ -553,13 +553,13 @@ saved; environment overrides are not persisted with it.
 
 ### Complete examples
 
-| Plugin                                                                                                 | Includes                                                                     |
-| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [lifecycle-logger](https://github.com/getpaseo/paseo/tree/main/plugin-examples/lifecycle-logger)       | All eleven hooks; JSON logs with environment values redacted                 |
-| [lifecycle-actions](https://github.com/getpaseo/paseo/tree/main/plugin-examples/lifecycle-actions)     | Follow-ups, permissions, environment, provider switching, worktree selection |
-| [agent-configuration](https://github.com/getpaseo/paseo/tree/main/plugin-examples/agent-configuration) | MCP injection and Codex sandbox/approval options                             |
+| Plugin                                                                                                          | Includes                                                                     |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [lifecycle-logger](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/lifecycle-logger)       | All eleven hooks; JSON logs with environment values redacted                 |
+| [lifecycle-actions](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/lifecycle-actions)     | Follow-ups, permissions, environment, provider switching, worktree selection |
+| [agent-configuration](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/agent-configuration) | MCP injection and Codex sandbox/approval options                             |
 
-Read logger output with `paseo plugin logs lifecycle-logger` or the host's `daemon.log`.
+Read logger output with `gravity plugin logs lifecycle-logger` or the host's `daemon.log`.
 
 ## Surfaces and sidebar items
 
@@ -568,7 +568,7 @@ Register a component, then point a sidebar item at its surface ID:
 `client/main.tsx`:
 
 ```tsx
-import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
+import type { PluginSurfaceProps } from "@gravity/plugin/client";
 import { useMemo } from "react";
 import { Text, View } from "react-native";
 
@@ -597,7 +597,7 @@ export function Main({ theme, host, layout }: PluginSurfaceProps) {
 `index.client.tsx`:
 
 ```ts
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 import { Main } from "./client/main";
 
 export default function contribute(client: PluginClientContext) {
@@ -616,21 +616,21 @@ export default function contribute(client: PluginClientContext) {
 
 | Field        | Meaning                                                                                                                      |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `theme`      | Typed `PluginTheme` color tokens for the active Paseo theme.                                                                 |
+| `theme`      | Typed `PluginTheme` color tokens for the active Gravity theme.                                                               |
 | `host`       | Selected host `id` and display `label`.                                                                                      |
 | `layout`     | `compact` and the `ios`, `android`, or `web` platform.                                                                       |
 | `navigation` | Optional client navigation. `openAgent({ agentId })` and `openWorkspace({ workspaceId })` open targets on the selected host. |
 
-Paseo owns the route, header, close action, host picker, error boundary, and query client. The plugin owns the surface body.
+Gravity owns the route, header, close action, host picker, error boundary, and query client. The plugin owns the surface body.
 
 ## Host UI
 
-Import Paseo-owned UI from `@getpaseo/plugin/client/react-native` in client code. This example
+Import Gravity-owned UI from `@gravity/plugin/client/react-native` in client code. This example
 opens a controlled modal, renders a host icon, and confirms the action with a toast:
 
 ```tsx
-import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
-import { Icon, Modal, useToast } from "@getpaseo/plugin/client/react-native";
+import type { PluginSurfaceProps } from "@gravity/plugin/client";
+import { Icon, Modal, useToast } from "@gravity/plugin/client/react-native";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -704,13 +704,13 @@ and wide tablets.
 The close button, backdrop, platform back action, web Escape key, and compact sheet gesture dismiss
 the modal. Dismissal calls `onOpenChange(false)`; the plugin must update `open` to close it.
 
-Modal children keep the plugin runtime context. `usePaseo`, `useRpc`, `useWorkspace`, and
+Modal children keep the plugin runtime context. `useGravity`, `useRpc`, `useWorkspace`, and
 `useAgent` work inside them.
 
 ### Scrolling
 
-Import `ScrollView` and `FlatList` from `@getpaseo/plugin/client/react-native` when content can appear in a
-Paseo modal. They accept React Native props and refs and integrate with the sheet's gestures. Outside
+Import `ScrollView` and `FlatList` from `@gravity/plugin/client/react-native` when content can appear in a
+Gravity modal. They accept React Native props and refs and integrate with the sheet's gestures. Outside
 a sheet they use ordinary React Native scrolling. Do not import bottom-sheet libraries directly.
 
 Use one vertical scroll owner: either the default modal body, or your own list with
@@ -723,7 +723,7 @@ container without changing these gestures. Expand the sheet before using list me
 `scrollToEnd`; the sheet locks list offsets below its largest height.
 
 ```tsx
-import { FlatList, Modal } from "@getpaseo/plugin/client/react-native";
+import { FlatList, Modal } from "@gravity/plugin/client/react-native";
 import { Text } from "react-native";
 
 // Inside your controlled Modal:
@@ -753,7 +753,7 @@ user action and await it before reporting success. It rejects if the platform de
 clipboard is unavailable; browser permissions and secure-context requirements still apply.
 
 ```tsx
-import { copyText, useToast } from "@getpaseo/plugin/client/react-native";
+import { copyText, useToast } from "@gravity/plugin/client/react-native";
 
 // Inside your component:
 const toast = useToast();
@@ -768,14 +768,14 @@ async function copyResult() {
 ```
 
 Programmatic copying and native text selection are separate interactions. Use `<Text selectable>`
-for long-press selection and OS Copy. Import `TextInput` from `@getpaseo/plugin/client/react-native` for modal forms. It accepts React Native
+for long-press selection and OS Copy. Import `TextInput` from `@gravity/plugin/client/react-native` for modal forms. It accepts React Native
 input props and refs, supports OS Paste, and registers focus with the native sheet so the keyboard
 can raise the form. Outside a sheet it uses the ordinary input. A plain React Native input supports
 Paste too, but does not register focus with the sheet; the keyboard can cover it. No clipboard read
 API is needed for OS Paste. Avoid DOM clipboard code in native plugins and the deprecated
 `Clipboard` export from `react-native`.
 
-The runnable [modal UI example](https://github.com/getpaseo/paseo/tree/main/plugin-examples/modal-ui)
+The runnable [modal UI example](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/modal-ui)
 contains a padded form, full-width rows, a virtualized list, horizontal tabs, and a copy/paste input.
 
 ### Toasts
@@ -798,7 +798,7 @@ Showing another toast replaces the currently visible toast. An empty message is 
 
 ### Icons
 
-`Icon` renders a [Lucide icon](https://lucide.dev/icons/) from Paseo's installed icon set. Plugin bundles do not import
+`Icon` renders a [Lucide icon](https://lucide.dev/icons/) from Gravity's installed icon set. Plugin bundles do not import
 `lucide-react-native` or `react-native-svg`.
 
 | Prop    | Type     | Required | Behavior                                        |
@@ -810,11 +810,11 @@ Showing another toast replaces the currently visible toast. An empty message is 
 ## Timeline items
 
 A plugin can replace an agent timeline entry with its own data and React Native renderer. Both
-registrations are client contributions. Paseo applies the transformer while building the render
+registrations are client contributions. Gravity applies the transformer while building the render
 model, including every live streaming update.
 
 ```tsx
-import type { PluginClientContext, PluginTimelineItemProps } from "@getpaseo/plugin/client";
+import type { PluginClientContext, PluginTimelineItemProps } from "@gravity/plugin/client";
 import { Text } from "react-native";
 import { z } from "zod";
 
@@ -857,17 +857,17 @@ provider- or tool-specific recognition. Returning `undefined` keeps the original
 input is `"streaming"` for the live assistant message, running tool calls, and loading reasoning;
 it is `"complete"` for committed or fetched messages and finished tools or reasoning.
 Assistant and reasoning callbacks receive the full accumulated text on each update, including
-paragraph separators. Paseo invokes transformers before splitting native Markdown or grouping
+paragraph separators. Gravity invokes transformers before splitting native Markdown or grouping
 tools in Overview. A claimed assistant message remains one source item throughout streaming;
 return `undefined` until recognizable if the first text is insufficient to identify it.
-Each replacement may set an optional plugin-local `id`; otherwise Paseo uses its index within that
+Each replacement may set an optional plugin-local `id`; otherwise Gravity uses its index within that
 source item's output.
 
-Renderers receive `agentId`, `item`, `timestamp`, `theme`, `host`, and `layout`. Paseo validates
+Renderers receive `agentId`, `item`, `timestamp`, `theme`, `host`, and `layout`. Gravity validates
 `item.data` with the registered schema before rendering. Keep transformers synchronous and
-deterministic. Paseo memoizes results by source-item reference and derives replacement identity from
+deterministic. Gravity memoizes results by source-item reference and derives replacement identity from
 the source row, so updates to one streaming item do not remount its renderer. Use the exported
-`useRevealedText(text, phase)` hook when a renderer should pace streaming text like Paseo's built-in
+`useRevealedText(text, phase)` hook when a renderer should pace streaming text like Gravity's built-in
 assistant rows.
 
 ### Append a timeline row from the daemon
@@ -875,10 +875,10 @@ assistant rows.
 A server handler can add a plugin-owned row to canonical history:
 
 ```ts
-import type { PluginHandlerContext } from "@getpaseo/plugin/server";
+import type { PluginHandlerContext } from "@gravity/plugin/server";
 
-async function publishReview(agentId: string, { paseo }: PluginHandlerContext) {
-  await paseo.agents.ref(agentId).timeline.append({
+async function publishReview(agentId: string, { gravity }: PluginHandlerContext) {
+  await gravity.agents.ref(agentId).timeline.append({
     type: "plugin",
     id: "review",
     kind: "review-result",
@@ -898,13 +898,13 @@ async function publishReview(agentId: string, { paseo }: PluginHandlerContext) {
 
 The daemon stamps `pluginId` from the calling plugin session and rejects this RPC from non-plugin
 sessions. The row appears live, survives timeline refetches, and keeps only the latest value for the
-same plugin and `id`. If its renderer is missing, Paseo shows the existing unavailable row. Daemons
+same plugin and `id`. If its renderer is missing, Gravity shows the existing unavailable row. Daemons
 reject `data` over the limit rather than truncating it. Daemons that support this operation
 advertise `server_info.features.pluginTimelineItems`.
 
 ## Theme and layout
 
-Plugin UI runs on desktop, browser, iOS, and Android, across every Paseo theme. `theme` is a typed `PluginTheme` mapped from the active host theme. Color and spacing must come from those props. Hardcoded colors and unstyled `Text` break when the host theme changes.
+Plugin UI runs on desktop, browser, iOS, and Android, across every Gravity theme. `theme` is a typed `PluginTheme` mapped from the active host theme. Color and spacing must come from those props. Hardcoded colors and unstyled `Text` break when the host theme changes.
 
 Recreate styles when `theme` or `layout.compact` changes.
 
@@ -934,7 +934,7 @@ Workspace and agent panels receive the same `theme`, `layout`, and optional `nav
 `name`. A theme is data, so it needs no component file:
 
 ```ts
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 
 export default function contribute(client: PluginClientContext) {
   client.addTheme({
@@ -956,7 +956,7 @@ export default function contribute(client: PluginClientContext) {
 }
 ```
 
-Every color is a hex string; anything else fails to load. Paseo expands the palette into the full
+Every color is a hex string; anything else fails to load. Gravity expands the palette into the full
 token set the built-in dark themes use, so a contributed theme covers panels, menus, diffs, status
 colors, and the terminal without listing them.
 
@@ -971,11 +971,11 @@ colors, and the terminal without listing them.
 | `mutedForeground` | Secondary text                                                    |
 | `ring`            | Focus rings, scrollbars, and terminal bright black                |
 
-`appearance` is `"light"` or `"dark"`. Paseo uses it to select the matching surface, status,
+`appearance` is `"light"` or `"dark"`. Gravity uses it to select the matching surface, status,
 diff, syntax, terminal, and shadow derivation.
 
 Only one contributed theme is active at a time. Selecting one persists the choice; if the plugin is
-later disabled or removed, Paseo falls back to the default theme rather than leaving the app
+later disabled or removed, Gravity falls back to the default theme rather than leaving the app
 unpainted.
 
 Themes need a host that supports them. A client released before `addTheme` cannot evaluate that client entry and reports
@@ -992,19 +992,19 @@ Call `client.openSettings(id)` or a Command Center callback's `openSettings(id)`
 of your own screens. Each installation has its own values and route, even when several hosts
 install the same plugin.
 
-The component receives `PluginSurfaceProps`. Paseo owns the header, back navigation, safe areas,
+The component receives `PluginSurfaceProps`. Gravity owns the header, back navigation, safe areas,
 scrolling, and the centered settings column. Compact windows push a full-screen detail; wide
 windows keep the settings sidebar. Render content inside that frame using React Native components.
 A disabled or removed plugin leaves an unavailable screen with working Back navigation.
 
 ### Named UI components
 
-Import settings components from `@getpaseo/plugin/client/ui`. They work with your own state and RPCs;
+Import settings components from `@gravity/plugin/client/ui`. They work with your own state and RPCs;
 no form wrapper or storage binding is required.
 
 ```tsx
 import { useState } from "react";
-import { SettingsCard, SettingsSection, SettingsSwitch } from "@getpaseo/plugin/client/ui";
+import { SettingsCard, SettingsSection, SettingsSwitch } from "@gravity/plugin/client/ui";
 
 export function DisplaySettings() {
   const [visible, setVisible] = useState(true);
@@ -1018,15 +1018,15 @@ export function DisplaySettings() {
 }
 ```
 
-| Component                          | Props and behavior                                                                                                                       |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `SettingsGroup`, `SettingsSection` | Required `title`, `children`; optional `info` tooltip, `trailing` content, `testID`. Own section spacing and headings.                   |
-| `SettingsCard`                     | `children`, optional `testID`. Owns the card surface and dividers between direct children. Give mapped rows stable React keys.           |
-| `SettingsRow`                      | Required `label`; optional `hint`, `error`, `children`, `testID`. Wrap any custom control or content.                                    |
-| `SettingsSwitch`                   | Row props plus required `value: boolean`, `onValueChange`; optional `disabled`.                                                          |
-| `SettingsSelect`                   | Row props plus required string `value`, `options: { label, value }[]`, `onValueChange`; optional `disabled`. Uses Paseo's adaptive menu. |
-| `SettingsInput`                    | Row props plus required `onChangeText`; optional `initialValue`, `placeholder`, `disabled`, `secureTextEntry`, `ref`.                    |
-| `SettingsAction`                   | Row props plus required `actionLabel`, `onPress`; optional `disabled`.                                                                   |
+| Component                          | Props and behavior                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SettingsGroup`, `SettingsSection` | Required `title`, `children`; optional `info` tooltip, `trailing` content, `testID`. Own section spacing and headings.                     |
+| `SettingsCard`                     | `children`, optional `testID`. Owns the card surface and dividers between direct children. Give mapped rows stable React keys.             |
+| `SettingsRow`                      | Required `label`; optional `hint`, `error`, `children`, `testID`. Wrap any custom control or content.                                      |
+| `SettingsSwitch`                   | Row props plus required `value: boolean`, `onValueChange`; optional `disabled`.                                                            |
+| `SettingsSelect`                   | Row props plus required string `value`, `options: { label, value }[]`, `onValueChange`; optional `disabled`. Uses Gravity's adaptive menu. |
+| `SettingsInput`                    | Row props plus required `onChangeText`; optional `initialValue`, `placeholder`, `disabled`, `secureTextEntry`, `ref`.                      |
+| `SettingsAction`                   | Row props plus required `actionLabel`, `onPress`; optional `disabled`.                                                                     |
 
 `SettingsInput` owns in-progress text. `initialValue` seeds it when mounted. Its ref exposes
 `focus()`, `blur()`, `getText()`, and `replaceText(text)` for explicit programmatic changes.
@@ -1038,7 +1038,7 @@ can sit beside or inside these components.
 Define a settings document in `shared/`:
 
 ```ts
-import { defineSettings } from "@getpaseo/plugin";
+import { defineSettings } from "@gravity/plugin";
 import { z } from "zod";
 
 export const preferences = defineSettings({
@@ -1119,7 +1119,7 @@ versions produce `invalid` without silently resetting the file. Successful migra
 the new version once. These documents are ordinary host-side JSON, not a credential vault.
 Settings RPCs use the existing `daemon.manage` permission for plugin execution.
 
-See the complete [settings example](https://github.com/getpaseo/paseo/tree/main/plugin-examples/settings)
+See the complete [settings example](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/settings)
 for immediate controls, a draft editor with validation, custom content, and Command Center navigation.
 
 ## Workspace panels
@@ -1129,7 +1129,7 @@ Register one panel for workspace or agent context:
 `client/review.tsx`:
 
 ```tsx
-import { type PluginAgentPanelProps, useAgent, useWorkspace } from "@getpaseo/plugin/client";
+import { type PluginAgentPanelProps, useAgent, useWorkspace } from "@gravity/plugin/client";
 import { useMemo } from "react";
 import { Text, View } from "react-native";
 
@@ -1160,7 +1160,7 @@ export function ReviewPanel({ theme, layout, workspaceId, agentId }: PluginAgent
 `index.client.tsx`:
 
 ```ts
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 import { ReviewPanel } from "./client/review";
 
 export default function contribute(client: PluginClientContext) {
@@ -1189,7 +1189,7 @@ export default function contribute(client: PluginClientContext) {
 
 A workspace panel receives `PluginWorkspacePanelProps`: `context: "workspace"`, `theme`, `host`, `layout`, and `workspaceId`. An agent panel receives `PluginAgentPanelProps`: `context: "agent"`, the same common fields and `workspaceId`, plus `agentId`.
 
-Read cached state with `useWorkspace(workspaceId, selector)` and `useAgent(agentId, selector)`. A selector is required. Paseo compares its result shallowly, so selecting `{ name, status }` does not re-render when unrelated fields change. Select every field the component renders in one call; do not select the whole snapshot.
+Read cached state with `useWorkspace(workspaceId, selector)` and `useAgent(agentId, selector)`. A selector is required. Gravity compares its result shallowly, so selecting `{ name, status }` does not re-render when unrelated fields change. Select every field the component renders in one call; do not select the whole snapshot.
 
 Both hooks return `null` when the record is unavailable. Otherwise they run synchronously against normalized client state. Snapshot DTOs and their nested values are deeply readonly and frozen at runtime. Do not call plugin RPC to discover the current workspace or agent. Fetch optional or vendor-specific enrichment after the component renders.
 
@@ -1232,7 +1232,7 @@ Agent snapshot fields:
 | `parentAgentId`     | `string \| null`                                               |
 | `labels`            | `Record<string, string>`                                       |
 
-Paseo owns tab focus, splitting, closing, persistence, query state, the API/RPC providers, and the render error boundary. A restored tab whose plugin, panel, context, workspace, or agent is unavailable stays open with an unavailable message instead of crashing the workspace.
+Gravity owns tab focus, splitting, closing, persistence, query state, the API/RPC providers, and the render error boundary. A restored tab whose plugin, panel, context, workspace, or agent is unavailable stays open with an unavailable message instead of crashing the workspace.
 
 ## Command Center items
 
@@ -1241,7 +1241,7 @@ Open the Command Center with **⌘K** on macOS or **Ctrl+K** on Windows and Linu
 Register an action and open a panel from the callback:
 
 ```tsx
-import { defineRpc } from "@getpaseo/plugin";
+import { defineRpc } from "@gravity/plugin";
 import { z } from "zod";
 
 const refreshReview = defineRpc({
@@ -1256,8 +1256,8 @@ client.addCommandCenterItem({
   icon: "Scan",
   keywords: ["inspect"],
   context: "agent",
-  async onSelect({ paseo, rpc, workspace, agent, openPanel }) {
-    await paseo.workspaces.ref(workspace.id).setTitle(`Review ${agent.id}`);
+  async onSelect({ gravity, rpc, workspace, agent, openPanel }) {
+    await gravity.workspaces.ref(workspace.id).setTitle(`Review ${agent.id}`);
     await rpc(refreshReview, { agentId: agent.id });
     openPanel("review");
   },
@@ -1282,18 +1282,18 @@ Every callback receives:
 | Field                     | Context             | Meaning                                                                                                         |
 | ------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `context`                 | All                 | Matching discriminator.                                                                                         |
-| `paseo`                   | All                 | Selected host's existing `PaseoApi`.                                                                            |
+| `gravity`                 | All                 | Selected host's existing `GravityApi`.                                                                          |
 | `rpc(contract, input)`    | All                 | Typed call to this installation's daemon-side plugin handler.                                                   |
 | `openSurface(id)`         | All                 | Opens one of this plugin's registered global surfaces.                                                          |
 | `workspace`               | Workspace and agent | Synchronous workspace snapshot.                                                                                 |
 | `agent`                   | Agent               | Synchronous matching agent snapshot.                                                                            |
 | `openPanel(id, options?)` | Workspace and agent | Opens a registered panel in the callback's current context. Pass `{ location: "explorer" }` to target Explorer. |
 
-An agent callback may open either an agent panel or a workspace panel. A workspace callback may open only a workspace panel. Unknown surface and panel IDs fail visibly. Use `paseo` for normal workspace, agent, provider, and daemon-config operations. Use `rpc` for plugin-specific filesystem, credential, vendor, or daemon-local work.
+An agent callback may open either an agent panel or a workspace panel. A workspace callback may open only a workspace panel. Unknown surface and panel IDs fail visibly. Use `gravity` for normal workspace, agent, provider, and daemon-config operations. Use `rpc` for plugin-specific filesystem, credential, vendor, or daemon-local work.
 
 ## Slash commands
 
-Register a command that runs in the Paseo client when the user submits `/name args` from the
+Register a command that runs in the Gravity client when the user submits `/name args` from the
 message composer. The text is never sent to the agent:
 
 ```ts
@@ -1318,8 +1318,8 @@ client.addSlashCommand({
 | `onSubmit`     | Yes      | Client callback for the matching context.      |
 
 `onSubmit` receives the matching Command Center callback context plus `args`. For `/review src`,
-`args` is `"src"`; Paseo trims only the remainder's leading and trailing whitespace and leaves
-parsing to the plugin. Paseo owns the autocomplete row, input clearing, and the error toast. It
+`args` is `"src"`; Gravity trims only the remainder's leading and trailing whitespace and leaves
+parsing to the plugin. Gravity owns the autocomplete row, input clearing, and the error toast. It
 does not wait for `onSubmit` or show a pending state; use a composer pill or panel for that.
 
 Precedence is built-in client commands, plugin commands, then provider commands. A lower-precedence
@@ -1328,7 +1328,7 @@ order wins a collision between plugins. Commands do not run while the composer h
 
 ## Header buttons
 
-Try the [button example](https://github.com/getpaseo/paseo/tree/main/plugin-examples/buttons) for
+Try the [button example](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/buttons) for
 actions, menus, custom icons and content, and visibility updates in both the header and composer.
 It switches one header button between modes; additional actions use a named Tools menu.
 
@@ -1359,7 +1359,7 @@ review.remove();
 ```
 
 Omit `label` for an icon-only header button. Menus and popovers show a chevron on wide layouts.
-Compact header buttons use icons without labels or chevrons. Paseo moves excess contributions
+Compact header buttons use icons without labels or chevrons. Gravity moves excess contributions
 into a shared overflow menu. Placement and overflow are host decisions.
 
 ## Composer pills
@@ -1389,12 +1389,12 @@ const pill = client.addComposerPill({
 ```
 
 For pills that follow the agent directory, use an explicit [owned list subscription](/docs/sdk/events#follow-one-agents-status).
-The [local plugin example](https://github.com/getpaseo/paseo/blob/main/plugin-examples/local-plugin/client/main.tsx)
+The [local plugin example](https://github.com/gravity-code-hq/gravity/blob/main/plugin-examples/local-plugin/client/main.tsx)
 replaces registrations on each snapshot and aborts the observation during entry cleanup, including pending bootstrap.
 
 ## Button descriptor
 
-These contracts are exported from `@getpaseo/plugin/client`.
+These contracts are exported from `@gravity/plugin/client`.
 
 | Field      | Required | Meaning                                                                 |
 | ---------- | -------- | ----------------------------------------------------------------------- |
@@ -1412,8 +1412,8 @@ type PluginButtonBehavior =
   | { kind: "popover"; Content: React.ComponentType<PluginButtonContentProps> };
 ```
 
-An action runs on the client. Paseo marks the button busy until its promise settles, blocks repeated
-presses, and shows failures in a toast. A failed action can be retried. Use the client's `paseo` for
+An action runs on the client. Gravity marks the button busy until its promise settles, blocks repeated
+presses, and shows failures in a toast. A failed action can be retried. Use the client's `gravity` for
 ordinary operations and `rpc` for plugin-specific backend work.
 
 Menus and popovers open anchored surfaces on wide layouts and bottom sheets on compact layouts.
@@ -1448,7 +1448,7 @@ const behavior: PluginButtonBehavior = {
 
 An item requires `kind: "item"`, `id`, `title`, and `behavior`. Its optional `icon`, `visible`, and
 `disabled` follow the button rules. A separator contains only `kind: "separator"` and `id`.
-Paseo removes leading, trailing, and consecutive separators after filtering hidden items.
+Gravity removes leading, trailing, and consecutive separators after filtering hidden items.
 
 Items can use all three behaviors. Nested menus open flyouts on wide layouts and pages with back
 navigation within the same compact sheet. Custom content pages open on selection, never hover.
@@ -1457,12 +1457,12 @@ Choosing an action closes the menu; opening another page keeps it open.
 ### Custom icons and popover content
 
 `PluginButtonIconProps` contains `theme`, `host`, `layout`, `size`, `color`, and the target context.
-Render a React Native icon or indicator within the supplied size. Paseo bounds the icon slot and
+Render a React Native icon or indicator within the supplied size. Gravity bounds the icon slot and
 owns all pointer interaction. The icon component can use plugin hooks.
 
 `PluginButtonContentProps` contains `theme`, `host`, `layout`, the target context, and `close()`.
-Render the body only; Paseo owns anchoring, scrolling, padding, and sheet presentation. Content can
-use `usePaseo`, `useRpc`, `useWorkspace`, `useAgent`, and the installation's React Query cache.
+Render the body only; Gravity owns anchoring, scrolling, padding, and sheet presentation. Content can
+use `useGravity`, `useRpc`, `useWorkspace`, `useAgent`, and the installation's React Query cache.
 
 The target context is one of:
 
@@ -1486,23 +1486,23 @@ Hiding or disabling a button closes its surface. Updating its behavior also clos
 Hiding preserves the registration, so showing it again restores its position. It does not cancel
 an action already in progress.
 
-`remove()` is idempotent. Updates after removal do nothing. Paseo removes outstanding buttons when
+`remove()` is idempotent. Updates after removal do nothing. Gravity removes outstanding buttons when
 the plugin installation or host connection is torn down. Return cleanup from the client entry for
 your subscriptions, timers, and other resources.
 
-## Use the Paseo SDK
+## Use the Gravity SDK
 
-Use `usePaseo()` for ordinary Paseo operations from a surface. It borrows the selected host's existing connection; do not create another client.
+Use `useGravity()` for ordinary Gravity operations from a surface. It borrows the selected host's existing connection; do not create another client.
 
 ```tsx
-import { type PluginSurfaceProps, usePaseo } from "@getpaseo/plugin/client";
+import { type PluginSurfaceProps, useGravity } from "@gravity/plugin/client";
 import { Pressable, Text } from "react-native";
 
 function PullRequestAction({ theme }: PluginSurfaceProps) {
-  const paseo = usePaseo();
+  const gravity = useGravity();
 
   async function createReviewWorkspace() {
-    const workspace = await paseo.workspaces.create({
+    const workspace = await gravity.workspaces.create({
       title: "Review PR 42",
       source: {
         kind: "worktree",
@@ -1525,18 +1525,18 @@ function PullRequestAction({ theme }: PluginSurfaceProps) {
 }
 ```
 
-The returned API covers projects, workspaces, agents, terminals, providers, and daemon config. See the [SDK API reference](/docs/sdk/reference) for its methods. Connection lifecycle methods are intentionally absent because Paseo owns the connection.
+The returned API covers projects, workspaces, agents, terminals, providers, and daemon config. See the [SDK API reference](/docs/sdk/reference) for its methods. Connection lifecycle methods are intentionally absent because Gravity owns the connection.
 
 ## Add plugin-specific backend behavior
 
-Use plugin RPC only for work that is not a normal Paseo operation: reading a vendor API, accessing daemon-local resources, or keeping credentials off the client.
+Use plugin RPC only for work that is not a normal Gravity operation: reading a vendor API, accessing daemon-local resources, or keeping credentials off the client.
 
 Define one contract with Zod, handle it in the subprocess, and call it from the surface:
 
 `shared/greeting.ts`:
 
 ```ts
-import { defineRpc } from "@getpaseo/plugin";
+import { defineRpc } from "@gravity/plugin";
 import { z } from "zod";
 
 export const greeting = defineRpc({
@@ -1549,7 +1549,7 @@ export const greeting = defineRpc({
 `client/greeting.tsx`:
 
 ```tsx
-import { useRpc } from "@getpaseo/plugin/client";
+import { useRpc } from "@gravity/plugin/client";
 import { greeting } from "../shared/greeting";
 
 export function GreetingButton() {
@@ -1562,7 +1562,7 @@ export function GreetingButton() {
 `server/greeting.ts`:
 
 ```ts
-import type { RpcInput } from "@getpaseo/plugin";
+import type { RpcInput } from "@gravity/plugin";
 import { greeting } from "../shared/greeting";
 
 export function createGreeting({ name }: RpcInput<typeof greeting>) {
@@ -1573,7 +1573,7 @@ export function createGreeting({ name }: RpcInput<typeof greeting>) {
 `index.client.tsx`:
 
 ```ts
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 import { GreetingButton } from "./client/greeting";
 
 export default function contribute(client: PluginClientContext) {
@@ -1585,7 +1585,7 @@ export default function contribute(client: PluginClientContext) {
 `index.server.ts`:
 
 ```ts
-import type { PluginServerContext } from "@getpaseo/plugin/server";
+import type { PluginServerContext } from "@gravity/plugin/server";
 import { createGreeting } from "./server/greeting";
 import { greeting } from "./shared/greeting";
 
@@ -1597,7 +1597,7 @@ export default function contribute(server: PluginServerContext) {
 
 Inputs and outputs are validated on both sides. RPC names start with a lowercase letter and contain lowercase letters, numbers, dots, hyphens, or underscores. `useRpc()` returns a typed async function. Use TanStack Query for request state, caching, and mutations.
 
-Backend handlers receive the same `PaseoApi` as `{ paseo }`. Their connection belongs to the subprocess and closes when the plugin stops. It does not subscribe to timelines or catalog events until plugin code subscribes. Follow the [SDK event contract](../../sdk/events.md) for cleanup and timeline replacements. Backend code can use Node APIs and dependencies installed in the plugin directory.
+Backend handlers receive the same `GravityApi` as `{ gravity }`. Their connection belongs to the subprocess and closes when the plugin stops. It does not subscribe to timelines or catalog events until plugin code subscribes. Follow the [SDK event contract](../../sdk/events.md) for cleanup and timeline replacements. Backend code can use Node APIs and dependencies installed in the plugin directory.
 
 ## Debug backend output
 
@@ -1608,9 +1608,9 @@ console.log("Refreshing issues");
 console.error("Issue refresh failed", error);
 ```
 
-Paseo adds `[paseo]` entries when the plugin starts loading, becomes ready, starts stopping, and has
+Gravity adds `[gravity]` entries when the plugin starts loading, becomes ready, starts stopping, and has
 stopped. It records compilation and load failures as stderr entries, including failures that happen
-before the plugin subprocess starts. Paseo also captures output emitted during initialization, RPC
+before the plugin subprocess starts. Gravity also captures output emitted during initialization, RPC
 handlers, cleanup, and process failure. Protocol traffic uses a separate channel, so `console.log()`
 cannot corrupt plugin RPCs.
 
@@ -1618,19 +1618,19 @@ Open **Settings → Plugins → Logs** for the plugin, or inspect the same recen
 CLI:
 
 ```bash
-paseo plugin logs my-plugin
-paseo plugin logs my-plugin --json
-paseo --host <url> plugin logs my-plugin
+gravity plugin logs my-plugin
+gravity plugin logs my-plugin --json
+gravity --host <url> plugin logs my-plugin
 ```
 
 The command returns a snapshot rather than following live output. Refresh the settings view or run
 the command again for newer entries. Each entry includes its timestamp, stdout or stderr stream,
 sequence, and message.
 
-Paseo retains up to 500 entries and 256 KiB per plugin in memory. Individual lines are capped at
+Gravity retains up to 500 entries and 256 KiB per plugin in memory. Individual lines are capped at
 16 KiB. Reload, disable, compilation failure, initialization failure, and process failure retain the
 tail. Removing the plugin clears it, and a daemon restart starts a new tail. Structured copies are
-also written to the daemon log at `$PASEO_HOME/daemon.log`.
+also written to the daemon log at `$GRAVITY_HOME/daemon.log`.
 
 Only daemon-side output is captured. Logs from client surfaces remain in the app runtime. Do not log
 credentials, access tokens, or other secrets: connected users can read the retained tail, and the
@@ -1643,7 +1643,7 @@ An attachment source searches external resources and returns a stable text snaps
 `shared/issues.ts`:
 
 ```ts
-import { defineAttachmentSource, defineRpc } from "@getpaseo/plugin";
+import { defineAttachmentSource, defineRpc } from "@gravity/plugin";
 import { z } from "zod";
 
 export const searchIssues = defineRpc({
@@ -1677,7 +1677,7 @@ export const issues = defineAttachmentSource({
 `server/issues.ts`:
 
 ```ts
-import type { RpcInput } from "@getpaseo/plugin";
+import type { RpcInput } from "@gravity/plugin";
 import { searchIssues } from "../shared/issues";
 
 export function search({ query }: RpcInput<typeof searchIssues>) {
@@ -1688,7 +1688,7 @@ export function search({ query }: RpcInput<typeof searchIssues>) {
 `index.client.tsx`:
 
 ```ts
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 import { issues } from "./shared/issues";
 
 export default function contribute(client: PluginClientContext) {
@@ -1700,7 +1700,7 @@ export default function contribute(client: PluginClientContext) {
 `index.server.ts`:
 
 ```ts
-import type { PluginServerContext } from "@getpaseo/plugin/server";
+import type { PluginServerContext } from "@gravity/plugin/server";
 import { search } from "./server/issues";
 import { searchIssues } from "./shared/issues";
 
@@ -1710,11 +1710,11 @@ export default function contribute(server: PluginServerContext) {
 }
 ```
 
-Paseo owns the composer menu, search picker, selected pill, draft state, and submission. The `text` value is the complete snapshot sent to the agent.
+Gravity owns the composer menu, search picker, selected pill, draft state, and submission. The `text` value is the complete snapshot sent to the agent.
 
 ## Hosts and lifecycle
 
-Plugins are installed per daemon. When the same contribution exists on several connected hosts, Paseo shows one sidebar item and adds a host picker. The selected host supplies the bundle, Paseo API, RPC transport, and query cache. Calls never fall through to another host when the selected host is offline.
+Plugins are installed per daemon. When the same contribution exists on several connected hosts, Gravity shows one sidebar item and adds a host picker. The selected host supplies the bundle, Gravity API, RPC transport, and query cache. Calls never fall through to another host when the selected host is offline.
 
 Attachment sources remain scoped to each composer's host.
 
@@ -1727,43 +1727,43 @@ failures stay inside the plugin error boundary.
 ## CLI reference
 
 ```bash
-paseo plugin init /absolute/path/to/plugin
-paseo plugin install /absolute/path/to/plugin
-paseo plugin install /absolute/path/to/plugin --id another-runtime-id
-paseo plugin add owner/repository
-paseo plugin add https://git.example.com/owner/repository.git --ref main
-paseo plugin add owner/monorepo:plugins/review
-paseo plugin ls [id]
-paseo plugin update <id>
-paseo plugin update --all
-paseo plugin reload my-plugin
-paseo plugin logs my-plugin
-paseo plugin disable my-plugin
-paseo plugin enable my-plugin
-paseo plugin remove my-plugin
+gravity plugin init /absolute/path/to/plugin
+gravity plugin install /absolute/path/to/plugin
+gravity plugin install /absolute/path/to/plugin --id another-runtime-id
+gravity plugin add owner/repository
+gravity plugin add https://git.example.com/owner/repository.git --ref main
+gravity plugin add owner/monorepo:plugins/review
+gravity plugin ls [id]
+gravity plugin update <id>
+gravity plugin update --all
+gravity plugin reload my-plugin
+gravity plugin logs my-plugin
+gravity plugin disable my-plugin
+gravity plugin enable my-plugin
+gravity plugin remove my-plugin
 ```
 
 `ls` reports runtime state, source details, and the installed commit without contacting the remote.
-Use `update` when you want Paseo to contact a tracked Git remote and install an available update.
+Use `update` when you want Gravity to contact a tracked Git remote and install an available update.
 
 Put `--host <url>` before a management command when the target is not the CLI's default daemon. `remove`
 never deletes a directory source; it deletes the managed checkout for a Git source. The install-time
 `--id` is the runtime ID and allows the same directory or repository to be installed more than once.
 
-> **Trust every plugin you add.** `paseo plugin add` and `paseo plugin install` mean “I trust this codebase.” Server code and Git preparation commands run unsandboxed with the daemon user's access on the daemon host; client contributions run inside Paseo. Dependencies and future updates are part of that decision. With the global `--host` option, commands run on the remote daemon host.
+> **Trust every plugin you add.** `gravity plugin add` and `gravity plugin install` mean “I trust this codebase.” Server code and Git preparation commands run unsandboxed with the daemon user's access on the daemon host; client contributions run inside Gravity. Dependencies and future updates are part of that decision. With the global `--host` option, commands run on the remote daemon host.
 
 An existing directory wins over `owner/repository` GitHub shorthand. Append `:relative/path` when
 the plugin lives below the repository root. Omit `--ref` to track the default branch. Explicit
 branches track updates; tags and commits stay pinned.
 
 Most plugins should omit `build`. Use it only when the staged checkout must install a dependency
-that Paseo does not provide, generate source or assets, or perform another required preparation
+that Gravity does not provide, generate source or assets, or perform another required preparation
 step:
 
 ```json
 {
   "id": "review",
-  "requirements": { "paseo": ">=0.8.0" },
+  "requirements": { "gravity": ">=0.8.0" },
   "build": [
     ["npm", "ci"],
     ["npm", "run", "build"]
@@ -1771,7 +1771,7 @@ step:
 }
 ```
 
-`build` is a list of non-empty argv arrays. Paseo runs each executable directly, without a shell,
+`build` is a list of non-empty argv arrays. Gravity runs each executable directly, without a shell,
 from the staged plugin directory after resolving the exact commit and manifest. It never infers a
 package manager or commands from lockfiles. Install and update both run `build` before validation,
 compilation, activation, or replacement. A failing command reports its output, discards the
@@ -1782,22 +1782,22 @@ Run `npm run typecheck` before install or reload. Manage plugin source entries w
 
 The daemon-wide **Enable plugins** switch lives under **Settings → Plugins**. A configured plugin remains `disabled` until that switch and the plugin's own enabled state are both on.
 
-The switch is the root `pluginsEnabled` field in `config.json`. After changing it, run `paseo reload --json`. Enabling starts every configured plugin whose own `enabled` value is not `false`; disabling tears down all plugins. No daemon restart is required. Manual edits to plugin source entries are not reloaded; use the plugin lifecycle commands for those.
+The switch is the root `pluginsEnabled` field in `config.json`. After changing it, run `gravity reload --json`. Enabling starts every configured plugin whose own `enabled` value is not `false`; disabling tears down all plugins. No daemon restart is required. Manual edits to plugin source entries are not reloaded; use the plugin lifecycle commands for those.
 
 ## Load failures
 
-Use `paseo plugin ls` to read the current status and error.
+Use `gravity plugin ls` to read the current status and error.
 
-| Symptom                                                               | Check                                                                                                                                   |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `This plugin was made for an older version of Paseo`                  | The directory has only an `index.ts` entry. Follow the [migration guide](/docs/plugins/v0.8/migration).                                 |
-| `Plugin entry points are missing`                                     | Neither `index.client.tsx` nor `index.server.ts` exists with that exact name.                                                           |
-| `server-only module cannot be imported into the plugin client bundle` | Client code imports `server/`. Move the work behind an RPC and import its contract from `shared/`.                                      |
-| `client-only module cannot be imported into the plugin server bundle` | Server code imports `client/`. Register that contribution from `index.client.tsx` instead.                                              |
-| `Node module cannot be imported into the plugin client bundle`        | Client code imports `node:*`. Move the operation to `server/` and call it through an RPC.                                               |
-| Sidebar item is missing                                               | The plugin is `running`, the item references an existing surface, the icon name is valid, and the client is on the installation's host. |
-| Client module is unavailable                                          | Import only the host-provided client modules listed above.                                                                              |
-| RPC rejects                                                           | Check both Zod schemas and the daemon-side handler error.                                                                               |
-| Edited code does not appear                                           | Run `npm run typecheck`, then `paseo plugin reload <id>`.                                                                               |
-| Reload fails                                                          | Read `paseo plugin ls` and `paseo plugin logs <id>`, fix the source error, then reload; Paseo does not restore the previous bundle.     |
-| Plugin exits unexpectedly                                             | Read `paseo plugin logs <id>` for retained initialization, cleanup, stderr, and final crash output.                                     |
+| Symptom                                                               | Check                                                                                                                                     |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `This plugin was made for an older version of Gravity`                | The directory has only an `index.ts` entry. Follow the [migration guide](/docs/plugins/v0.8/migration).                                   |
+| `Plugin entry points are missing`                                     | Neither `index.client.tsx` nor `index.server.ts` exists with that exact name.                                                             |
+| `server-only module cannot be imported into the plugin client bundle` | Client code imports `server/`. Move the work behind an RPC and import its contract from `shared/`.                                        |
+| `client-only module cannot be imported into the plugin server bundle` | Server code imports `client/`. Register that contribution from `index.client.tsx` instead.                                                |
+| `Node module cannot be imported into the plugin client bundle`        | Client code imports `node:*`. Move the operation to `server/` and call it through an RPC.                                                 |
+| Sidebar item is missing                                               | The plugin is `running`, the item references an existing surface, the icon name is valid, and the client is on the installation's host.   |
+| Client module is unavailable                                          | Import only the host-provided client modules listed above.                                                                                |
+| RPC rejects                                                           | Check both Zod schemas and the daemon-side handler error.                                                                                 |
+| Edited code does not appear                                           | Run `npm run typecheck`, then `gravity plugin reload <id>`.                                                                               |
+| Reload fails                                                          | Read `gravity plugin ls` and `gravity plugin logs <id>`, fix the source error, then reload; Gravity does not restore the previous bundle. |
+| Plugin exits unexpectedly                                             | Read `gravity plugin logs <id>` for retained initialization, cleanup, stderr, and final crash output.                                     |

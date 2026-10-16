@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { getLanguageForFile } from "@getpaseo/highlight";
+import { getLanguageForFile } from "@gravity/highlight";
 import type { WorkspaceFileLocation } from "@/workspace/file-open";
 import type { EditorVisualTheme } from "../editor/extensions.web";
 import { editorTheme } from "../editor/extensions.web";

@@ -326,7 +326,7 @@ async function selectSendBehaviorInSettings(
   await page.getByRole("menuitem", { name: behaviorLabel, exact: true }).click();
   await expect
     .poll(async () => {
-      const raw = await page.evaluate(() => localStorage.getItem("@paseo:app-settings"));
+      const raw = await page.evaluate(() => localStorage.getItem("@gravity:app-settings"));
       return raw ? (JSON.parse(raw) as { sendBehavior?: unknown }).sendBehavior : null;
     })
     .toBe(stored);
@@ -1237,9 +1237,137 @@ test.describe("Agent message submission", () => {
     await replaySteeredSleepTurnInBrowser(page, testInfo, "codex");
   });
 
-  test("restores overlapping queued sends when their connection fails", async ({
+  test("queues follow-ups by default and sends the entire queue on demand", async ({
     page,
   }, testInfo) => {
+    test.setTimeout(120_000);
+    const gate = await installDaemonWebSocketGate(page);
+    const agent = await startRunningMockAgent(page, {
+      prefix: `batch-queue-${testInfo.workerIndex}-`,
+      model: "one-minute-stream",
+      prompt: "Keep running while I queue follow-ups.",
+    });
+    try {
+      const sendsBefore = gate.getClientRequestCount("send_agent_message_request");
+      await queueMessage(page, "First follow-up");
+      await queueMessage(page, "Second follow-up");
+      await expect(page.getByText("2 queued", { exact: true })).toBeVisible();
+      await expectComposerDraft(page, "");
+      expect(gate.getClientRequestCount("send_agent_message_request")).toBe(sendsBefore);
+      await page.screenshot({ path: testInfo.outputPath("queue-pending.png") });
+      await page.getByTestId("send-all-queued-messages").click();
+      await expect(
+        page.getByTestId("user-message").filter({ hasText: "First follow-up" }),
+      ).toContainText("Second follow-up");
+      await expect(page.getByTestId("send-all-queued-messages")).toHaveCount(0);
+      expect(gate.getClientRequestCount("send_agent_message_request")).toBe(sendsBefore + 1);
+      expect(gate.getClientRequests("send_agent_message_request").at(-1)).toMatchObject({
+        text: "First follow-up\n\nSecond follow-up",
+      });
+      await page.screenshot({ path: testInfo.outputPath("queue-sent.png") });
+    } finally {
+      gate.restore();
+      await agent.cleanup();
+    }
+  });
+
+  test("deletes individual queued messages while preserving the other items and draft", async ({
+    page,
+  }, testInfo) => {
+    const gate = await installDaemonWebSocketGate(page);
+    const agent = await startRunningMockAgent(page, {
+      prefix: `delete-one-queue-${testInfo.workerIndex}-`,
+      model: "one-minute-stream",
+      prompt: "Keep running while I remove queued messages.",
+    });
+    try {
+      const sendsBefore = gate.getClientRequestCount("send_agent_message_request");
+      await queueMessage(page, "First queued item");
+      await queueMessage(page, "Second queued item");
+      await fillComposerDraft(page, "Keep my draft");
+      const rows = page.getByTestId("queued-message-row");
+      const firstActions = rows.first().getByTestId("queued-message-actions");
+      await expect(firstActions).toHaveCSS("opacity", "0");
+      await rows.first().hover();
+      await expect(firstActions).toHaveCSS("opacity", "1");
+      await rows.first().getByRole("button", { name: "Edit queued message", exact: true }).hover();
+      await expect(firstActions).toHaveCSS("opacity", "1");
+      await rows
+        .first()
+        .getByRole("button", { name: "Send queued message now", exact: true })
+        .hover();
+      await expect(firstActions).toHaveCSS("opacity", "1");
+      await expect(rows.first()).toHaveCSS("height", "32px");
+      await page.screenshot({ path: testInfo.outputPath("queue-row-delete.png") });
+      await page.getByTestId("toggle-queued-messages").click();
+      await expect(rows).toHaveCount(0);
+      await expectComposerDraft(page, "Keep my draft");
+      await page.getByTestId("toggle-queued-messages").click();
+      await expect(rows).toHaveCount(2);
+      await page.mouse.move(0, 0);
+      const deleteFirst = rows
+        .first()
+        .getByRole("button", { name: "Delete queued message", exact: true });
+      await deleteFirst.focus();
+      await expect(firstActions).toHaveCSS("opacity", "1");
+      await page.keyboard.press("Tab");
+      await expect(firstActions).toHaveCSS("opacity", "1");
+      await page.setViewportSize({ width: 390, height: 844 });
+      await fillComposerDraft(page, "Keep my draft");
+      await expect(firstActions).toHaveCSS("opacity", "1");
+      await expect(deleteFirst).toHaveCSS("height", "44px");
+      await page.screenshot({ path: testInfo.outputPath("queue-compact.png") });
+      await page
+        .getByRole("button", { name: "Delete queued message", exact: true })
+        .first()
+        .click();
+      await expect(page.getByText("First queued item", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("Second queued item", { exact: true })).toBeVisible();
+      await expect(page.getByText("1 queued", { exact: true })).toBeVisible();
+      await expectComposerDraft(page, "Keep my draft");
+      await page.getByRole("button", { name: "Delete queued message", exact: true }).click();
+      await expect(page.getByText("Second queued item", { exact: true })).toHaveCount(0);
+      await expect(page.getByTestId("delete-all-queued-messages")).toHaveCount(0);
+      await expectComposerDraft(page, "Keep my draft");
+      expect(gate.getClientRequestCount("send_agent_message_request")).toBe(sendsBefore);
+      await expect(page.getByRole("progressbar", { name: "Agent running" }).first()).toBeVisible();
+    } finally {
+      gate.restore();
+      await agent.cleanup();
+    }
+  });
+
+  test("deletes all queued messages without sending them or clearing the draft", async ({
+    page,
+  }, testInfo) => {
+    const gate = await installDaemonWebSocketGate(page);
+    const agent = await startRunningMockAgent(page, {
+      prefix: `delete-queue-${testInfo.workerIndex}-`,
+      model: "one-minute-stream",
+      prompt: "Keep running while I clear the queue.",
+    });
+    try {
+      const sendsBefore = gate.getClientRequestCount("send_agent_message_request");
+      await queueMessage(page, "Discard first follow-up");
+      await queueMessage(page, "Discard second follow-up");
+      await fillComposerDraft(page, "Keep my unfinished draft");
+      await expect(page.getByText("2 queued", { exact: true })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath("queue-delete-all.png") });
+      await page.getByRole("button", { name: "Delete all", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Send queued message now" })).toHaveCount(0);
+      await expect(page.getByTestId("delete-all-queued-messages")).toHaveCount(0);
+      await expect(page.getByText("Discard first follow-up", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("Discard second follow-up", { exact: true })).toHaveCount(0);
+      await expectComposerDraft(page, "Keep my unfinished draft");
+      expect(gate.getClientRequestCount("send_agent_message_request")).toBe(sendsBefore);
+      await expect(page.getByRole("progressbar", { name: "Agent running" }).first()).toBeVisible();
+    } finally {
+      gate.restore();
+      await agent.cleanup();
+    }
+  });
+
+  test("restores the entire queued batch when its connection fails", async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     const gate = await gateNextAgentMessage(page);
     const agent = await startRunningMockAgent(page, {
@@ -1251,12 +1379,23 @@ test.describe("Agent message submission", () => {
     try {
       await queueMessage(page, prompts[0]);
       await queueMessage(page, prompts[1]);
-      await page.getByRole("button", { name: "Send queued message now" }).first().click();
+      await page.getByTestId("send-all-queued-messages").click();
       await gate.waitForRequest(1);
-      await page.getByRole("button", { name: "Send queued message now" }).first().click();
-      await gate.waitForRequest(2);
+      await expect(page.getByTestId("send-all-queued-messages")).toBeDisabled();
       await gate.disconnect();
       await expectQueuedSendFailuresRestored(page, prompts);
+      await expect(
+        page.getByRole("alert").filter({ hasText: "Dropped by submission test." }),
+      ).toBeVisible();
+      await expect(page.getByTestId("send-all-queued-messages")).toBeEnabled();
+      await page.screenshot({ path: testInfo.outputPath("queue-restored.png") });
+      await page.getByTestId("send-all-queued-messages").click();
+      await gate.waitForRequest(2);
+      gate.accept(1);
+      await expect(page.getByTestId("send-all-queued-messages")).toHaveCount(0);
+      await expect(page.getByTestId("user-message").filter({ hasText: prompts[0] })).toContainText(
+        prompts[1],
+      );
     } finally {
       await agent.cleanup();
     }

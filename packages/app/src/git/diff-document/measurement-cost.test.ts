@@ -1,4 +1,4 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import { describe, expect, it } from "vitest";
 import { buildDiffDocumentModel, measureFragments } from "./model";
 import type { BuildDiffDocumentModelInput, TextMeasurer } from "./types";
@@ -68,6 +68,9 @@ function shapedCharactersFor(options: { lineCount: number; lineLength: number })
     measureText: measurer,
     palette: {
       surface: "#000",
+      hunkBackground: "#123",
+      additionGutterBackground: "#142",
+      deletionGutterBackground: "#412",
       headerSurface: "#111",
       border: "#222",
       foreground: "#fff",

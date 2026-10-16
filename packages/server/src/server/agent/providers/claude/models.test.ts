@@ -13,11 +13,19 @@ import {
   parseClaudeCodeVersion,
   resolveClaudeDisabledThinkingForModel,
 } from "./model-manifest.js";
-import { findClaudeModel, getClaudeModels, normalizeClaudeRuntimeModelId } from "./models.js";
+import { mapClaudeProbeModels } from "./model-probe.js";
+import { clearClaudeRuntimeModels } from "./model-registry.js";
+import {
+  applyClaudeRuntimeModels,
+  findClaudeModel,
+  getClaudeModels,
+  normalizeClaudeRuntimeModelId,
+} from "./models.js";
 
 const createdClaudeConfigDirs: string[] = [];
 
 afterEach(async () => {
+  clearClaudeRuntimeModels();
   vi.unstubAllEnvs();
   await Promise.all(
     createdClaudeConfigDirs.map((dir) => fs.rm(dir, { recursive: true, force: true })),
@@ -26,14 +34,14 @@ afterEach(async () => {
 });
 
 async function createClaudeConfigDir(settings: unknown): Promise<string> {
-  const configDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-models-"));
+  const configDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-models-"));
   createdClaudeConfigDirs.push(configDir);
   await fs.writeFile(path.join(configDir, "settings.json"), JSON.stringify(settings, null, 2));
   return configDir;
 }
 
 async function createClaudeConfigDirWithRawSettings(settings: string): Promise<string> {
-  const configDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-models-"));
+  const configDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-models-"));
   createdClaudeConfigDirs.push(configDir);
   await fs.writeFile(path.join(configDir, "settings.json"), settings);
   return configDir;
@@ -43,6 +51,8 @@ function createCatalogClient(claudeCodeVersion = "2.1.219"): ClaudeAgentClient {
   return new ClaudeAgentClient({
     logger: createTestLogger(),
     resolveVersion: async () => claudeCodeVersion,
+    // Default to a CLI that reports nothing so these cases exercise the manifest path.
+    probeModels: async () => [],
   });
 }
 
@@ -257,7 +267,7 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
   });
 
   it("falls back to hardcoded models when settings.json is missing", async () => {
-    const configDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-models-"));
+    const configDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-models-"));
     createdClaudeConfigDirs.push(configDir);
     vi.stubEnv("CLAUDE_CONFIG_DIR", configDir);
     const client = createCatalogClient();
@@ -527,5 +537,224 @@ describe("claudeManifestModelSupportsFastMode", () => {
     expect(claudeManifestModelSupportsFastMode("claude-sonnet-5")).toBe(false);
     expect(claudeManifestModelSupportsFastMode("claude-fable-5")).toBe(false);
     expect(claudeManifestModelSupportsFastMode("claude-fable-5-1")).toBe(false);
+  });
+});
+
+// Verbatim `supportedModels()` output from Claude Code v2.1.280, trimmed to the fields the
+// mapper reads. Keeping it real is the point: the shapes that matter (an alias row and a
+// concrete row resolving to one model, a family the manifest predates) only occur together.
+const CLAUDE_CODE_MODEL_ROWS = [
+  {
+    value: "default",
+    resolvedModel: "claude-opus-5-5[1m]",
+    displayName: "Default (recommended)",
+    description: "Use the default model (currently Opus 5.5 (1M context)) · $4/$20 per Mtok",
+    supportsEffort: true,
+    supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+    supportsFastMode: true,
+  },
+  {
+    value: "opus[1m]",
+    resolvedModel: "claude-opus-5-5[1m]",
+    displayName: "Opus (1M context)",
+    description: "Opus 5.5 with 1M context · Best for everyday, complex tasks · $4/$20 per Mtok",
+    supportsEffort: true,
+    supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+    supportsFastMode: true,
+  },
+  {
+    value: "claude-fable-5[1m]",
+    resolvedModel: "claude-fable-5",
+    displayName: "Fable",
+    description: "Fable 5 · Most capable for your hardest and longest-running tasks",
+    supportsEffort: true,
+    supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+  },
+  {
+    value: "sonnet",
+    resolvedModel: "claude-sonnet-5",
+    displayName: "Sonnet",
+    description: "Sonnet 5 · Efficient for routine tasks · $2/$10 per Mtok",
+    supportsEffort: true,
+    supportedEffortLevels: ["low", "medium", "high", "xhigh", "max"],
+  },
+  {
+    value: "haiku",
+    resolvedModel: "claude-haiku-4-5-20251001",
+    displayName: "Haiku",
+    description: "Haiku 4.5 · Fastest for quick answers · $1/$5 per Mtok",
+  },
+] as const;
+
+function probedClaudeModels() {
+  return mapClaudeProbeModels([...CLAUDE_CODE_MODEL_ROWS]);
+}
+
+describe("mapClaudeProbeModels", () => {
+  it("keys models by their canonical wire id, not the picker alias", () => {
+    expect(probedClaudeModels().map((model) => model.id)).toEqual([
+      "claude-opus-5-5[1m]",
+      "claude-fable-5",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001",
+    ]);
+  });
+
+  it("drops the Default row and marks the model it resolves to", () => {
+    const models = probedClaudeModels();
+    expect(models.some((model) => model.id === "default")).toBe(false);
+    expect(models.filter((model) => model.isDefault).map((model) => model.id)).toEqual([
+      "claude-opus-5-5[1m]",
+    ]);
+  });
+
+  it("keeps the picker alias so a saved choice still matches", () => {
+    const opus = probedClaudeModels().find((model) => model.id === "claude-opus-5-5[1m]");
+    expect(opus?.aliases).toEqual(["opus[1m]"]);
+  });
+
+  it("carries the CLI's label, description and effort levels", () => {
+    const sonnet = probedClaudeModels().find((model) => model.id === "claude-sonnet-5");
+    expect(sonnet?.label).toBe("Sonnet");
+    expect(sonnet?.description).toBe("Sonnet 5 · Efficient for routine tasks · $2/$10 per Mtok");
+    expect(sonnet?.effortLevels).toEqual(["low", "medium", "high", "xhigh", "max"]);
+  });
+
+  it("omits effort levels for a model that does not support them", () => {
+    const haiku = probedClaudeModels().find((model) => model.id.startsWith("claude-haiku-"));
+    expect(haiku?.effortLevels).toBeUndefined();
+  });
+
+  it("infers the context window from the 1M suffix", () => {
+    const models = probedClaudeModels();
+    expect(models.find((model) => model.id === "claude-opus-5-5[1m]")?.contextWindowMaxTokens).toBe(
+      1_000_000,
+    );
+    expect(models.find((model) => model.id === "claude-sonnet-5")?.contextWindowMaxTokens).toBe(
+      200_000,
+    );
+  });
+
+  it("reads the 1M suffix off the picker row when the resolved id lacks it", () => {
+    // Fable lists as `claude-fable-5[1m]` but resolves to the unsuffixed `claude-fable-5`.
+    const fable = probedClaudeModels().find((model) => model.id === "claude-fable-5");
+    expect(fable?.contextWindowMaxTokens).toBe(1_000_000);
+  });
+
+  it("takes fast mode from the CLI and disabled thinking from the model family", () => {
+    const models = probedClaudeModels();
+    const opus = models.find((model) => model.id === "claude-opus-5-5[1m]");
+    const fable = models.find((model) => model.id === "claude-fable-5");
+    expect(opus?.supportsFastMode).toBe(true);
+    expect(opus?.supportsThinkingDisabled).toBe(true);
+    expect(fable?.supportsFastMode).toBe(false);
+    expect(fable?.supportsThinkingDisabled).toBe(false);
+  });
+});
+
+describe("Claude catalog with probed models", () => {
+  function applyProbe(claudeCodeVersion = "2.1.280"): void {
+    applyClaudeRuntimeModels(probedClaudeModels(), claudeCodeVersion);
+  }
+
+  it("lists a model this build predates", () => {
+    applyProbe();
+    const model = getClaudeModels().find((candidate) => candidate.id === "claude-opus-5-5[1m]");
+    expect(model?.label).toBe("Opus (1M context)");
+    expect(model?.isDefault).toBe(true);
+  });
+
+  it("leads with the probed lineup and keeps uncovered manifest models selectable", () => {
+    applyProbe();
+    const ids = getClaudeModels().map((model) => model.id);
+    expect(ids.slice(0, 4)).toEqual([
+      "claude-opus-5-5[1m]",
+      "claude-fable-5",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001",
+    ]);
+    expect(ids).toContain("claude-opus-4-8");
+    expect(ids).toContain("claude-fable-5-1");
+  });
+
+  it("lists every model exactly once", () => {
+    applyProbe();
+    const ids = getClaudeModels().map((model) => model.id);
+    expect(ids).toEqual([...new Set(ids)]);
+  });
+
+  it("lets the probed default outrank the manifest's", () => {
+    applyProbe();
+    expect(
+      getClaudeModels()
+        .filter((model) => model.isDefault)
+        .map((model) => model.id),
+    ).toEqual(["claude-opus-5-5[1m]"]);
+  });
+
+  it("prefers the manifest's curated context window for a model it lists", () => {
+    applyProbe();
+    // The probe would infer 200K from the id; the manifest measures the same value, and for
+    // Sonnet 5 that agreement is what keeps the context meter stable across the two sources.
+    expect(findClaudeModel("claude-sonnet-5")?.contextWindowMaxTokens).toBe(200_000);
+  });
+
+  it("exposes effort and off-thinking options for a probed model", () => {
+    applyProbe();
+    const model = getClaudeModels().find((candidate) => candidate.id === "claude-opus-5-5[1m]");
+    expect(model?.thinkingOptions?.map((option) => option.id)).toEqual([
+      CLAUDE_DISABLED_THINKING_OPTION_ID,
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+      CLAUDE_ULTRACODE_THINKING_OPTION_ID,
+    ]);
+  });
+
+  it("answers capability lookups for a probed model", () => {
+    applyProbe();
+    expect(claudeManifestModelSupportsFastMode("claude-opus-5-5[1m]")).toBe(true);
+    expect(resolveClaudeDisabledThinkingForModel("claude-opus-5-5[1m]")).toEqual({
+      supported: true,
+      fallbackThinkingOptionId: "high",
+    });
+    expect(normalizeClaudeManifestModelId("claude-opus-5-5[1m]")).toBe("claude-opus-5-5[1m]");
+  });
+
+  it("does not grant fast mode to a probed model whose family lacks it", () => {
+    applyProbe();
+    expect(claudeManifestModelSupportsFastMode("claude-fable-5")).toBe(false);
+  });
+
+  it("falls back to the manifest when the probe reports nothing", () => {
+    applyClaudeRuntimeModels([], "2.1.280");
+    expect(getClaudeModels().map((model) => model.id)).toContain("claude-opus-5");
+    expect(getClaudeModels().some((model) => model.id === "claude-opus-5-5[1m]")).toBe(false);
+  });
+});
+
+describe("ClaudeAgentClient.fetchCatalog model probe", () => {
+  it("serves what Claude Code reported", async () => {
+    const client = new ClaudeAgentClient({
+      logger: createTestLogger(),
+      resolveVersion: async () => "2.1.280",
+      probeModels: async () => probedClaudeModels(),
+    });
+    const { models } = await client.fetchCatalog({ scope: "global", force: false });
+    expect(models[0]?.id).toBe("claude-opus-5-5[1m]");
+  });
+
+  it("keeps serving the manifest when the probe fails", async () => {
+    const client = new ClaudeAgentClient({
+      logger: createTestLogger(),
+      resolveVersion: async () => "2.1.280",
+      probeModels: async () => {
+        throw new Error("claude is not installed");
+      },
+    });
+    const { models } = await client.fetchCatalog({ scope: "global", force: false });
+    expect(models.map((model) => model.id)).toContain("claude-opus-5");
   });
 });

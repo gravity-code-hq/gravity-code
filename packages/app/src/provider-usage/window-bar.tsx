@@ -24,7 +24,13 @@ function fillToneStyle(tone: ProviderUsageTone) {
   }
 }
 
-export function ProviderUsageWindowBar({ window }: { window: ProviderUsageWindow }) {
+export function ProviderUsageWindowBar({
+  window,
+  compact = true,
+}: {
+  window: ProviderUsageWindow;
+  compact?: boolean;
+}) {
   const usedPct = resolveUsedPct(window);
   const tone = window.tone ?? deriveTone(usedPct);
 
@@ -40,17 +46,18 @@ export function ProviderUsageWindowBar({ window }: { window: ProviderUsageWindow
     : formatResetLabel(window.resetsAt);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.labelRow}>
-        <Text style={styles.label} numberOfLines={1}>
-          {window.label}
-        </Text>
-        <Text style={styles.value}>
+    <View style={compact ? styles.container : styles.sectionContainer}>
+      <View style={compact ? styles.labelRow : styles.sectionLabelRow}>
+        <Text style={compact ? styles.label : styles.sectionLabel}>{window.label}</Text>
+        <Text style={compact ? styles.value : styles.sectionValue}>
           {usedPct != null ? formatPct(usedPct) : "—"}
-          {trailing ? (
+          {compact && trailing ? (
             <Text style={isAtRisk ? styles.atRisk : styles.reset}>{` · ${trailing}`}</Text>
           ) : null}
         </Text>
+        {!compact && trailing ? (
+          <Text style={isAtRisk ? styles.atRiskLabel : styles.resetLabel}>{trailing}</Text>
+        ) : null}
       </View>
       <View style={styles.track}>
         <View style={fillStyle} />
@@ -62,6 +69,34 @@ export function ProviderUsageWindowBar({ window }: { window: ProviderUsageWindow
 const styles = StyleSheet.create((theme) => ({
   container: {
     gap: 3,
+  },
+  sectionContainer: {
+    gap: theme.spacing[2],
+  },
+  sectionLabelRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: theme.spacing[3],
+    rowGap: theme.spacing[1],
+  },
+  sectionLabel: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+  },
+  sectionValue: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+    fontWeight: theme.fontWeight.medium,
+    fontVariant: ["tabular-nums"],
+  },
+  resetLabel: {
+    color: theme.colors.foregroundMuted,
+    fontSize: theme.fontSize.sm,
+  },
+  atRiskLabel: {
+    color: theme.colors.statusDanger,
+    fontSize: theme.fontSize.sm,
   },
   labelRow: {
     flexDirection: "row",

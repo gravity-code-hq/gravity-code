@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 function makeTempDir(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "paseo-diagnostic-path-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "gravity-diagnostic-path-"));
   tempDirs.push(dir);
   return dir;
 }

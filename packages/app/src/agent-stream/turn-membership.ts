@@ -1,11 +1,16 @@
 import type { StreamItem } from "@/types/stream";
 
+function isForkBoundary(item: StreamItem): boolean {
+  return item.kind === "notification" && item.forkSourceTitle !== undefined;
+}
+
 /**
  * Canonical turn IDs take precedence. Timelines without them retain the legacy
  * user-message boundary rule so old daemons and persisted rows need no rewrite.
  */
 export function continuesTurn(previous: StreamItem | null, next: StreamItem | null): boolean {
   if (!previous || !next) return false;
+  if (isForkBoundary(previous) || isForkBoundary(next)) return false;
   if (previous.turnId !== undefined && next.turnId !== undefined) {
     return previous.turnId === next.turnId;
   }
@@ -14,10 +19,11 @@ export function continuesTurn(previous: StreamItem | null, next: StreamItem | nu
 
 /**
  * A visible response can span multiple canonical turns when their prompts are
- * system-injected and therefore absent from the Paseo timeline.
+ * system-injected and therefore absent from the Gravity timeline.
  */
 export function continuesResponse(previous: StreamItem | null, next: StreamItem | null): boolean {
   if (!previous || !next) return false;
+  if (isForkBoundary(previous) || isForkBoundary(next)) return false;
   return continuesTurn(previous, next) || next.kind !== "user_message";
 }
 

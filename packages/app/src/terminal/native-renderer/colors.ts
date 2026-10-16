@@ -1,6 +1,6 @@
 import type { ITheme } from "@xterm/xterm";
 import type { TextStyle } from "react-native";
-import type { TerminalCell } from "@getpaseo/protocol/messages";
+import type { TerminalCell } from "@gravity/protocol/messages";
 
 import { darkTheme } from "@/styles/theme";
 import { toXtermTheme } from "@/utils/to-xterm-theme";
@@ -209,7 +209,7 @@ function buildThemeKey(theme: ITheme): string {
 export function createTerminalCellStyleResolver(theme: ITheme): TerminalCellStyleResolver {
   const palette = build256Palette(theme);
   const foregroundColor = theme.foreground ?? DEFAULT_TERMINAL_THEME.foreground ?? "#fafafa";
-  const backgroundColor = theme.background ?? DEFAULT_TERMINAL_THEME.background ?? "#181B1A";
+  const backgroundColor = theme.background ?? DEFAULT_TERMINAL_THEME.background ?? "#181818";
   const cursorColor = theme.cursor ?? foregroundColor;
   const styleCache = new Map<string, TextStyle>();
 

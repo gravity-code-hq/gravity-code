@@ -1,4 +1,5 @@
 import { SessionDelivery } from "../owned-subscriptions/index.js";
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -16,7 +17,7 @@ import {
   encodeFileTransferFrame,
   FileTransferOpcode,
   type FileTransferFrame,
-} from "@getpaseo/protocol/binary-frames/index";
+} from "@gravity/protocol/binary-frames/index";
 import {
   WorkspaceFilesSession,
   type WorkspaceFilesSessionHost,
@@ -55,18 +56,18 @@ function makeSubsystem(
     },
     hasBinaryChannel: () => hasBinary,
   };
-  const paseoHome = makeDir("workspace-files-home-");
+  const gravityHome = makeDir("workspace-files-home-");
   const subsystem = new WorkspaceFilesSession({
     host,
     downloadTokenStore: new DownloadTokenStore({ ttlMs: 60_000 }),
-    paseoHome,
+    gravityHome,
     logger: pino({ level: "silent" }),
   });
   return {
     subsystem,
     emitted,
     binary,
-    paseoHome,
+    gravityHome,
     setHasBinary: (value: boolean) => {
       hasBinary = value;
     },
@@ -195,6 +196,48 @@ describe("WorkspaceFilesSession", () => {
         },
       },
     ]);
+  });
+
+  test("searches file contents and emits grouped matches", async () => {
+    const { subsystem, emitted } = makeSubsystem();
+    const root = makeDir("workspace-files-search-");
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    writeFileSync(join(root, "notes.md"), "alpha\nbeta alpha\n");
+    await subsystem.handleFileContentSearchRequest({
+      type: "fs.content.search.request",
+      cwd: root,
+      query: "alpha",
+      requestId: "search-1",
+    });
+    const response = emitted.find((msg) => msg.type === "fs.content.search.response");
+    expect(response?.type).toBe("fs.content.search.response");
+    if (response?.type !== "fs.content.search.response") return;
+    expect(response.payload.error).toBeNull();
+    expect(response.payload.requestId).toBe("search-1");
+    expect(response.payload.totalMatches).toBe(2);
+    expect(response.payload.files).toEqual([
+      {
+        path: "notes.md",
+        matches: [
+          { line: 1, column: 1, length: 5, text: "alpha", textStart: 0, textEnd: 5 },
+          { line: 2, column: 6, length: 5, text: "beta alpha", textStart: 5, textEnd: 10 },
+        ],
+      },
+    ]);
+  });
+
+  test("reports a search error in the response payload", async () => {
+    const { subsystem, emitted } = makeSubsystem();
+    await subsystem.handleFileContentSearchRequest({
+      type: "fs.content.search.request",
+      cwd: join(tmpdir(), "missing-gravity-search-root"),
+      query: "alpha",
+      requestId: "search-2",
+    });
+    const response = emitted.find((msg) => msg.type === "fs.content.search.response");
+    if (response?.type !== "fs.content.search.response") throw new Error("missing response");
+    expect(response.payload.files).toEqual([]);
+    expect(response.payload.error).toBe("Search root is not a directory");
   });
 
   test("duplicates an entry and emits the resulting path", async () => {
@@ -554,7 +597,7 @@ describe("WorkspaceFilesSession", () => {
   });
 
   test("round-trips an upload through transfer frames", async () => {
-    const { subsystem, emitted, paseoHome } = makeSubsystem();
+    const { subsystem, emitted, gravityHome } = makeSubsystem();
 
     const source = {};
     const ownership = new SessionDelivery((_source, message) => {
@@ -607,7 +650,7 @@ describe("WorkspaceFilesSession", () => {
     expect(message.payload.file?.fileName).toBe("notes.txt");
     const file = message.payload.file;
     if (!file) throw new Error("Expected uploaded file");
-    expect(file.path.startsWith(join(paseoHome, "uploads"))).toBe(true);
+    expect(file.path.startsWith(join(gravityHome, "uploads"))).toBe(true);
     expect(readFileSync(file.path, "utf8")).toBe("hello world");
     await ownership.close();
   });

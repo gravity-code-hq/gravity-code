@@ -61,11 +61,15 @@ describe("createMarkdownParser", () => {
   });
 
   it("linkifies bare URLs only when asked", () => {
-    expect(createMarkdownParser({ linkify: true }).render("see https://paseo.sh now")).toContain(
-      'href="https://paseo.sh"',
-    );
     expect(
-      createMarkdownParser({ linkify: false }).render("see https://paseo.sh now"),
+      createMarkdownParser({ linkify: true }).render(
+        "see https://github.com/gravity-code-hq/gravity now",
+      ),
+    ).toContain('href="https://github.com/gravity-code-hq/gravity"');
+    expect(
+      createMarkdownParser({ linkify: false }).render(
+        "see https://github.com/gravity-code-hq/gravity now",
+      ),
     ).not.toContain("href");
   });
 });

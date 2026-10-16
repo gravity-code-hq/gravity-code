@@ -17,6 +17,7 @@ export type KeyboardActionId =
   | "workspace.tab.menu.open"
   | "workspace.tab.target.agent"
   | "workspace.tab.target.browser"
+  | "workspace.tab.target.diff"
   | "workspace.tab.target.changes"
   | "workspace.tab.target.files"
   | "workspace.tab.close-current"
@@ -53,7 +54,6 @@ export type KeyboardActionId =
   | "workspace.archive"
   | "workspace.pin"
   // Command-center only: no keybind, so these are absent from route-shortcut.ts.
-  | "workspace.rename"
   | "workspace.setup.show";
 
 export type KeyboardActionDefinition =
@@ -70,6 +70,7 @@ export type KeyboardActionDefinition =
   | { id: "workspace.tab.menu.open"; scope: KeyboardActionScope }
   | { id: "workspace.tab.target.agent"; scope: KeyboardActionScope }
   | { id: "workspace.tab.target.browser"; scope: KeyboardActionScope }
+  | { id: "workspace.tab.target.diff"; scope: KeyboardActionScope }
   | { id: "workspace.tab.target.changes"; scope: KeyboardActionScope }
   | { id: "workspace.tab.target.files"; scope: KeyboardActionScope }
   | { id: "workspace.tab.close-current"; scope: KeyboardActionScope }
@@ -110,7 +111,6 @@ export type KeyboardActionDefinition =
   | { id: "worktree.new"; scope: KeyboardActionScope }
   | { id: "workspace.archive"; scope: KeyboardActionScope }
   | { id: "workspace.pin"; scope: KeyboardActionScope }
-  | { id: "workspace.rename"; scope: KeyboardActionScope }
   | { id: "workspace.setup.show"; scope: KeyboardActionScope };
 
 export interface KeyboardActionHandler {

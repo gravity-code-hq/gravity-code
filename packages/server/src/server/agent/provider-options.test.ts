@@ -97,7 +97,7 @@ describe("provider-owned option schemas", () => {
     ["codex", CodexProviderOptionsSchema, { cwd: "/tmp" }],
     ["claude", ClaudeProviderOptionsSchema, { hooks: {} }],
     ["opencode", OpenCodeProviderOptionsSchema, { mcp: {} }],
-  ])("rejects Paseo-owned or executable %s keys", (provider, schema, options) => {
+  ])("rejects Gravity-owned or executable %s keys", (provider, schema, options) => {
     expect(() => validateProviderOptions(provider, schema, options)).toThrow(
       `Invalid providerOptions for '${provider}'`,
     );

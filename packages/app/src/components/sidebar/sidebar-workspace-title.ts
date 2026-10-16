@@ -1,20 +1,26 @@
 import type { SidebarWorkspaceEntry } from "@/hooks/use-sidebar-workspaces-list";
-import type { WorkspaceTitleSource } from "@/hooks/use-settings";
+import { workspaceDisplayName } from "@/workspace/display-name";
 import { STATUS_BUCKET_LABELS } from "@/hooks/sidebar-status-view-model";
 
 export function resolveSidebarWorkspacePrimaryLabel(input: {
-  workspace: Pick<SidebarWorkspaceEntry, "name" | "currentBranch">;
-  workspaceTitleSource: WorkspaceTitleSource;
+  workspace: Pick<
+    SidebarWorkspaceEntry,
+    "projectName" | "projectKind" | "currentBranch" | "workspaceDirectory" | "worktreeSlug"
+  >;
 }): string {
-  if (input.workspaceTitleSource === "branch") {
-    return input.workspace.currentBranch ?? input.workspace.name;
-  }
-  return input.workspace.name;
+  return workspaceDisplayName(input.workspace);
 }
 
 export function resolveSidebarWorkspaceAccessibilityLabel(input: {
-  workspace: Pick<SidebarWorkspaceEntry, "name" | "currentBranch" | "statusBucket">;
-  workspaceTitleSource: WorkspaceTitleSource;
+  workspace: Pick<
+    SidebarWorkspaceEntry,
+    | "projectName"
+    | "projectKind"
+    | "currentBranch"
+    | "workspaceDirectory"
+    | "worktreeSlug"
+    | "statusBucket"
+  >;
   leadingProjectName?: string | null;
   hostBadgeLabel?: string | null;
   pullRequestLabel?: string | null;

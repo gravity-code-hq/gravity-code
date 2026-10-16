@@ -1,6 +1,8 @@
 import { promises as fs } from "node:fs";
 import { app } from "electron";
 import log from "electron-log/main";
+import os from "node:os";
+import { installMacCli } from "./macos.js";
 import { resolveCliInstallSourcePath } from "./path.js";
 import { getBundledCliShimPath, getCliTargetPath, getLocalBinDir } from "./paths.js";
 import { ensurePathInShellRc } from "./shell-rc.js";
@@ -21,6 +23,15 @@ async function pathOrSymlinkExists(p: string): Promise<boolean> {
 export async function installCli(): Promise<InstallStatus> {
   const targetPath = getCliTargetPath();
   const shimPath = getBundledCliShimPath();
+  if (process.platform === "darwin") {
+    await installMacCli({
+      homeDir: os.homedir(),
+      shimPath,
+      shell: process.env.SHELL || os.userInfo().shell || "/bin/zsh",
+      env: process.env,
+    });
+    return getCliInstallStatus();
+  }
   const installSourcePath = resolveCliInstallSourcePath({
     platform: process.platform,
     isPackaged: app.isPackaged,
@@ -43,7 +54,7 @@ export async function installCli(): Promise<InstallStatus> {
       "@echo off",
       `set "BUNDLED_CLI=${shimPath}"`,
       `if not exist "%BUNDLED_CLI%" (`,
-      `  echo Paseo CLI not found at %BUNDLED_CLI% — is Paseo installed? 1>&2`,
+      `  echo Gravity CLI not found at %BUNDLED_CLI% — is Gravity installed? 1>&2`,
       `  exit /b 1`,
       `)`,
       `call "%BUNDLED_CLI%" %*`,
@@ -67,5 +78,17 @@ export async function installCli(): Promise<InstallStatus> {
 
 export async function getCliInstallStatus(): Promise<InstallStatus> {
   const targetPath = getCliTargetPath();
+  if (process.platform === "darwin") {
+    try {
+      const resolved = await fs.realpath(targetPath);
+      const source = await fs.realpath(getBundledCliShimPath());
+      return { installed: resolved === source };
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        return { installed: false };
+      }
+      throw error;
+    }
+  }
   return { installed: await pathOrSymlinkExists(targetPath) };
 }

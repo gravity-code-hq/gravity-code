@@ -1,10 +1,10 @@
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
-import type { ScheduleSummary } from "@getpaseo/protocol/schedule/types";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
+import type { ScheduleSummary } from "@gravity/protocol/schedule/types";
 import { toErrorMessage } from "@/utils/error-messages";
 
 export const schedulesQueryBaseKey = ["schedules"] as const;
 
-export const ALL_SCHEDULE_HOSTS_FAILED_MESSAGE = "No connected hosts could load schedules";
+export const ALL_SCHEDULE_HOSTS_FAILED_MESSAGE = "No connected hosts could load automations";
 
 export interface ScheduleHostInput {
   serverId: string;
@@ -65,6 +65,13 @@ export interface FetchAggregatedSchedulesInput {
  * Offline hosts are skipped. A connected host that fails contributes to
  * `hostErrors` (surfaced as a banner) while the rest still render; only when
  * every connected host fails do we throw so the screen shows a full error.
+ *
+ * "connecting" is reported only while no host can be asked yet. Once any
+ * reachable host has answered, the result is "loaded" even when it is empty:
+ * a saved host that never comes online (stale server id, unreachable relay)
+ * cycles between connecting and error forever, and waiting on it would keep
+ * the screen on a spinner indefinitely. The query key includes every host's
+ * connection status, so a late host refetches and merges in when it settles.
  */
 export async function fetchAggregatedSchedules(
   input: FetchAggregatedSchedulesInput,
@@ -116,7 +123,7 @@ export async function fetchAggregatedSchedules(
     throw new Error(ALL_SCHEDULE_HOSTS_FAILED_MESSAGE);
   }
 
-  if (schedules.length === 0 && hasSettlingHost) {
+  if (connectedAttempts === 0 && hasSettlingHost) {
     return { status: "connecting" };
   }
 

@@ -122,9 +122,9 @@ jobs:
 
       - name: Verify public package contents
         run: |
-          npm pack --dry-run --ignore-scripts --workspace=@getpaseo/protocol
-          npm pack --dry-run --ignore-scripts --workspace=@getpaseo/client
-          npm pack --dry-run --ignore-scripts --workspace=@getpaseo/server
+          npm pack --dry-run --ignore-scripts --workspace=@gravity/protocol
+          npm pack --dry-run --ignore-scripts --workspace=@gravity/client
+          npm pack --dry-run --ignore-scripts --workspace=@gravity/server
 
   server-tests-ubuntu:
     name: server-tests (ubuntu-latest)
@@ -157,7 +157,7 @@ jobs:
 
       - name: Run server tests
         if: ${{ needs.changes.outputs.full != 'false' || needs.changes.outputs.server != 'false' }}
-        run: npm run test --workspace=@getpaseo/server
+        run: npm run test --workspace=@gravity/server
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -165,7 +165,7 @@ jobs:
 
       - name: Run Hub CLI/daemon contract
         if: ${{ needs.changes.outputs.full == 'false' && needs.changes.outputs.server == 'false' && needs.changes.outputs.hub != 'false' }}
-        run: npm run test:hub-cli-contract --workspace=@getpaseo/server
+        run: npm run test:hub-cli-contract --workspace=@gravity/server
 
   server-tests-windows:
     name: server-tests (windows-latest)
@@ -197,7 +197,7 @@ jobs:
         run: npm run build:server
 
       - name: Run desktop tests
-        run: npm run test --workspace=@getpaseo/desktop
+        run: npm run test --workspace=@gravity/desktop
 
       - name: Install virtual display
         if: ${{ runner.os == 'Linux' }}
@@ -213,9 +213,9 @@ jobs:
 
       - name: Run desktop lifecycle E2E (Linux)
         if: ${{ runner.os == 'Linux' }}
-        run: xvfb-run -a --server-args="-screen 0 1280x800x24" npm run test:e2e:lifecycle --workspace=@getpaseo/desktop
+        run: xvfb-run -a --server-args="-screen 0 1280x800x24" npm run test:e2e:lifecycle --workspace=@gravity/desktop
         env:
-          PASEO_DESKTOP_LIFECYCLE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-lifecycle
+          GRAVITY_DESKTOP_LIFECYCLE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-lifecycle
 
       - name: Upload desktop lifecycle screenshots
         uses: actions/upload-artifact@v4
@@ -228,17 +228,17 @@ jobs:
 
       - name: Run desktop lifecycle E2E (Windows)
         if: ${{ runner.os == 'Windows' }}
-        run: npm run test:e2e:lifecycle --workspace=@getpaseo/desktop
+        run: npm run test:e2e:lifecycle --workspace=@gravity/desktop
 
       - name: Run desktop renderer E2E
         if: ${{ runner.os == 'Linux' }}
-        run: npm run test:e2e:renderer --workspace=@getpaseo/desktop
+        run: npm run test:e2e:renderer --workspace=@gravity/desktop
 
       - name: Run desktop browser E2E
         if: ${{ runner.os == 'Linux' }}
-        run: npm run test:e2e:browser-tabs --workspace=@getpaseo/desktop
+        run: npm run test:e2e:browser-tabs --workspace=@gravity/desktop
         env:
-          PASEO_DESKTOP_BROWSER_E2E_ARTIFACT_DIR: ${{ runner.temp }}/desktop-browser-e2e
+          GRAVITY_DESKTOP_BROWSER_E2E_ARTIFACT_DIR: ${{ runner.temp }}/desktop-browser-e2e
 
       - name: Upload desktop browser diagnostics
         uses: actions/upload-artifact@v4
@@ -257,7 +257,7 @@ jobs:
           npm run build:desktop -- --publish never --linux --x64 --config "$RUNNER_TEMP/desktop-smoke-builder.json"
         env:
           EP_GH_IGNORE_TIME: true
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke
 
       - name: Smoke installed artifacts with restricted user namespaces
         if: ${{ runner.os == 'Linux' }}
@@ -270,7 +270,7 @@ jobs:
           sudo apt-get install -y ./packages/desktop/release/*.deb
           node packages/desktop/e2e/linux-artifact-smoke.js packages/desktop/release disabled
         env:
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke/restricted
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke/restricted
 
       - name: Smoke sandbox-preserving portable launches
         if: ${{ runner.os == 'Linux' }}
@@ -279,19 +279,19 @@ jobs:
           unshare --user --map-root-user --net true
           node packages/desktop/e2e/linux-artifact-smoke.js packages/desktop/release enabled
         env:
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke/userns
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke/userns
 
       - name: Smoke installed RPM with restricted user namespaces
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=1
-          sudo dpkg --remove paseo
+          sudo dpkg --remove gravity
           # Ubuntu supplies the runtime libraries under Debian package names.
           # RPM still performs the real payload installation and postinstall.
           sudo rpm --install --nodeps packages/desktop/release/*.rpm
           node packages/desktop/e2e/linux-artifact-smoke.js packages/desktop/release disabled --installed-only
         env:
-          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke/rpm
+          GRAVITY_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/desktop-smoke/rpm
 
       - name: Upload packaged smoke diagnostics
         uses: actions/upload-artifact@v4
@@ -336,7 +336,7 @@ jobs:
         run: npm run build:app-deps
 
       - name: Run app unit tests
-        run: npm run test --workspace=@getpaseo/app
+        run: npm run test --workspace=@gravity/app
 
   sdk-tests:
     name: sdk-tests
@@ -361,22 +361,22 @@ jobs:
         run: npm run build:plugin
 
       - name: Run plugin SDK tests
-        run: npm run test --workspace=@getpaseo/plugin
+        run: npm run test --workspace=@gravity/plugin
 
       - name: Typecheck plugin examples
-        run: npm run typecheck --workspace=@getpaseo/plugin
+        run: npm run typecheck --workspace=@gravity/plugin
 
       - name: Run protocol tests
-        run: npm run test --workspace=@getpaseo/protocol
+        run: npm run test --workspace=@gravity/protocol
 
       - name: Run client tests
-        run: npm run test --workspace=@getpaseo/client
+        run: npm run test --workspace=@gravity/client
 
       - name: Run highlight tests
-        run: npm run test --workspace=@getpaseo/highlight
+        run: npm run test --workspace=@gravity/highlight
 
       - name: Typecheck client examples
-        run: npm run typecheck:examples --workspace=@getpaseo/client
+        run: npm run typecheck:examples --workspace=@gravity/client
 
   playwright-1:
     name: playwright (shard 1/4)
@@ -405,13 +405,13 @@ jobs:
         run: npm run build:server
 
       - name: Build native app dependency
-        run: npm run build --workspace=@getpaseo/expo-two-way-audio
+        run: npm run build --workspace=@gravity/expo-two-way-audio
 
       - name: Install agent CLIs for provider tests
         run: node scripts/npm-retry.mjs install -g @anthropic-ai/claude-code @openai/codex@0.105.0 opencode-ai
 
       - name: Run Playwright E2E tests
-        run: npm run test:e2e --workspace=@getpaseo/app -- --shard=${{ env.PLAYWRIGHT_SHARD }}
+        run: npm run test:e2e --workspace=@gravity/app -- --shard=${{ env.PLAYWRIGHT_SHARD }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
@@ -475,7 +475,7 @@ jobs:
         run: npm run build:relay
 
       - name: Run relay tests
-        run: npm run test --workspace=@getpaseo/relay
+        run: npm run test --workspace=@gravity/relay
 
   cli-tests-1:
     name: cli-tests (shard 1/3)
@@ -483,11 +483,11 @@ jobs:
     if: ${{ !cancelled() && (needs.changes.outputs.full != 'false' || needs.changes.outputs.cli != 'false') }}
     runs-on: ubuntu-latest
     env:
-      PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD: "0"
-      PASEO_DICTATION_ENABLED: "0"
-      PASEO_VOICE_MODE_ENABLED: "0"
-      PASEO_CLI_TEST_SHARD: "1"
-      PASEO_CLI_TEST_SHARD_TOTAL: "3"
+      GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD: "0"
+      GRAVITY_DICTATION_ENABLED: "0"
+      GRAVITY_VOICE_MODE_ENABLED: "0"
+      GRAVITY_CLI_TEST_SHARD: "1"
+      GRAVITY_CLI_TEST_SHARD_TOTAL: "3"
     steps: &cli_test_steps
       - uses: actions/checkout@v4
 
@@ -506,7 +506,7 @@ jobs:
         run: node scripts/npm-retry.mjs install -g @anthropic-ai/claude-code @openai/codex@0.105.0 opencode-ai
 
       - name: Run CLI tests
-        run: npm run test --workspace=@getpaseo/cli
+        run: npm run test --workspace=@gravity/cli
 
   cli-tests-2:
     name: cli-tests (shard 2/3)
@@ -514,11 +514,11 @@ jobs:
     if: ${{ !cancelled() && (needs.changes.outputs.full != 'false' || needs.changes.outputs.cli != 'false') }}
     runs-on: ubuntu-latest
     env:
-      PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD: "0"
-      PASEO_DICTATION_ENABLED: "0"
-      PASEO_VOICE_MODE_ENABLED: "0"
-      PASEO_CLI_TEST_SHARD: "2"
-      PASEO_CLI_TEST_SHARD_TOTAL: "3"
+      GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD: "0"
+      GRAVITY_DICTATION_ENABLED: "0"
+      GRAVITY_VOICE_MODE_ENABLED: "0"
+      GRAVITY_CLI_TEST_SHARD: "2"
+      GRAVITY_CLI_TEST_SHARD_TOTAL: "3"
     steps: *cli_test_steps
 
   cli-tests-3:
@@ -527,9 +527,9 @@ jobs:
     if: ${{ !cancelled() && (needs.changes.outputs.full != 'false' || needs.changes.outputs.cli != 'false') }}
     runs-on: ubuntu-latest
     env:
-      PASEO_LOCAL_SPEECH_AUTO_DOWNLOAD: "0"
-      PASEO_DICTATION_ENABLED: "0"
-      PASEO_VOICE_MODE_ENABLED: "0"
-      PASEO_CLI_TEST_SHARD: "3"
-      PASEO_CLI_TEST_SHARD_TOTAL: "3"
+      GRAVITY_LOCAL_SPEECH_AUTO_DOWNLOAD: "0"
+      GRAVITY_DICTATION_ENABLED: "0"
+      GRAVITY_VOICE_MODE_ENABLED: "0"
+      GRAVITY_CLI_TEST_SHARD: "3"
+      GRAVITY_CLI_TEST_SHARD_TOTAL: "3"
     steps: *cli_test_steps

@@ -18,7 +18,7 @@ const item = {
   id: "issue-uuid",
   identifier: "ENG-123",
   title: "Plugin attachments",
-  subtitle: "In progress · Mohamed",
+  subtitle: "In progress · Alex",
   url: "https://linear.app/acme/issue/ENG-123/plugin-attachments",
   text: "Linear issue ENG-123: Plugin attachments\nStatus: In progress",
   resourceType: "issue",

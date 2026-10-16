@@ -15,7 +15,7 @@ afterEach(async () => {
 });
 
 async function fakeAcp(source: string): Promise<string> {
-  const directory = await mkdtemp(path.join(tmpdir(), "paseo-acp-test-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "gravity-acp-test-"));
   temporaryDirectories.push(directory);
   const executable = path.join(directory, "agent.cjs");
   await writeFile(executable, source, "utf8");

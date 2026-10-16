@@ -89,8 +89,8 @@ describe("Add Project navigation", () => {
   it("restores the GitHub destination query and active parent when reopening a repository", () => {
     const repository = {
       id: "repo-1",
-      nameWithOwner: "getpaseo/paseo",
-      cloneUrl: "git@github.com:getpaseo/paseo.git",
+      nameWithOwner: "gravity-code-hq/gravity",
+      cloneUrl: "git@github.com:gravity-code-hq/gravity.git",
       description: null,
       visibility: "public",
       updatedAt: null,
@@ -149,39 +149,41 @@ describe("Add Project options", () => {
   });
 
   it("offers manual URL and protocol-specific owner/repo clone choices", () => {
-    expect(buildManualGithubRepositoryChoices("git@github.com:getpaseo/paseo.git")).toEqual([
+    expect(
+      buildManualGithubRepositoryChoices("git@github.com:gravity-code-hq/gravity.git"),
+    ).toEqual([
       expect.objectContaining({
-        id: "manual:git@github.com:getpaseo/paseo.git",
-        nameWithOwner: "getpaseo/paseo",
-        cloneUrl: "git@github.com:getpaseo/paseo.git",
+        id: "manual:git@github.com:gravity-code-hq/gravity.git",
+        nameWithOwner: "gravity-code-hq/gravity",
+        cloneUrl: "git@github.com:gravity-code-hq/gravity.git",
       }),
     ]);
-    expect(buildManualGithubRepositoryChoices("getpaseo/paseo")).toEqual([
-      expect.objectContaining({ cloneProtocol: "https", cloneUrl: "getpaseo/paseo" }),
-      expect.objectContaining({ cloneProtocol: "ssh", cloneUrl: "getpaseo/paseo" }),
+    expect(buildManualGithubRepositoryChoices("gravity-code-hq/gravity")).toEqual([
+      expect.objectContaining({ cloneProtocol: "https", cloneUrl: "gravity-code-hq/gravity" }),
+      expect.objectContaining({ cloneProtocol: "ssh", cloneUrl: "gravity-code-hq/gravity" }),
     ]);
-    expect(buildManualGithubRepositoryChoices("paseo")).toEqual([]);
+    expect(buildManualGithubRepositoryChoices("gravity")).toEqual([]);
   });
 
   it("shows final clone paths while retaining parent paths as values", () => {
     expect(
       buildCloneLocationOptions({
         parents: ["~/dev", "~/workspace"],
-        repositoryName: "paseo",
-        existingPaths: ["~/workspace/paseo"],
+        repositoryName: "gravity",
+        existingPaths: ["~/workspace/gravity"],
       }),
     ).toEqual([
       {
         id: "~/dev",
         path: "~/dev",
-        displayPath: "~/dev/paseo",
+        displayPath: "~/dev/gravity",
         secondaryText: "Parent directory: ~/dev",
         disabled: false,
       },
       {
         id: "~/workspace",
         path: "~/workspace",
-        displayPath: "~/workspace/paseo",
+        displayPath: "~/workspace/gravity",
         secondaryText: "Already exists",
         disabled: true,
       },
@@ -191,16 +193,16 @@ describe("Add Project options", () => {
   it("shows equivalent absolute-home and tilde destinations only once", () => {
     expect(
       buildCloneLocationOptions({
-        parents: ["/Users/moboudra/dev", "~/dev"],
+        parents: ["/Users/alex/dev", "~/dev"],
         repositoryName: "dotfiles",
         existingPaths: [],
       }),
     ).toEqual([
       {
-        id: "/Users/moboudra/dev",
-        path: "/Users/moboudra/dev",
-        displayPath: "/Users/moboudra/dev/dotfiles",
-        secondaryText: "Parent directory: /Users/moboudra/dev",
+        id: "/Users/alex/dev",
+        path: "/Users/alex/dev",
+        displayPath: "/Users/alex/dev/dotfiles",
+        secondaryText: "Parent directory: /Users/alex/dev",
         disabled: false,
       },
     ]);

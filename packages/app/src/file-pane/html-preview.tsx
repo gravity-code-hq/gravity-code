@@ -4,7 +4,7 @@ import { WebView } from "react-native-webview";
 import { withPreviewCsp } from "./html-preview-csp";
 import { htmlPreviewNavigationKind } from "./html-preview-navigation";
 
-// A preview is a viewer, not a browser. Only the document Paseo hands the WebView
+// A preview is a viewer, not a browser. Only the document Gravity hands the WebView
 // loads; navigations the page attempts afterwards are refused, so a link, a
 // `location.href` assignment, or a meta refresh cannot pull a remote page into the
 // pane or leak the file through a URL. Storage and cache stay off so a page leaves
@@ -32,9 +32,30 @@ const ORIGIN_WHITELIST = ["*"];
 // would arrive with no injected policy and a clean slate to egress from.
 const BASE_URL = "about:blank";
 
-export function FileHtmlPreview({ html, testID }: { html: string; testID?: string }) {
+export function FileHtmlPreview({
+  html,
+  testID,
+  onMessage,
+}: {
+  html: string;
+  testID?: string;
+  onMessage?: (value: unknown) => void;
+}) {
   const document = useMemo(() => withPreviewCsp(html), [html]);
   const source = useMemo(() => ({ html: document, baseUrl: BASE_URL }), [document]);
+  const receive = useCallback(
+    (event: { nativeEvent: { data: string } }) => {
+      let value: unknown;
+      try {
+        value = JSON.parse(event.nativeEvent.data);
+      } catch (error) {
+        if (error instanceof SyntaxError) return;
+        throw error;
+      }
+      onMessage?.(value);
+    },
+    [onMessage],
+  );
   // Latched per document rather than once for the lifetime of the WebView: the
   // file pane re-renders with new content on every live-file refresh, and each of
   // those is a fresh initial load that has to be allowed through.
@@ -56,6 +77,7 @@ export function FileHtmlPreview({ html, testID }: { html: string; testID?: strin
       testID={testID}
       style={styles.webview}
       source={source}
+      onMessage={onMessage ? receive : undefined}
       originWhitelist={ORIGIN_WHITELIST}
       onShouldStartLoadWithRequest={allowOnlyInitialDocument}
       setSupportMultipleWindows={false}

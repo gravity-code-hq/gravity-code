@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 import { buildCreateAgentPreferences, buildSeededHost } from "./daemon-registry";
+import { openCommandCenter } from "./command-center";
 import { getE2EDaemonPort } from "./daemon-port";
 import { getServerId } from "./server-id";
 import { expectAppRoute } from "./route-assertions";
@@ -139,7 +140,7 @@ export async function primeAdditionalPage(page: Page): Promise<void> {
   });
   await page.addInitScript(
     ({ daemon: seededDaemon, preferences: seededPreferences, seedNonce: nonce }) => {
-      const disableOnceKey = "@paseo:e2e-disable-default-seed-once";
+      const disableOnceKey = "@gravity:e2e-disable-default-seed-once";
       const disableValue = localStorage.getItem(disableOnceKey);
       if (disableValue) {
         localStorage.removeItem(disableOnceKey);
@@ -148,11 +149,11 @@ export async function primeAdditionalPage(page: Page): Promise<void> {
         }
       }
 
-      localStorage.setItem("@paseo:e2e", "1");
-      localStorage.setItem("@paseo:e2e-seed-nonce", nonce);
-      localStorage.setItem("@paseo:daemon-registry", JSON.stringify([seededDaemon]));
-      localStorage.removeItem("@paseo:settings");
-      localStorage.setItem("@paseo:create-agent-preferences", JSON.stringify(seededPreferences));
+      localStorage.setItem("@gravity:e2e", "1");
+      localStorage.setItem("@gravity:e2e-seed-nonce", nonce);
+      localStorage.setItem("@gravity:daemon-registry", JSON.stringify([seededDaemon]));
+      localStorage.removeItem("@gravity:settings");
+      localStorage.setItem("@gravity:create-agent-preferences", JSON.stringify(seededPreferences));
     },
     { daemon, preferences, seedNonce },
   );
@@ -165,10 +166,10 @@ export async function resetSeededPageState(page: Page): Promise<void> {
   await page.evaluate(
     ({ daemon: seededDaemon, preferences: seededPreferences }) => {
       localStorage.clear();
-      localStorage.setItem("@paseo:e2e", "1");
-      localStorage.setItem("@paseo:daemon-registry", JSON.stringify([seededDaemon]));
-      localStorage.setItem("@paseo:create-agent-preferences", JSON.stringify(seededPreferences));
-      localStorage.removeItem("@paseo:settings");
+      localStorage.setItem("@gravity:e2e", "1");
+      localStorage.setItem("@gravity:daemon-registry", JSON.stringify([seededDaemon]));
+      localStorage.setItem("@gravity:create-agent-preferences", JSON.stringify(seededPreferences));
+      localStorage.removeItem("@gravity:settings");
     },
     { daemon, preferences },
   );
@@ -243,10 +244,11 @@ export async function reloadWorkspace(page: Page, workspaceId: string): Promise<
   await waitForWorkspaceTabsVisible(page);
 }
 
+// History has no sidebar row; it is reached through the command center.
 export async function openSessions(page: Page): Promise<void> {
-  const sessionsButton = page.getByTestId("sidebar-sessions");
-  await expect(sessionsButton).toBeVisible({ timeout: 30_000 });
-  await sessionsButton.click();
+  const panel = await openCommandCenter(page);
+  await panel.getByTestId("command-center-input").fill("History");
+  await panel.getByRole("button", { name: /^History(?:\s|$)/ }).click();
   await expectAppRoute(page, buildSessionsRoute(), { timeout: 30_000 });
   await expect(page.getByText("History", { exact: true }).last()).toBeVisible({
     timeout: 30_000,

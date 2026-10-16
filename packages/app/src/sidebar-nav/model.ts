@@ -1,6 +1,6 @@
 import type { PluginSidebarGroup } from "@/plugins/sidebar-groups";
 
-export const BUILTIN_SIDEBAR_NAV_IDS = ["new-workspace", "history", "search", "schedules"] as const;
+export const BUILTIN_SIDEBAR_NAV_IDS = ["new-workspace", "search", "linear", "schedules"] as const;
 export type BuiltinSidebarNavId = (typeof BUILTIN_SIDEBAR_NAV_IDS)[number];
 
 /** Persisted shape. Array order is the display order. */
@@ -27,8 +27,8 @@ export type SidebarNavItem = BuiltinSidebarNavItem | PluginSidebarNavItem;
 
 const BUILTIN_LABEL_KEYS: Record<BuiltinSidebarNavId, string> = {
   "new-workspace": "sidebar.actions.newWorkspace",
-  history: "sidebar.sections.sessions",
   search: "sidebar.sections.search",
+  linear: "sidebar.sections.tasks",
   schedules: "sidebar.sections.schedules",
 };
 
@@ -43,8 +43,8 @@ export function builtinSidebarNavLabelKey(id: BuiltinSidebarNavId): string {
  */
 const BUILTIN_SHORTCUT_ACTIONS: Record<BuiltinSidebarNavId, string | null> = {
   "new-workspace": "new-workspace",
-  history: null,
   search: "toggle-command-center",
+  linear: null,
   schedules: null,
 };
 

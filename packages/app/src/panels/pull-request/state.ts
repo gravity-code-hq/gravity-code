@@ -1,4 +1,4 @@
-import type { CheckoutPrStatusResponse } from "@getpaseo/protocol/messages";
+import type { CheckoutPrStatusResponse } from "@gravity/protocol/messages";
 
 type PullRequestStatus = CheckoutPrStatusResponse["payload"]["status"];
 

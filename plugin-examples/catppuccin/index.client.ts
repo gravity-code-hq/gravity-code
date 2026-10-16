@@ -1,4 +1,4 @@
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import type { PluginClientContext } from "@gravity/plugin/client";
 
 export default function contribute(client: PluginClientContext) {
   client.addTheme({

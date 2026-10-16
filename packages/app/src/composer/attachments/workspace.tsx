@@ -119,13 +119,15 @@ function useWorkspaceAttachmentBinding({
     [suppressedKeys, workspaceAttachmentKeys, workspaceAttachments],
   );
 
-  const selectedAttachments = useMemo<ComposerAttachment[]>(
-    () =>
-      activeWorkspaceAttachments.length > 0
-        ? [...normalAttachments, ...activeWorkspaceAttachments]
-        : normalAttachments,
-    [activeWorkspaceAttachments, normalAttachments],
-  );
+  const selectedAttachments = useMemo<ComposerAttachment[]>(() => {
+    // Fork history is already shown in the timeline, but still travels with the submission.
+    const visibleWorkspaceAttachments = activeWorkspaceAttachments.filter(
+      (attachment) => attachment.kind !== "chat_history" || !attachment.attachment.forkHistory,
+    );
+    return visibleWorkspaceAttachments.length > 0
+      ? [...normalAttachments, ...visibleWorkspaceAttachments]
+      : normalAttachments;
+  }, [activeWorkspaceAttachments, normalAttachments]);
 
   useEffect(() => {
     setSuppressedKeys((current) => {

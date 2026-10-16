@@ -9,12 +9,358 @@ import {
   pinWorkspaceFromSidebar,
 } from "../support/helpers/sidebar";
 import { seedWorkspace } from "../support/helpers/seed-client";
-import { expectWorkspaceHeader } from "../support/helpers/workspace-ui";
 import { getServerId } from "../support/helpers/server-id";
 import { projectEquivalenceViewKey } from "../support/helpers/project-view-key";
 import { escapeRegex } from "../support/helpers/regex";
 import { openFilesPanel } from "../support/helpers/workspace-tabs";
-import { seedMockAgentWorkspace } from "../support/helpers/mock-agent";
+import {
+  openAgentRoute,
+  seedMockAgentWorkspace,
+  seedRunningMockAgentWorkspace,
+} from "../support/helpers/mock-agent";
+import {
+  createMockIdleAgent,
+  openSessions,
+  expectSessionRowArchived,
+} from "../support/helpers/archive-tab";
+import { clickNewTerminal, gotoWorkspace } from "../support/helpers/launcher";
+import { installDaemonConnectionGate } from "../support/helpers/project-settings";
+import { renameModalError, renameModalInput, renameModalSubmit } from "../support/helpers/rename";
+
+test("workspace sidebar includes terminals alongside chats and follows terminal tabs", async ({
+  page,
+}, testInfo) => {
+  const workspace = await seedWorkspace({ repoPrefix: "sidebar-terminals-" });
+  try {
+    await gotoWorkspace(page, workspace.workspaceId);
+    await clickNewTerminal(page);
+    const listTerminals = () =>
+      workspace.client.listTerminals(workspace.repoPath, undefined, {
+        workspaceId: workspace.workspaceId,
+      });
+    await expect.poll(async () => (await listTerminals()).terminals.length).toBe(1);
+    const terminalId = (await listTerminals()).terminals[0]!.id;
+    const row = page.getByTestId(`sidebar-terminal-${getServerId()}:${terminalId}`);
+    const tab = page
+      .getByTestId(`workspace-tab-terminal_${terminalId}`)
+      .filter({ visible: true })
+      .first();
+    await expect(row).toHaveText("Terminal 1");
+    await expect(row).toHaveAttribute("aria-selected", "true");
+
+    await tab.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+    const modal = `workspace-tab-rename-modal-terminal-${terminalId}`;
+    await renameModalInput(page, modal).fill("Sidebar shell");
+    await renameModalSubmit(page, modal).click();
+    await expect(row).toHaveText("Sidebar shell");
+
+    await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Sidebar chat",
+    });
+    const chat = page
+      .getByTestId(`sidebar-workspace-agents-${getServerId()}:${workspace.workspaceId}`)
+      .getByRole("button", { name: "Sidebar chat", exact: true });
+    await chat.click();
+    await expect(row).toHaveAttribute("aria-selected", "false");
+    await row.click();
+    await expect(tab).toHaveAttribute("aria-selected", "true");
+    await expect(row).toHaveAttribute("aria-selected", "true");
+    await expect(chat).toHaveAttribute("aria-selected", "false");
+    await page.screenshot({ path: testInfo.outputPath("sidebar-terminal.png") });
+    await page.reload();
+    await expect(row).toHaveText("Sidebar shell");
+    await tab.click({ button: "right" });
+    page.once("dialog", (dialog) => void dialog.accept());
+    await page.getByRole("menuitem", { name: "Close", exact: true }).click();
+    await expect(row).toHaveCount(0);
+    await expect(chat).toBeVisible();
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("workspace sidebar shows six chats, expands, and selects the matching tab", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  const workspace = await seedWorkspace({ repoPrefix: "sidebar-agent-list-" });
+  try {
+    for (let index = 1; index <= 7; index += 1) {
+      await createMockIdleAgent(workspace.client, {
+        cwd: workspace.repoPath,
+        workspaceId: workspace.workspaceId,
+        title: `Sidebar chat ${index}`,
+      });
+    }
+    await gotoAppShell(page);
+    const workspaceKey = `${getServerId()}:${workspace.workspaceId}`;
+    const list = page.getByTestId(`sidebar-workspace-agents-${workspaceKey}`);
+    const rows = list.locator('[data-testid^="sidebar-agent-"]');
+    await expect(rows).toHaveCount(6);
+    const newestFirst = [7, 6, 5, 4, 3, 2, 1].map((index) => `Sidebar chat ${index}`);
+    await expect(rows).toHaveText(newestFirst.slice(0, 6));
+    const toggle = page.getByTestId(`sidebar-workspace-agents-toggle-${workspaceKey}`);
+    await toggle.click();
+    await expect(rows).toHaveCount(7);
+    await expect(rows).toHaveText(newestFirst);
+    const rowId = await rows.last().getAttribute("data-testid");
+    if (!rowId) throw new Error("Missing sidebar agent identity");
+    const selectedRow = page.getByTestId(rowId);
+    const agentId = rowId.slice(`sidebar-agent-${getServerId()}:`.length);
+    await selectedRow.click();
+    await expect(selectedRow).toHaveAttribute("aria-selected", "true");
+    const tab = page.getByTestId(`workspace-tab-agent_${agentId}`).first();
+    await expect(tab).toHaveAttribute("aria-selected", "true");
+    await expect(rows).toHaveText(newestFirst);
+    await page.screenshot({ path: testInfo.outputPath("sidebar-agents-expanded.png") });
+    await toggle.click();
+    await expect(rows).toHaveCount(6);
+    await page.screenshot({ path: testInfo.outputPath("sidebar-agents-collapsed.png") });
+    await workspace.client.archiveAgent(agentId);
+    await expect(toggle).toHaveCount(0);
+    await expect(rows).toHaveCount(6);
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("sidebar renames individual conversations and preserves titles after reload", async ({
+  page,
+}, testInfo) => {
+  const workspace = await seedWorkspace({ repoPrefix: "sidebar-rename-" });
+  try {
+    const first = await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Same conversation title",
+    });
+    const second = await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Same conversation title",
+    });
+    await gotoWorkspace(page, workspace.workspaceId);
+    const row = page.getByTestId(`sidebar-agent-${getServerId()}:${first.id}`);
+    const other = page.getByTestId(`sidebar-agent-${getServerId()}:${second.id}`);
+    await row.click();
+    await row.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+    const modal = `sidebar-conversation-rename-${first.id}`;
+    const input = renameModalInput(page, modal);
+    await expect(input).toHaveValue("Same conversation title");
+    await input.fill("  Review feedback  ");
+    await renameModalSubmit(page, modal).click();
+    await expect(input).toHaveCount(0);
+    await expect(row).toHaveText("Review feedback");
+    await expect(other).toHaveText("Same conversation title");
+    await expect(page.getByTestId(`workspace-tab-agent_${first.id}`).first()).toContainText(
+      "Review feedback",
+    );
+    await page.reload();
+    await expect(row).toHaveText("Review feedback");
+    await expect(other).toHaveText("Same conversation title");
+    await page.getByTestId(`sidebar-conversation-menu-${first.id}-trigger`).click();
+    await expect(page.getByTestId(`sidebar-conversation-menu-${first.id}-archive`)).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("conversation-actions-desktop.png") });
+    await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+    await expect(input).toHaveValue("Review feedback");
+    await input.fill("   ");
+    await expect(renameModalSubmit(page, modal)).toBeDisabled();
+    await page.getByTestId(`${modal}-cancel`).click();
+    await expect(row).toHaveText("Review feedback");
+    await page.screenshot({ path: testInfo.outputPath("sidebar-conversation-renamed.png") });
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("sidebar conversation rename keeps the draft and shows an error when disconnected", async ({
+  page,
+}) => {
+  const workspace = await seedWorkspace({ repoPrefix: "sidebar-rename-error-" });
+  try {
+    const agent = await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Original conversation",
+    });
+    const gate = await installDaemonConnectionGate(page);
+    await gotoWorkspace(page, workspace.workspaceId);
+    await page.getByTestId(`sidebar-conversation-menu-${agent.id}-trigger`).click();
+    await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+    const modal = `sidebar-conversation-rename-${agent.id}`;
+    const input = renameModalInput(page, modal);
+    await input.fill("Unsaved conversation");
+    await gate.drop();
+    await renameModalSubmit(page, modal).click();
+    await expect(renameModalError(page, modal)).toBeVisible();
+    await expect(input).toHaveValue("Unsaved conversation");
+    await expect(input).toBeEditable();
+    await expect(renameModalSubmit(page, modal)).toBeEnabled();
+    await page.getByTestId(`${modal}-cancel`).click();
+    await expect(input).toHaveCount(0);
+    await expect(page.getByTestId(`sidebar-agent-${getServerId()}:${agent.id}`)).toHaveText(
+      "Original conversation",
+    );
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("sidebar conversation rename works from the compact actions sheet", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const session = await seedMockAgentWorkspace({
+    repoPrefix: "sidebar-rename-compact-",
+    title: "Phone conversation",
+  });
+  try {
+    await openAgentRoute(page, session);
+    await openMobileAgentSidebar(page);
+    await expectMobileAgentSidebarVisible(page);
+    const menu = `sidebar-conversation-menu-${session.agentId}`;
+    await page.getByTestId(`${menu}-trigger`).click();
+    await page.getByTestId(`${menu}-rename`).click();
+    const modal = `sidebar-conversation-rename-${session.agentId}`;
+    const input = renameModalInput(page, modal);
+    await expect(input).toHaveValue("Phone conversation");
+    await input.fill("Renamed on phone");
+    await renameModalSubmit(page, modal).click();
+    await expect(input).toHaveCount(0);
+    await expect(page.getByTestId(`sidebar-agent-${getServerId()}:${session.agentId}`)).toHaveText(
+      "Renamed on phone",
+    );
+    await page.screenshot({ path: testInfo.outputPath("sidebar-conversation-compact.png") });
+  } finally {
+    await session.cleanup();
+  }
+});
+
+test("sidebar archives one conversation and keeps the workspace and history", async ({ page }) => {
+  const workspace = await seedWorkspace({ repoPrefix: "sidebar-archive-" });
+  try {
+    const archived = await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Archive this conversation",
+    });
+    const kept = await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Keep this conversation",
+    });
+    await gotoWorkspace(page, workspace.workspaceId);
+    const row = page.getByTestId(`sidebar-agent-${getServerId()}:${archived.id}`);
+    await row.click();
+    const tab = page.getByTestId(`workspace-tab-agent_${archived.id}`).first();
+    await expect(tab).toBeVisible();
+    await row.click({ button: "right" });
+    const archive = page.getByRole("menuitem", { name: "Archive", exact: true });
+    await expect(archive).toBeVisible();
+    await archive.click();
+    await expect(row).toHaveCount(0);
+    await expect(tab).toHaveCount(0);
+    await expect(page.getByTestId(`sidebar-agent-${getServerId()}:${kept.id}`)).toBeVisible();
+    await expect(
+      page.getByTestId(`sidebar-workspace-row-${getServerId()}:${workspace.workspaceId}`),
+    ).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId(`sidebar-agent-${getServerId()}:${kept.id}`)).toBeVisible();
+    await expect(row).toHaveCount(0);
+    await expect(tab).toHaveCount(0);
+    await openSessions(page);
+    await expectSessionRowArchived(page, archived.title);
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("sidebar archive confirms running conversations on compact screens", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const session = await seedRunningMockAgentWorkspace({
+    repoPrefix: "sidebar-archive-running-",
+    title: "Running conversation",
+    model: "five-minute-stream",
+    initialPrompt: "Keep working",
+  });
+  try {
+    await openAgentRoute(page, session);
+    await openMobileAgentSidebar(page);
+    await expectMobileAgentSidebarVisible(page);
+    const row = page.getByTestId(`sidebar-agent-${getServerId()}:${session.agentId}`);
+    const menu = `sidebar-conversation-menu-${session.agentId}`;
+    await page.getByTestId(`${menu}-trigger`).click();
+    await expect(page.getByTestId(`${menu}-archive`)).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("conversation-archive-menu-compact.png") });
+    const cancelled = new Promise<string>((resolve) =>
+      page.once("dialog", async (dialog) => {
+        resolve(dialog.message());
+        await dialog.dismiss();
+      }),
+    );
+    await page.getByTestId(`${menu}-archive`).click();
+    expect(await cancelled).toContain("Archiving it will stop the agent and close the tab");
+    await expect(row).toBeVisible();
+    await expect(page.getByTestId(`${menu}-trigger`)).toBeVisible();
+    const active = await session.client.fetchAgents({ scope: "active" });
+    expect(active.entries.find((entry) => entry.agent.id === session.agentId)?.agent.status).toBe(
+      "running",
+    );
+    await page.getByTestId(`${menu}-trigger`).click();
+    page.once("dialog", (dialog) => void dialog.accept());
+    await page.getByTestId(`${menu}-archive`).click();
+    await expect(row).toHaveCount(0);
+    await expect(
+      page.getByTestId(`sidebar-workspace-row-${getServerId()}:${session.workspaceId}`),
+    ).toBeVisible();
+    await expect
+      .poll(async () => {
+        const agents = await session.client.fetchAgents({ scope: "active" });
+        return agents.entries.some((entry) => entry.agent.id === session.agentId);
+      })
+      .toBe(false);
+  } finally {
+    await session.cleanup();
+  }
+});
+
+test("sidebar archive failure keeps the conversation and offers retry and dismiss", async ({
+  page,
+}) => {
+  const session = await seedMockAgentWorkspace({
+    repoPrefix: "sidebar-archive-failure-",
+    title: "Keep after failure",
+  });
+  try {
+    const gate = await installDaemonConnectionGate(page);
+    await openAgentRoute(page, session);
+    const row = page.getByTestId(`sidebar-agent-${getServerId()}:${session.agentId}`);
+    const tab = page.getByTestId(`workspace-tab-agent_${session.agentId}`).first();
+    const menu = `sidebar-conversation-menu-${session.agentId}`;
+    await expect(tab).toBeVisible();
+    await page.getByTestId(`${menu}-trigger`).click();
+    await gate.drop();
+    await page.getByTestId(`${menu}-archive`).click();
+    const error = page.getByTestId(`sidebar-conversation-archive-error-${session.workspaceId}`);
+    await expect(error).toBeVisible();
+    await expect(row).toBeVisible();
+    await expect(tab).toBeVisible();
+    await error.getByRole("button", { name: "Retry", exact: true }).click();
+    await expect(error).toBeVisible();
+    await error.getByRole("button", { name: "Dismiss", exact: true }).click();
+    await expect(error).toHaveCount(0);
+    await expect(row).toBeVisible();
+    await expect(tab).toBeVisible();
+  } finally {
+    await session.cleanup();
+  }
+});
 
 const GITHUB_REMOTE_URL = "https://github.com/test-owner/test-repo.git";
 
@@ -72,14 +418,14 @@ async function openWorkspaceHoverCard(page: import("@playwright/test").Page, wor
   return hoverCard;
 }
 
-interface PaseoOwnedWorktree {
+interface GravityOwnedWorktree {
   projectName: string;
   workspaceId: string;
   worktreeSlug: string;
 }
 
-async function withPaseoOwnedWorktree(
-  run: (workspace: PaseoOwnedWorktree) => Promise<void>,
+async function withGravityOwnedWorktree(
+  run: (workspace: GravityOwnedWorktree) => Promise<void>,
 ): Promise<void> {
   const project = await seedWorkspace({ repoPrefix: "sidebar-hover-owned-worktree-" });
   const worktreeSlug = "hover-card-owned-worktree";
@@ -94,7 +440,7 @@ async function withPaseoOwnedWorktree(
       },
     });
     if (!created.workspace) {
-      throw new Error(created.error ?? "Failed to create Paseo-owned worktree");
+      throw new Error(created.error ?? "Failed to create Gravity-owned worktree");
     }
     expect(path.basename(created.workspace.workspaceDirectory)).toBe(worktreeSlug);
 
@@ -162,10 +508,8 @@ test.describe("Sidebar workspace list", () => {
       await waitForSidebarWorkspace(page, workspace.workspaceId);
       await openWorkspaceFromSidebar(page, workspace.workspaceId);
 
-      await expectWorkspaceHeader(page, {
-        title: workspace.workspaceName,
-        subtitle: projectName,
-      });
+      await expect(page.getByTestId("workspace-header-title")).toHaveText(`${projectName}: main`);
+      await expect(page.getByTestId("workspace-header-subtitle")).toHaveCount(0);
     } finally {
       await workspace.cleanup();
     }
@@ -228,8 +572,8 @@ test.describe("Sidebar workspace list", () => {
     }
   });
 
-  test("Paseo-owned worktree hover card shows the worktree directory name", async ({ page }) => {
-    await withPaseoOwnedWorktree(async ({ projectName, workspaceId, worktreeSlug }) => {
+  test("Gravity-owned worktree hover card shows the worktree directory name", async ({ page }) => {
+    await withGravityOwnedWorktree(async ({ projectName, workspaceId, worktreeSlug }) => {
       await gotoAppShell(page);
       await waitForSidebarProject(page, projectName);
       await openWorkspaceHoverCard(page, workspaceId);

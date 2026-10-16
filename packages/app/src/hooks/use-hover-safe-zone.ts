@@ -5,15 +5,15 @@ import { createHoverSafeZoneTracker, type RectLike } from "@/hooks/hover-safe-zo
 
 interface UseHoverSafeZoneParams {
   enabled: boolean;
-  triggerRef: RefObject<View | null>;
-  contentRef: RefObject<View | null>;
+  triggerRef: RefObject<View | Element | null>;
+  contentRef: RefObject<View | Element | null>;
   onEnterSafeZone: () => void;
   onLeaveSafeZone: () => void;
 }
 
-function readRect(ref: RefObject<View | null>): RectLike | null {
-  const node = ref.current as unknown as Element | null;
-  return node ? node.getBoundingClientRect() : null;
+function readRect(ref: RefObject<View | Element | null>): RectLike | null {
+  const node = ref.current;
+  return node instanceof Element ? node.getBoundingClientRect() : null;
 }
 
 export function useHoverSafeZone({

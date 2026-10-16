@@ -1,0 +1,474 @@
+<div id="gravity-more-preview" class="viz-dotted-background">
+  <div class="gm-stage">
+    <div class="gm-menu" id="gm-settings" aria-label="More settings"></div>
+    <div class="gm-composer">
+      <textarea
+        aria-label="Message the agent"
+        placeholder="Message the agent, tag @files, or use /commands /skills"
+      ></textarea>
+      <div class="gm-toolbar">
+        <button
+          type="button"
+          class="cursor-interaction gm-icon"
+          aria-label="Add attachment"
+          data-action="attach"
+        >
+          <i data-lucide="plus" aria-hidden="true"></i>
+        </button>
+        <label class="gm-picker"
+          ><i data-lucide="bot" aria-hidden="true"></i
+          ><select aria-label="Agent and model" id="gm-agent">
+            <optgroup label="Codex"><option value="codex">GPT-6-Astra</option></optgroup>
+            <optgroup label="Claude Code"><option value="claude">Opus 5.5</option></optgroup>
+          </select></label
+        >
+        <label class="gm-picker"
+          ><i data-lucide="brain" aria-hidden="true"></i
+          ><select aria-label="Thinking effort">
+            <option>Low</option>
+            <option>Medium</option>
+            <option selected>High</option>
+          </select></label
+        >
+        <button
+          type="button"
+          class="cursor-interaction gm-plan"
+          aria-pressed="false"
+          data-action="plan"
+        >
+          <i data-lucide="list-checks" aria-hidden="true"></i>Plan
+        </button>
+        <button
+          type="button"
+          class="cursor-interaction gm-icon gm-more"
+          data-action="more"
+          aria-label="More settings"
+          aria-expanded="true"
+          aria-controls="gm-settings"
+        >
+          <i data-lucide="ellipsis" aria-hidden="true"></i>
+        </button>
+        <span class="gm-spacer"></span>
+        <button
+          type="button"
+          class="cursor-interaction gm-icon"
+          aria-label="Voice input"
+          data-action="voice"
+        >
+          <i data-lucide="mic" aria-hidden="true"></i>
+        </button>
+        <button
+          type="button"
+          class="cursor-interaction gm-icon gm-send"
+          aria-label="Send message"
+          data-action="send"
+        >
+          <i data-lucide="arrow-up" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+    <div class="gm-status" aria-live="polite"></div>
+  </div>
+</div>
+<style>
+  #gravity-more-preview {
+    --gm-surface: light-dark(#fafafa, #202020);
+    --gm-pop: light-dark(#fff, #262626);
+    --gm-fg: light-dark(#292929, #e2e2e2);
+    --gm-muted: light-dark(#6b6b6b, #a4a4a4);
+    --gm-border: light-dark(#d8d8d8, #3d3d3d);
+    --gm-hover: light-dark(#ececec, #343434);
+    --gm-blue: light-dark(#0879bf, #168ed2);
+    --gm-tint: light-dark(#e4f2fa, #213640);
+    color: var(--gm-fg);
+    font:
+      14px/1.4 -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    padding: 16px;
+    border-radius: 12px;
+  }
+  #gravity-more-preview * {
+    box-sizing: border-box;
+  }
+  #gravity-more-preview .gm-stage {
+    position: relative;
+    padding-top: 270px;
+    width: 100%;
+  }
+  #gravity-more-preview button {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    min-height: 32px;
+    border-radius: 7px;
+  }
+  #gravity-more-preview button:hover {
+    background: var(--gm-hover);
+  }
+  #gravity-more-preview .gm-composer {
+    border: 1px solid var(--gm-border);
+    border-radius: 18px;
+    padding: 14px;
+    background: var(--gm-surface);
+  }
+  #gravity-more-preview textarea {
+    width: 100%;
+    height: 95px;
+    padding: 5px 1px;
+    resize: none;
+    border: 0;
+    background: transparent;
+    font:
+      15px/1.5 -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    color: var(--gm-fg);
+    display: block;
+  }
+  #gravity-more-preview textarea::placeholder {
+    color: var(--gm-muted);
+  }
+  #gravity-more-preview .gm-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 14px;
+    color: var(--gm-muted);
+  }
+  #gravity-more-preview .gm-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 7px;
+    padding: 0 3px;
+    min-width: 0;
+  }
+  #gravity-more-preview select {
+    border: 0;
+    background: var(--gm-surface);
+    color: var(--gm-muted);
+    font: inherit;
+    max-width: 156px;
+    min-height: 32px;
+    padding: 4px 0;
+  }
+  #gravity-more-preview select option,
+  #gravity-more-preview select optgroup {
+    background: var(--gm-pop);
+    color: var(--gm-fg);
+  }
+  #gravity-more-preview .gm-spacer {
+    flex: 1;
+  }
+  #gravity-more-preview .gm-icon {
+    justify-content: center;
+    width: 32px;
+    flex-shrink: 0;
+    padding: 6px;
+  }
+  #gravity-more-preview .gm-more[aria-expanded="true"] {
+    background: var(--gm-hover);
+    color: var(--gm-fg);
+  }
+  #gravity-more-preview .gm-plan[aria-pressed="true"] {
+    background: var(--gm-tint);
+    color: var(--gm-blue);
+  }
+  #gravity-more-preview .gm-send {
+    background: var(--gm-blue);
+    color: #fff;
+    border-radius: 50%;
+  }
+  #gravity-more-preview .gm-send:hover {
+    background: var(--gm-blue);
+    filter: brightness(1.1);
+  }
+  #gravity-more-preview .gm-menu {
+    position: absolute;
+    bottom: 79px;
+    left: 43%;
+    width: 290px;
+    max-width: 100%;
+    z-index: 3;
+    background: var(--gm-pop);
+    border: 1px solid var(--gm-border);
+    border-radius: 11px;
+    padding: 6px;
+    box-shadow: 0 10px 28px light-dark(#00000015, #00000035);
+  }
+  #gravity-more-preview .gm-menu[hidden] {
+    display: none;
+  }
+  #gravity-more-preview .gm-heading {
+    font-size: 12px;
+    color: var(--gm-muted);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+  }
+  #gravity-more-preview .gm-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  #gravity-more-preview .gm-end {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--gm-muted);
+  }
+  #gravity-more-preview .gm-separator {
+    height: 1px;
+    background: var(--gm-border);
+    margin: 5px -6px;
+  }
+  #gravity-more-preview .gm-switch {
+    width: 28px;
+    height: 16px;
+    border-radius: 10px;
+    background: var(--gm-hover);
+    padding: 2px;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  #gravity-more-preview .gm-switch:after {
+    content: "";
+    display: block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--gm-muted);
+  }
+  #gravity-more-preview [aria-checked="true"] .gm-switch {
+    background: var(--gm-blue);
+    justify-content: flex-end;
+  }
+  #gravity-more-preview [aria-checked="true"] .gm-switch:after {
+    background: #fff;
+  }
+  #gravity-more-preview .gm-detail {
+    font-size: 12px;
+    color: var(--gm-muted);
+    padding: 8px 10px;
+  }
+  #gravity-more-preview .gm-status {
+    min-height: 24px;
+    color: var(--gm-muted);
+    font-size: 12px;
+    padding: 5px 2px;
+  }
+  @media (max-width: 600px) {
+    #gravity-more-preview {
+      padding: 12px;
+    }
+    #gravity-more-preview .gm-menu {
+      left: auto;
+      right: 12px;
+      bottom: 81px;
+    }
+    #gravity-more-preview .gm-toolbar {
+      gap: 3px;
+    }
+    #gravity-more-preview .gm-composer {
+      padding: 10px;
+    }
+    #gravity-more-preview .gm-picker {
+      gap: 3px;
+    }
+    #gravity-more-preview select {
+      max-width: 140px;
+    }
+    #gravity-more-preview textarea {
+      font-size: 16px;
+    }
+  }
+  @media (max-width: 420px) {
+    #gravity-more-preview .gm-menu {
+      bottom: 124px;
+      width: 270px;
+      right: 8px;
+    }
+    #gravity-more-preview .gm-stage {
+      padding-top: 285px;
+    }
+    #gravity-more-preview .gm-toolbar {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      row-gap: 7px;
+    }
+    #gravity-more-preview .gm-toolbar > .gm-picker:first-of-type {
+      grid-column: 1/5;
+      grid-row: 1;
+    }
+    #gravity-more-preview .gm-toolbar > .gm-picker:nth-of-type(2) {
+      grid-column: 5/7;
+      grid-row: 1;
+    }
+    #gravity-more-preview .gm-toolbar > [data-action="attach"] {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    #gravity-more-preview .gm-plan {
+      grid-column: 2/4;
+      grid-row: 2;
+      justify-self: start;
+    }
+    #gravity-more-preview .gm-more {
+      grid-column: 4;
+      grid-row: 2;
+    }
+    #gravity-more-preview [data-action="voice"] {
+      grid-column: 5;
+      grid-row: 2;
+    }
+    #gravity-more-preview .gm-send {
+      grid-column: 6;
+      grid-row: 2;
+    }
+    #gravity-more-preview .gm-spacer {
+      display: none;
+    }
+    #gravity-more-preview select {
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+  @media (pointer: coarse) {
+    #gravity-more-preview button,
+    #gravity-more-preview select {
+      min-height: 44px;
+    }
+    #gravity-more-preview .gm-icon {
+      width: 40px;
+    }
+    #gravity-more-preview .gm-menu {
+      bottom: 97px;
+    }
+    @media (max-width: 420px) {
+      #gravity-more-preview .gm-menu {
+        bottom: 148px;
+      }
+    }
+  }
+</style>
+<script>
+  (() => {
+    const root = document.getElementById("gravity-more-preview");
+    const menu = root.querySelector(".gm-menu"),
+      more = root.querySelector(".gm-more"),
+      status = root.querySelector(".gm-status");
+    const state = {
+      open: true,
+      page: "main",
+      fast: false,
+      caffeine: true,
+      plan: false,
+      access: "Full access",
+      context: "Default",
+      agent: "codex",
+    };
+    const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
+    const item = (label, value, action) =>
+      `<button type="button" class="gm-item cursor-interaction" data-action="${action}"><span>${label}</span><span class="gm-end">${value}${icon("chevron-right")}</span></button>`;
+    const toggle = (label, key) =>
+      `<button type="button" class="gm-item cursor-interaction" role="switch" aria-checked="${state[key]}" data-action="${key}"><span>${label}</span><span class="gm-switch" aria-hidden="true"></span></button>`;
+    function render() {
+      menu.hidden = !state.open;
+      more.setAttribute("aria-expanded", String(state.open));
+      root.querySelector(".gm-plan").setAttribute("aria-pressed", String(state.plan));
+      if (state.page === "main")
+        menu.innerHTML =
+          '<div class="gm-heading">Agent settings</div>' +
+          item("Permissions", state.access, "permissions") +
+          '<div class="gm-separator"></div>' +
+          toggle("Fast mode", "fast") +
+          toggle("Caffeine mode", "caffeine") +
+          '<div class="gm-separator"></div>' +
+          item("Context window", state.context, "context");
+      else {
+        const permissions = state.page === "permissions";
+        const values = permissions
+          ? state.agent === "codex"
+            ? ["On request", "Full access"]
+            : ["Default", "Accept edits", "Auto mode"]
+          : ["Default", "200k", "1M"];
+        const selected = permissions ? state.access : state.context;
+        menu.innerHTML =
+          `<button type="button" class="gm-heading cursor-interaction" data-action="back">${icon("chevron-left")}${permissions ? "Permissions" : "Context window"}</button>` +
+          values
+            .map(
+              (value) =>
+                `<button type="button" class="gm-item cursor-interaction" data-value="${value}" aria-pressed="${value === selected}"><span>${value}</span>${value === selected ? icon("check") : ""}</button>`,
+            )
+            .join("") +
+          (permissions
+            ? ""
+            : '<div class="gm-separator"></div><div class="gm-detail">64k tokens used in this conversation</div>');
+      }
+      if (globalThis.lucide) lucide.createIcons({ attrs: { width: 16, height: 16 } });
+    }
+    root.addEventListener("click", (event) => {
+      const choice = event.target.closest("[data-value]");
+      if (choice) {
+        state[state.page === "permissions" ? "access" : "context"] = choice.dataset.value;
+        state.page = "main";
+        render();
+        return;
+      }
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+      const action = button.dataset.action;
+      if (action === "more") {
+        state.open = !state.open;
+        state.page = "main";
+      } else if (["plan", "fast", "caffeine"].includes(action)) state[action] = !state[action];
+      else if (["permissions", "context"].includes(action)) state.page = action;
+      else if (action === "back") state.page = "main";
+      else {
+        status.textContent =
+          "Preview only — " +
+          (action === "send"
+            ? "no message sent."
+            : action === "voice"
+              ? "voice input opens here."
+              : "attachment sources open here.");
+        return;
+      }
+      render();
+    });
+    root.querySelector("#gm-agent").addEventListener("change", (event) => {
+      state.agent = event.target.value;
+      state.access = state.agent === "codex" ? "Full access" : "Auto mode";
+      render();
+    });
+    root.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        state.open = false;
+        render();
+        more.focus();
+      }
+    });
+    root.addEventListener("pointerdown", (event) => {
+      if (state.open && !event.target.closest(".gm-menu") && !event.target.closest(".gm-more")) {
+        state.open = false;
+        render();
+      }
+    });
+    render();
+  })();
+</script>

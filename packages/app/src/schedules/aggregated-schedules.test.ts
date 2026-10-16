@@ -1,4 +1,4 @@
-import type { ScheduleSummary } from "@getpaseo/protocol/schedule/types";
+import type { ScheduleSummary } from "@gravity/protocol/schedule/types";
 import { describe, expect, it } from "vitest";
 import {
   fetchAggregatedSchedules,
@@ -83,7 +83,7 @@ describe("fetchAggregatedSchedules load state", () => {
     expect(result).toEqual({ status: "loaded", data: [], hostErrors: [] });
   });
 
-  it("does not report loaded empty while another known host is still connecting", async () => {
+  it("reports loaded empty from reachable hosts while another known host is still connecting", async () => {
     const result = await fetchAggregatedSchedules({
       hosts: [
         { serverId: "host-a", serverName: "Host A" },
@@ -100,7 +100,7 @@ describe("fetchAggregatedSchedules load state", () => {
       }),
     });
 
-    expect(result).toEqual({ status: "connecting" });
+    expect(result).toEqual({ status: "loaded", data: [], hostErrors: [] });
   });
 
   it("loads reachable host data when another known host is still connecting", async () => {

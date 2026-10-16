@@ -1,7 +1,7 @@
-import type { PaseoTerminal } from "@getpaseo/client";
+import type { GravityTerminal } from "@gravity/client";
 import type { OutputSchema } from "../../output/index.js";
 
-export type TerminalRow = PaseoTerminal;
+export type TerminalRow = GravityTerminal;
 
 export interface TerminalKillRow {
   terminalId: string;

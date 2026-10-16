@@ -407,6 +407,42 @@ describe("toAgentPayload", () => {
     });
   });
 
+  it("round-trips context usage through the stored record", () => {
+    const agent = createManagedAgent({
+      provider: "codex",
+      config: { provider: "codex" },
+      persistence: { provider: "codex", sessionId: "persist-usage" },
+      lastUsage: {
+        inputTokens: 10,
+        contextWindowMaxTokens: 200_000,
+        contextWindowUsedTokens: 42_000,
+      },
+    });
+
+    const record = toStoredAgentRecord(agent);
+    const payload = buildStoredAgentPayload(record, ["codex"]);
+
+    expect(record.lastUsage).toEqual({
+      inputTokens: 10,
+      contextWindowMaxTokens: 200_000,
+      contextWindowUsedTokens: 42_000,
+    });
+    expect(payload.lastUsage).toEqual(record.lastUsage);
+  });
+
+  it("omits lastUsage from stored records and payloads when the agent has none", () => {
+    const record = toStoredAgentRecord(
+      createManagedAgent({
+        provider: "codex",
+        config: { provider: "codex" },
+        persistence: { provider: "codex", sessionId: "persist-no-usage" },
+        lastUsage: undefined,
+      }),
+    );
+    expect(record.lastUsage).toBeUndefined();
+    expect(buildStoredAgentPayload(record, ["codex"])).not.toHaveProperty("lastUsage");
+  });
+
   it("omits lastUsage when not available", () => {
     const agent = createManagedAgent({ lastUsage: undefined });
     const payload = toAgentPayload(agent);

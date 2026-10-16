@@ -58,7 +58,7 @@ export async function typeIntoFocusedComposer(page: Page, text: string): Promise
 }
 
 export async function sendDraftToQueue(page: Page): Promise<void> {
-  await composerInput(page).press("Control+Enter");
+  await composerInput(page).press("Enter");
 }
 
 export async function expectQueuedMessageButton(page: Page): Promise<void> {

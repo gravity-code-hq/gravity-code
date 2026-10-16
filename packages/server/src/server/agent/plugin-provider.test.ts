@@ -3,7 +3,7 @@ import type {
   ProviderEvent,
   ProviderInput,
   ProviderRegistration,
-} from "@getpaseo/plugin/server/provider";
+} from "@gravity/plugin/server/provider";
 import { describe, expect, test } from "vitest";
 import { createTestLogger } from "../../test-utils/test-logger.js";
 import type { AgentStreamEvent } from "./agent-sdk-types.js";

@@ -5,7 +5,8 @@ import {
   indentOnInput,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { searchKeymap } from "@codemirror/search";
+import type { Theme } from "@/styles/theme";
+import { editorSearch, editorSearchTheme } from "./search.web";
 import {
   EditorView,
   drawSelection,
@@ -13,9 +14,10 @@ import {
   keymap,
   lineNumbers,
 } from "@codemirror/view";
-import { createCodeMirrorHighlightStyle, type HighlightStyle } from "@getpaseo/highlight";
+import { createCodeMirrorHighlightStyle, type HighlightStyle } from "@gravity/highlight";
 
 export interface EditorVisualTheme {
+  uiTheme: Theme;
   colorScheme: "light" | "dark";
   background: string;
   foreground: string;
@@ -30,6 +32,7 @@ export interface EditorVisualTheme {
 
 export function editorBaseExtensions(onSave: () => void) {
   return [
+    editorSearch(),
     lineNumbers(),
     history(),
     drawSelection(),
@@ -42,13 +45,13 @@ export function editorBaseExtensions(onSave: () => void) {
       indentWithTab,
       ...defaultKeymap,
       ...historyKeymap,
-      ...searchKeymap,
     ]),
   ];
 }
 
 export function editorTheme(theme: EditorVisualTheme) {
   return [
+    editorSearchTheme(theme.uiTheme),
     EditorView.theme(
       {
         "&": {

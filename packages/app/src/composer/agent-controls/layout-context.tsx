@@ -11,8 +11,7 @@ const DEFAULT_LAYOUT: ComposerControlLayoutValue = {
   presentation: {
     showCarets: true,
     showThinkingLabel: true,
-    showModeLabel: true,
-    aggregateFeatures: false,
+    showPlanLabel: true,
   },
 };
 

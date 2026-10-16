@@ -1,3 +1,14 @@
+export function shouldAutoInstallMacCli(input: {
+  platform: NodeJS.Platform;
+  isPackaged: boolean;
+  executablePath: string;
+}): boolean {
+  const isTemporaryInstall =
+    input.executablePath.startsWith("/Volumes/") ||
+    input.executablePath.includes("/AppTranslocation/");
+  return input.platform === "darwin" && input.isPackaged && !isTemporaryInstall;
+}
+
 export function resolveCliInstallSourcePath(input: {
   platform: NodeJS.Platform;
   isPackaged: boolean;

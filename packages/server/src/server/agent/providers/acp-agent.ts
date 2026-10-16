@@ -377,7 +377,7 @@ export function createLoggedNdJsonStream(
 
 // Lets a provider that publishes its slash commands through a vendor-specific
 // ACP extension notification (rather than the standard
-// `available_commands_update` session update) translate that payload into Paseo
+// `available_commands_update` session update) translate that payload into Gravity
 // slash commands, without the generic ACP session/client carrying any vendor
 // knowledge. Return the parsed commands (possibly empty) for a notification this
 // provider owns, or null to ignore notifications it does not handle.
@@ -1400,7 +1400,7 @@ export class ACPAgentClient implements AgentClient {
               this.clientCapabilityMeta,
               this.clientCapabilities,
             ),
-            clientInfo: { name: "Paseo", version: "dev" },
+            clientInfo: { name: "Gravity", version: "dev" },
           }),
           transport.spawnError,
           ...(initializeTimeoutPromise ? [initializeTimeoutPromise] : []),
@@ -2472,7 +2472,7 @@ export class ACPAgentSession implements AgentSession, ACPClient {
       }
     }
 
-    // Match Zed acp.rs:3189-3220 when Paseo is not handling the request locally.
+    // Match Zed acp.rs:3189-3220 when Gravity is not handling the request locally.
     const requestId = randomUUID();
     let toolSnapshot =
       this.toolCalls.get(params.toolCall.toolCallId) ??
@@ -2756,7 +2756,7 @@ export class ACPAgentSession implements AgentSession, ACPClient {
           this.clientCapabilityMeta,
           this.clientCapabilities,
         ),
-        clientInfo: { name: "Paseo", version: "dev" },
+        clientInfo: { name: "Gravity", version: "dev" },
       }),
     );
 
@@ -3506,7 +3506,7 @@ function mapPlanToTimeline(plan: Plan): AgentTimelineItem {
   };
 }
 
-function mapToolSnapshotToTimeline(
+export function mapToolSnapshotToTimeline(
   snapshot: ACPToolSnapshot,
   terminals: Map<string, TerminalEntry>,
 ): ToolCallTimelineItem {
@@ -3647,10 +3647,18 @@ function buildSearchAcpToolDetail(context: MapToolDetailContext): ToolCallDetail
   };
 }
 
+function readShellDescription(context: MapToolDetailContext): string | undefined {
+  const { snapshot, rawInput } = context;
+  const title = snapshot.title === snapshot.toolCallId ? undefined : snapshot.title;
+  return readString(rawInput, ["description"]) ?? title;
+}
+
 function buildShellToolDetail(context: MapToolDetailContext): ToolCallDetail {
   const { snapshot, textContent, terminalContent, rawInput, rawOutput } = context;
+  const description = readShellDescription(context);
   return {
     type: "shell",
+    ...(description ? { description } : {}),
     command:
       terminalContent?.command ??
       buildShellCommand(rawInput) ??
@@ -3676,9 +3684,11 @@ function buildFetchToolDetail(context: MapToolDetailContext): ToolCallDetail {
 function buildDefaultToolDetail(context: MapToolDetailContext): ToolCallDetail {
   const { snapshot, textContent, terminalContent } = context;
   if (terminalContent) {
+    const description = readShellDescription(context);
     return {
       type: "shell",
       command: terminalContent.command ?? snapshot.title,
+      ...(description ? { description } : {}),
       cwd: terminalContent.cwd,
       output: terminalContent.output,
       exitCode: terminalContent.exitCode,

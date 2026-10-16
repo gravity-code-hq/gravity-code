@@ -140,9 +140,19 @@ function makeCodexResponse(overrides: object = {}) {
 }
 
 function mockFetch(handlers: Map<string, () => Response>): typeof fetch {
+  const routes = new Map<string, () => Response>([
+    [
+      "https://api.anthropic.com/api/oauth/profile",
+      () =>
+        jsonResponse({
+          organization: { organization_type: "claude_pro", rate_limit_tier: "default_1x" },
+        }),
+    ],
+    ...handlers,
+  ]);
   return vi.fn(async (url: RequestInfo | URL) => {
     const key = url.toString();
-    const handler = handlers.get(key);
+    const handler = routes.get(key);
     if (!handler) throw new Error(`Unmocked fetch: ${key}`);
     return handler();
   }) as unknown as typeof fetch;
@@ -401,7 +411,7 @@ describe("real provider usage fetchers", () => {
   function service(
     options: {
       platform?: typeof process.platform;
-      keychain?: () => Promise<unknown | null>;
+      keychain?: () => Promise<string | null>;
       kimiHomeDir?: string;
       cursorHomeDir?: string;
       miniMaxConfigPath?: string;
@@ -488,7 +498,41 @@ describe("real provider usage fetchers", () => {
       "https://api.anthropic.com/api/oauth/usage",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(fetchApi).toHaveBeenCalledWith(
+      "https://api.anthropic.com/api/oauth/profile",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+        headers: expect.objectContaining({ "Cache-Control": "no-cache" }),
+      }),
+    );
   });
+
+  it.each(["5x", "20x"])(
+    "reads Max %s from the live profile instead of credentials",
+    async (tier) => {
+      writeClaudeCredentials(claudeHome, "at_valid", "rt_test", "max", "default_claude_max_stale");
+      fetchApi = mockFetch(
+        new Map([
+          ["https://api.anthropic.com/api/oauth/usage", () => jsonResponse(makeClaudeResponse())],
+          [
+            "https://api.anthropic.com/api/oauth/profile",
+            () =>
+              jsonResponse({
+                organization: {
+                  organization_type: "claude_max",
+                  rate_limit_tier: `default_claude_max_${tier}`,
+                },
+              }),
+          ],
+        ]),
+      );
+
+      expect(findProvider(await service().listUsage(), "claude")).toMatchObject({
+        status: "available",
+        planLabel: `Max ${tier}`,
+      });
+    },
+  );
 
   it("accepts a null Claude resets_at when a window has no scheduled reset", async () => {
     writeClaudeCredentials(claudeHome, "at_valid");
@@ -556,12 +600,13 @@ describe("real provider usage fetchers", () => {
 
     const result = await service({
       platform: "darwin",
-      keychain: async () => ({
-        claudeAiOauth: {
-          accessToken: "at_expired",
-          refreshToken: "rt_valid",
-        },
-      }),
+      keychain: async () =>
+        JSON.stringify({
+          claudeAiOauth: {
+            accessToken: "at_expired",
+            refreshToken: "rt_valid",
+          },
+        }),
     }).listUsage();
 
     expect(findProvider(result, "claude").status).toBe("unavailable");
@@ -1320,8 +1365,8 @@ describe("usage bars escalate as they fill", () => {
   let codexHome: string;
 
   beforeEach(() => {
-    claudeHome = mkdtempSync(join(tmpdir(), "paseo-tone-claude-"));
-    codexHome = mkdtempSync(join(tmpdir(), "paseo-tone-codex-"));
+    claudeHome = mkdtempSync(join(tmpdir(), "gravity-tone-claude-"));
+    codexHome = mkdtempSync(join(tmpdir(), "gravity-tone-codex-"));
   });
 
   afterEach(() => {
@@ -1396,7 +1441,7 @@ describe("ClaudeQuotaProvider scoped weekly limits", () => {
   let claudeHome: string;
 
   beforeEach(() => {
-    claudeHome = mkdtempSync(join(tmpdir(), "paseo-claude-limits-"));
+    claudeHome = mkdtempSync(join(tmpdir(), "gravity-claude-limits-"));
   });
 
   afterEach(() => {
@@ -1547,7 +1592,7 @@ describe("ClaudeQuotaProvider scoped limit reconciliation", () => {
   let claudeHome: string;
 
   beforeEach(() => {
-    claudeHome = mkdtempSync(join(tmpdir(), "paseo-claude-matrix-"));
+    claudeHome = mkdtempSync(join(tmpdir(), "gravity-claude-matrix-"));
   });
 
   afterEach(() => {

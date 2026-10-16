@@ -5,21 +5,21 @@ import { dirname, join } from "node:path";
 // Worktree setup runs through a stable script shell: bash on macOS/Linux, but PowerShell
 // on Windows. POSIX-only command strings (`VAR=1 cmd` env prefixes, `$VAR` expansion, `cp`,
 // `./scripts/*.sh`) cannot express this step portably, so the seeding lives in Node — the
-// one interpreter every Paseo checkout already depends on.
+// one interpreter every Gravity checkout already depends on.
 
-const sourceRoot = process.env.PASEO_SOURCE_CHECKOUT_PATH;
-const targetRoot = process.env.PASEO_WORKTREE_PATH || process.cwd();
+const sourceRoot = process.env.GRAVITY_SOURCE_CHECKOUT_PATH;
+const targetRoot = process.env.GRAVITY_WORKTREE_PATH || process.cwd();
 
 if (!sourceRoot || sourceRoot === targetRoot) {
   process.exit(0);
 }
 
-seedPaseoHome();
+seedGravityHome();
 copyServerEnv();
 
-function seedPaseoHome() {
-  const source = process.env.PASEO_DEV_SEED_HOME || join(sourceRoot, ".dev/paseo-home");
-  const target = join(targetRoot, ".dev/paseo-home");
+function seedGravityHome() {
+  const source = process.env.GRAVITY_DEV_SEED_HOME || join(sourceRoot, ".dev/gravity-home");
+  const target = join(targetRoot, ".dev/gravity-home");
 
   if (!existsSync(source)) {
     console.log(`  Seed:    skipped (${source} missing)`);
@@ -31,7 +31,7 @@ function seedPaseoHome() {
     return;
   }
 
-  if (process.env.PASEO_DEV_RESET_HOME === "1") {
+  if (process.env.GRAVITY_DEV_RESET_HOME === "1") {
     rmSync(target, { recursive: true, force: true });
   } else if (hasEntries(target)) {
     console.log(`  Seed:    skipped (${target} already has data)`);

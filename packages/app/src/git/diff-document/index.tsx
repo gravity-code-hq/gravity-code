@@ -12,23 +12,22 @@ type ThemedDiffDocumentProps = DiffDocumentProps & {
   headerTypography: DiffHeaderTypography;
 };
 
-const EMPTY_PATHS: string[] = [];
-
 function ThemedDiffDocument(props: ThemedDiffDocumentProps) {
+  const [commitCollapsedPaths, setCommitCollapsedPaths] = useState<string[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const paletteRef = useRef(props.palette);
   paletteRef.current = retainDiffPalette(paletteRef.current, props.palette);
   const palette = paletteRef.current;
   const collapseState = props.mode.kind === "working" ? props.collapseState : null;
-  const paths = collapseState?.paths ?? EMPTY_PATHS;
+  const paths = collapseState?.paths ?? commitCollapsedPaths;
   const collapsedFilePaths = useMemo(() => new Set(paths), [paths]);
   const toggleFile = useCallback(
     (path: string) => {
-      if (!collapseState) return;
       const next = collapsedFilePaths.has(path)
         ? paths.filter((entry) => entry !== path)
         : [...paths, path];
-      collapseState.onChange(next);
+      if (collapseState) collapseState.onChange(next);
+      else setCommitCollapsedPaths(next);
     },
     [collapseState, collapsedFilePaths, paths],
   );
@@ -47,7 +46,7 @@ function ThemedDiffDocument(props: ThemedDiffDocumentProps) {
 const StyledDiffDocument = withUnistyles(ThemedDiffDocument, (theme) => ({
   palette: createDiffPalette(theme),
   headerTypography: {
-    family: theme.fontFamily.ui,
+    family: theme.fontFamily.mono,
     size: theme.fontSize.base,
     statSize: theme.fontSize.sm,
   },

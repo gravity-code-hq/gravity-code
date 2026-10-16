@@ -8,6 +8,18 @@ import {
 } from "./tool-call-mapper.js";
 
 describe("Pi tool call mapper", () => {
+  test("preserves a supplied Bash description", () => {
+    const toolCall = parseToolArgs("bash", {
+      command: "npm run dev",
+      description: "Start frontend server",
+    });
+    expect(mapToolDetail(toolCall)).toMatchObject({
+      type: "shell",
+      command: "npm run dev",
+      description: "Start frontend server",
+    });
+  });
+
   test("maps bash args and result to shell detail", () => {
     const toolCall = parseToolArgs("bash", { command: "echo hello" });
     const result = parseToolResult({ output: "hello\n", exitCode: 0 });
@@ -169,27 +181,27 @@ describe("Pi tool call mapper", () => {
 
   test("normalizes Pi MCP proxy calls from requested tool args while running", () => {
     const toolCall = parseToolArgs("mcp", {
-      tool: "paseo_list_models",
+      tool: "gravity_list_models",
       args: '{"provider":"pi"}',
     });
 
-    expect(resolveToolCallName(toolCall, null)).toBe("paseo.list_models");
+    expect(resolveToolCallName(toolCall, null)).toBe("gravity.list_models");
   });
 
   test("normalizes Pi MCP proxy calls from result details when completed", () => {
     const toolCall = parseToolArgs("mcp", {
-      tool: "paseo_list_models",
+      tool: "gravity_list_models",
       args: '{"provider":"pi"}',
     });
     const result = parseToolResult({
       content: [{ type: "text", text: "(empty result)" }],
       details: {
         mode: "call",
-        server: "paseo",
+        server: "gravity",
         tool: "list_models",
       },
     });
 
-    expect(resolveToolCallName(toolCall, result)).toBe("paseo.list_models");
+    expect(resolveToolCallName(toolCall, result)).toBe("gravity.list_models");
   });
 });

@@ -1,6 +1,7 @@
+import { useConversationExport } from "@/conversation-export/use-conversation-export";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import type { JsonValue } from "@getpaseo/protocol/agent-types";
-import { getOpenAgentTabLabel } from "@getpaseo/protocol/agent-labels";
+import type { JsonValue } from "@gravity/protocol/agent-types";
+import { getOpenAgentTabLabel } from "@gravity/protocol/agent-labels";
 import {
   memo,
   useCallback,
@@ -110,6 +111,7 @@ import { useArchiveAgent } from "@/hooks/use-archive-agent";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { removeResidentBrowserWebview } from "@/desktop/browser/resident-webviews";
 import { createWorkspaceBrowser, useBrowserStore } from "@/desktop/browser/store";
+import { GRAVITY_LOCAL_ONLY } from "@/gravity";
 import { getDesktopHost } from "@/desktop/host";
 import { buildProviderCommand } from "@/utils/provider-command-templates";
 import { generateDraftId } from "@/stores/draft-keys";
@@ -167,6 +169,7 @@ import {
 } from "@/screens/workspace/workspace-pane-content";
 import { useMountedTabSet } from "@/screens/workspace/use-mounted-tab-set";
 import { WorkspaceFocusProvider } from "@/workspace/focus";
+import { selectWorkingDiffComparison } from "@/git/working-diff-comparison";
 import { DiffDocumentWorkspaceCacheProvider } from "@/git/diff-document/workspace-cache";
 import type { NewTabSelection } from "@/workspace-tabs/new-tab";
 import {
@@ -192,7 +195,7 @@ import { getIsElectron, isNative, isWeb } from "@/constants/platform";
 import type { SurfaceBackdrop } from "@/styles/surface-backdrop";
 import { buildHostRootRoute, buildSettingsHostRoute } from "@/utils/host-routes";
 import { useWorkspaceTerminals } from "@/screens/workspace/terminals/use-workspace-terminals";
-import type { TerminalProfile } from "@getpaseo/protocol/messages";
+import type { TerminalProfile } from "@gravity/protocol/messages";
 import {
   WorkspaceHeaderMenuDesktop,
   WorkspaceHeaderMenuMobile,
@@ -415,6 +418,8 @@ interface MobileWorkspaceTabSwitcherProps {
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTab: (tabId: string) => Promise<void> | void;
   onCloseTabsAbove: (tabId: string) => Promise<void> | void;
@@ -522,6 +527,8 @@ function MobileWorkspaceTabOption({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTab,
   onCloseTabsAbove,
@@ -541,6 +548,8 @@ function MobileWorkspaceTabOption({
   onCopyTerminalId: (terminalId: string) => Promise<void> | void;
   onCopyFilePath: (path: string) => Promise<void> | void;
   onReloadAgent: (agentId: string) => Promise<void> | void;
+  onCopyConversation: (agentId: string) => Promise<void> | void;
+  onDownloadConversation: (agentId: string) => Promise<void> | void;
   onRenameTab: (tab: WorkspaceTabDescriptor) => void;
   onCloseTab: (tabId: string) => Promise<void> | void;
   onCloseTabsAbove: (tabId: string) => Promise<void> | void;
@@ -561,6 +570,8 @@ function MobileWorkspaceTabOption({
       closeRight: t("workspace.tabs.menu.closeRight"),
       closeOthers: t("workspace.tabs.menu.closeOthers"),
       reloadAgent: t("workspace.tabs.menu.reloadAgent"),
+      copyConversation: t("workspace.tabs.menu.copyConversation"),
+      downloadConversation: t("workspace.tabs.menu.downloadConversation"),
       reloadAgentTooltip: t("workspace.tabs.menu.reloadAgentTooltip"),
       close: t("workspace.tabs.menu.close"),
     }),
@@ -578,6 +589,8 @@ function MobileWorkspaceTabOption({
     onCopyTerminalId,
     onCopyFilePath,
     onReloadAgent,
+    onCopyConversation,
+    onDownloadConversation,
     onRenameTab,
     onCloseTab,
     onCloseTabsBefore: onCloseTabsAbove,
@@ -650,6 +663,8 @@ const MobileWorkspaceTabSwitcher = memo(function MobileWorkspaceTabSwitcher({
   onCopyTerminalId,
   onCopyFilePath,
   onReloadAgent,
+  onCopyConversation,
+  onDownloadConversation,
   onRenameTab,
   onCloseTab,
   onCloseTabsAbove,
@@ -707,6 +722,8 @@ const MobileWorkspaceTabSwitcher = memo(function MobileWorkspaceTabSwitcher({
           onCopyTerminalId={onCopyTerminalId}
           onCopyFilePath={onCopyFilePath}
           onReloadAgent={onReloadAgent}
+          onCopyConversation={onCopyConversation}
+          onDownloadConversation={onDownloadConversation}
           onRenameTab={onRenameTab}
           onCloseTab={onCloseTab}
           onCloseTabsAbove={onCloseTabsAbove}
@@ -726,6 +743,8 @@ const MobileWorkspaceTabSwitcher = memo(function MobileWorkspaceTabSwitcher({
       onCopyTerminalId,
       onCopyFilePath,
       onReloadAgent,
+      onCopyConversation,
+      onDownloadConversation,
       onRenameTab,
       onCloseTab,
       onCloseTabsAbove,
@@ -860,9 +879,9 @@ export const WorkspaceScreen = memo(function WorkspaceScreen({
 }: WorkspaceScreenProps) {
   const navigationFocused = useIsFocused();
   useEffect(() => {
-    traceInstant("paseo.workspace.mount", { serverId, workspaceId });
+    traceInstant("gravity.workspace.mount", { serverId, workspaceId });
     return () => {
-      traceInstant("paseo.workspace.unmount", { serverId, workspaceId });
+      traceInstant("gravity.workspace.unmount", { serverId, workspaceId });
     };
   }, [serverId, workspaceId]);
   return (
@@ -922,7 +941,7 @@ function WorkspaceHeaderProjectRow({
 }) {
   const isCompact = useIsCompactFormFactor();
   const hostBadge = useHostBadges({ enabled: isCompact }).get(serverId) ?? null;
-  const showProject = isSubtitleDistinct || isCompact;
+  const showProject = Boolean(subtitle) && (isSubtitleDistinct || isCompact);
   if (!showProject && !hostBadge) {
     return null;
   }
@@ -1393,6 +1412,10 @@ function buildWorkspaceTerminalScopeKey(serverId: string, workspaceId: string): 
  * A pane the user acted inside owns the tab: it opens there, and an existing tab
  * moves there. No pane means the open has no opinion beyond the focused pane.
  */
+function canCreateBrowserTab(): boolean {
+  return !GRAVITY_LOCAL_ONLY && getIsElectron();
+}
+
 function paneLocalPlacement(paneId: string | null | undefined): WorkspaceTabPlacement {
   return paneId ? { mode: "pane", paneId } : FOCUSED_PANE_PLACEMENT;
 }
@@ -2395,7 +2418,7 @@ function WorkspaceScreenContent({
 
   const handleCreateBrowserTab = useCallback(
     (input?: { paneId?: string }) => {
-      if (!persistenceKey || !getIsElectron()) {
+      if (GRAVITY_LOCAL_ONLY || !persistenceKey || !getIsElectron()) {
         return;
       }
       const { browserId } = createWorkspaceBrowser();
@@ -2448,6 +2471,9 @@ function WorkspaceScreenContent({
         });
         return;
       }
+      if (GRAVITY_LOCAL_ONLY) {
+        return;
+      }
       const { browserId } = createWorkspaceBrowser();
       openTarget({ kind: "browser", browserId });
     },
@@ -2456,7 +2482,7 @@ function WorkspaceScreenContent({
 
   const handleOpenUrlInBrowserTab = useCallback(
     (url: string) => {
-      if (!persistenceKey || !getIsElectron()) {
+      if (GRAVITY_LOCAL_ONLY || !persistenceKey || !getIsElectron()) {
         return;
       }
       const { browserId } = createWorkspaceBrowser({ initialUrl: url });
@@ -2738,6 +2764,9 @@ function WorkspaceScreenContent({
     },
     [normalizedServerId, toast, t],
   );
+
+  const handleCopyConversation = useConversationExport(normalizedServerId, "clipboard");
+  const handleDownloadConversation = useConversationExport(normalizedServerId, "download");
 
   const handleReloadAgent = useCallback(
     async (agentId: string) => {
@@ -3134,7 +3163,8 @@ function WorkspaceScreenContent({
           }
           return true;
         case "workspace.tab.navigate-index": {
-          const next = tabs[action.index - 1] ?? null;
+          const nextIndex = action.index === 9 ? tabs.length - 1 : action.index - 1;
+          const next = tabs[nextIndex] ?? null;
           if (next?.tabId) {
             navigateToTabId(next.tabId);
           }
@@ -3179,6 +3209,23 @@ function WorkspaceScreenContent({
         case "workspace.tab.target.browser":
           handleCreateBrowserTab({ paneId });
           return true;
+        case "workspace.tab.target.diff":
+          if (persistenceKey && workspaceDirectory && checkoutQuery.data?.isGit) {
+            const comparison = checkoutQuery.data.isDirty ? "uncommitted" : "base";
+            selectWorkingDiffComparison({
+              serverId: normalizedServerId,
+              workspaceId: normalizedWorkspaceId,
+              cwd: workspaceDirectory,
+              isDirty: checkoutQuery.data.isDirty,
+              comparison,
+            });
+            openWorkspaceTabFocused(
+              persistenceKey,
+              { kind: "working_diff" },
+              paneLocalPlacement(paneId),
+            );
+          }
+          return true;
         case "workspace.tab.target.changes":
           if (persistenceKey && isGitCheckout) {
             openExplorerSidebarView({
@@ -3205,6 +3252,11 @@ function WorkspaceScreenContent({
     },
     [
       focusedPaneTabState.pane?.id,
+      checkoutQuery.data,
+      normalizedServerId,
+      normalizedWorkspaceId,
+      openWorkspaceTabFocused,
+      workspaceDirectory,
       activeExplorerCheckout,
       handleCreateBrowserTab,
       handleCreateDraftTab,
@@ -3355,6 +3407,7 @@ function WorkspaceScreenContent({
     actions: [
       "workspace.tab.target.agent",
       "workspace.tab.target.browser",
+      "workspace.tab.target.diff",
       "workspace.tab.target.changes",
       "workspace.tab.target.files",
     ] as const,
@@ -3845,7 +3898,7 @@ function WorkspaceScreenContent({
     () => createTerminalMutation.isPending || pendingTerminalCreateInput !== null,
     [createTerminalMutation.isPending, pendingTerminalCreateInput],
   );
-  const showCreateBrowserTab = getIsElectron();
+  const showCreateBrowserTab = canCreateBrowserTab();
   const newTabLauncher = useMemo<NewTabLauncher>(
     () => ({
       showChanges: isGitCheckout,
@@ -3969,6 +4022,8 @@ function WorkspaceScreenContent({
         onCopyTerminalId={handleCopyTerminalId}
         onCopyFilePath={handleCopyFilePath}
         onReloadAgent={handleReloadAgent}
+        onCopyConversation={handleCopyConversation}
+        onDownloadConversation={handleDownloadConversation}
         onRenameTab={handleRenameTab}
         onCloseTabsToLeft={handleCloseTabsToLeftInPane}
         onCloseTabsToRight={handleCloseTabsToRightInPane}
@@ -4005,6 +4060,8 @@ function WorkspaceScreenContent({
     handleCopyTerminalId,
     handleCopyFilePath,
     handleReloadAgent,
+    handleCopyConversation,
+    handleDownloadConversation,
     handleRenameTab,
     handleCloseTabsToLeftInPane,
     handleCloseTabsToRightInPane,
@@ -4048,6 +4105,8 @@ function WorkspaceScreenContent({
           onCopyTerminalId={handleCopyTerminalId}
           onCopyFilePath={handleCopyFilePath}
           onReloadAgent={handleReloadAgent}
+          onCopyConversation={handleCopyConversation}
+          onDownloadConversation={handleDownloadConversation}
           onRenameTab={handleRenameTab}
           onCloseTab={handleCloseTabById}
           onCloseTabsAbove={handleCloseTabsToLeft}
@@ -4072,6 +4131,8 @@ function WorkspaceScreenContent({
             onCopyTerminalId={handleCopyTerminalId}
             onCopyFilePath={handleCopyFilePath}
             onReloadAgent={handleReloadAgent}
+            onCopyConversation={handleCopyConversation}
+            onDownloadConversation={handleDownloadConversation}
             onRenameTab={handleRenameTab}
             onCloseTabsToLeft={handleCloseTabsToLeft}
             onCloseTabsToRight={handleCloseTabsToRight}

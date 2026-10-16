@@ -47,6 +47,7 @@ export function ZoomableViewport({
   contentSize,
   children,
   actions = [],
+  toolbarPlacement = "corner",
   accessibilityLabel,
   fit,
   maxScale = DEFAULT_MAX_SCALE,
@@ -305,17 +306,18 @@ export function ZoomableViewport({
         onFocusCapture={handleFocus}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        style={toolbarDomStyle}
+        style={toolbarPlacement === "inset-corner" ? lightboxToolbarDomStyle : toolbarDomStyle}
       >
         <ViewportToolbar
           actions={actions}
+          placement={toolbarPlacement}
           maxScale={maxScale}
           minScale={minScale}
           onReset={reset}
           onZoomIn={zoomIn}
           onZoomOut={zoomOut}
           scale={transform.scale}
-          visible={controlsVisible}
+          visible={toolbarPlacement === "inset-corner" || controlsVisible}
         />
       </div>
     </View>
@@ -346,5 +348,12 @@ const toolbarDomStyle: React.CSSProperties = {
   right: 0,
   width: 200,
   height: 48,
+  zIndex: 1,
+};
+
+const lightboxToolbarDomStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
   zIndex: 1,
 };

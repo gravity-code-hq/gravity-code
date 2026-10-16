@@ -1,15 +1,11 @@
-import type { WorkspaceCreateRequest } from "@getpaseo/protocol/messages";
+import type { WorkspaceCreateRequest } from "@gravity/protocol/messages";
 import { expect, type Page } from "@playwright/test";
 import { daemonWsRoutePattern } from "./daemon-port";
 import { gotoAppShell } from "./app";
 import { gotoWorkspace } from "./launcher";
 import { fillComposerDraft } from "./composer";
 import { createAgentTabFromMenu } from "./workspace-tabs";
-import {
-  openNewWorkspaceComposer,
-  selectWorkspaceIsolation,
-  loadSessionMessageReaders,
-} from "./new-workspace";
+import { openNewWorkspaceComposer, loadSessionMessageReaders } from "./new-workspace";
 import { seedWorkspace } from "./seed-client";
 import {
   waitForSidebarHydration,
@@ -143,11 +139,10 @@ export async function createCreationScenario(page: Page) {
   let workspaceId = project.workspaceId;
   return {
     cleanup: project.cleanup,
-    async openWorkspaceForm(isolation: "local" | "worktree") {
+    async openWorkspaceForm() {
       await gotoAppShell(page);
       await waitForSidebarHydration(page);
       await openNewWorkspaceComposer(page, project);
-      await selectWorkspaceIsolation(page, isolation);
     },
     async openAgentDraft() {
       await gotoWorkspace(page, project.workspaceId);

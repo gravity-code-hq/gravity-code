@@ -16,9 +16,9 @@ function relativeDuration(iso: string): string | null {
   const diffMinutes = Math.floor(diffMs / 60_000);
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays > 0) return `${diffDays}d`;
-  if (diffHours > 0) return `${diffHours}h`;
-  return `${diffMinutes}m`;
+  if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h`;
+  if (diffHours > 0) return `${diffHours}h ${diffMinutes % 60}m`;
+  return `${Math.max(1, diffMinutes)}m`;
 }
 
 export function formatResetLabel(iso: string | null | undefined): string | null {

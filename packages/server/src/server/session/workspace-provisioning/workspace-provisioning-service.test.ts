@@ -16,7 +16,7 @@ import {
   createPersistedWorkspaceRecord,
   type WorkspaceRegistry,
 } from "../../workspace-registry.js";
-import type { CreatePaseoWorktreeWorkflowResult } from "../../worktree-session.js";
+import type { CreateGravityWorktreeWorkflowResult } from "../../worktree-session.js";
 import {
   createWorkspaceProvisioningService,
   WorkspaceProvisioningError,
@@ -79,7 +79,7 @@ function gitService() {
         currentBranch: worktreeRoot ? (gitBranches.get(worktreeRoot) ?? "main") : null,
         remoteUrl: null,
         worktreeRoot,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         mainRepoRoot: null,
       };
     },
@@ -174,7 +174,7 @@ test("re-opening refreshes mutable checkout metadata without renaming the worksp
     branch: "feature/refresh",
     displayName: first.displayName,
     title: "Pinned work",
-    isPaseoOwnedWorktree: false,
+    isGravityOwnedWorktree: false,
     mainRepoRoot: null,
   });
   expect(await workspaceRegistry.get(first.workspaceId)).toEqual(refreshed);
@@ -195,7 +195,7 @@ test("persists manual worktree ownership separately from its workspace kind", as
         currentBranch: "feature/manual",
         remoteUrl: null,
         worktreeRoot: cwd,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         mainRepoRoot,
       }),
     }),
@@ -205,7 +205,7 @@ test("persists manual worktree ownership separately from its workspace kind", as
 
   expect(workspace).toMatchObject({
     kind: "worktree",
-    isPaseoOwnedWorktree: false,
+    isGravityOwnedWorktree: false,
     mainRepoRoot,
   });
 });
@@ -257,7 +257,7 @@ test("reopening archived exact-root records restores the fresh Git project", asy
         currentBranch: "main",
         remoteUrl: "https://github.com/acme/new-repo.git",
         worktreeRoot: cwd,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         mainRepoRoot: null,
       }),
     }),
@@ -363,7 +363,7 @@ test("ensureWorkspaceRecordUnarchived restores the owning archived project with 
 
 test("ensureWorkspaceRecordUnarchived preserves the consumed auto-archive change request", async () => {
   const repo = path.join(tmpDir, "repo");
-  const changeRequestUrl = "https://github.com/getpaseo/paseo/pull/2714";
+  const changeRequestUrl = "https://github.com/gravity-code-hq/gravity/pull/2714";
   gitRoots.add(repo);
   const created = await provisioning.findOrCreateWorkspaceForDirectory(repo);
   await workspaceRegistry.archive(created.workspaceId, ARCHIVED_AT, {
@@ -385,7 +385,7 @@ test("ensureWorkspaceRecordUnarchived preserves the consumed auto-archive change
 
 test("ensureWorkspaceRecordUnarchived acknowledges a merged change request for a legacy archive", async () => {
   const repo = path.join(tmpDir, "repo");
-  const changeRequestUrl = "https://github.com/getpaseo/paseo/pull/2714";
+  const changeRequestUrl = "https://github.com/gravity-code-hq/gravity/pull/2714";
   gitRoots.add(repo);
   const created = await provisioning.findOrCreateWorkspaceForDirectory(repo);
   await workspaceRegistry.archive(created.workspaceId, ARCHIVED_AT);
@@ -406,8 +406,8 @@ test("ensureWorkspaceRecordUnarchived acknowledges a merged change request for a
 
 test("ensureWorkspaceRecordUnarchived refreshes the latch for a different merged change request", async () => {
   const repo = path.join(tmpDir, "repo");
-  const previousChangeRequestUrl = "https://github.com/getpaseo/paseo/pull/2713";
-  const currentChangeRequestUrl = "https://github.com/getpaseo/paseo/pull/2714";
+  const previousChangeRequestUrl = "https://github.com/gravity-code-hq/gravity/pull/2713";
+  const currentChangeRequestUrl = "https://github.com/gravity-code-hq/gravity/pull/2714";
   gitRoots.add(repo);
   const created = await provisioning.findOrCreateWorkspaceForDirectory(repo);
   await workspaceRegistry.archive(created.workspaceId, ARCHIVED_AT, {
@@ -450,7 +450,7 @@ test("resolveOrCreateWorkspaceIdForCreateAgent returns a created worktree's id w
   // The branch only reads workspace.workspaceId off the worktree result.
   const createdWorktree = {
     workspace: { workspaceId: "ws-from-worktree" },
-  } as unknown as CreatePaseoWorktreeWorkflowResult;
+  } as unknown as CreateGravityWorktreeWorkflowResult;
 
   const id = await provisioning.resolveOrCreateWorkspaceIdForCreateAgent({
     createdWorktree,

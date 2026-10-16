@@ -194,7 +194,7 @@ describe("workspace command center contributions", () => {
     expect(contributions.some((item) => item.id === "tab:new-terminal")).toBe(true);
     expect(contributions.some((item) => item.id === "tab:new-browser")).toBe(false);
     expect(contributions.some((item) => item.id.startsWith("pane:"))).toBe(false);
-    expect(contributions.some((item) => item.id === "workspace:rename")).toBe(true);
+    expect(contributions.some((item) => item.id === "workspace:rename")).toBe(false);
     expect(contributions.some((item) => item.id === "workspace:copy-path")).toBe(true);
   });
 
@@ -205,10 +205,6 @@ describe("workspace command center contributions", () => {
     for (const contribution of contributions) contribution.run();
 
     expect(fixture.dispatched.length).toBeGreaterThan(5);
-    // workspace:rename dispatches to workspace scope
-    expect(
-      fixture.dispatched.some((a) => a.id === "workspace.rename" && a.scope === "workspace"),
-    ).toBe(true);
     // workspace:toggle-explorer-sidebar intentionally dispatches to sidebar scope
     expect(
       fixture.dispatched.some((a) => a.id === "sidebar.toggle.right" && a.scope === "sidebar"),
@@ -226,17 +222,6 @@ describe("workspace command center contributions", () => {
     expect(contributions.some((item) => item.id === "pane:split-right")).toBe(true);
     expect(contributions.some((item) => item.id === "pane:split-down")).toBe(true);
     expect(contributions.some((item) => item.id.startsWith("git:"))).toBe(false);
-  });
-
-  it("dispatches rename to the workspace scope", () => {
-    const fixture = source({ primary: null, secondary: [], menu: [] });
-    const contributions = buildWorkspaceCommandCenterContributions(fixture.value);
-
-    const rename = contributions.find((item) => item.id === "workspace:rename");
-    expect(rename?.presentation).toMatchObject({ title: "Rename workspace" });
-    rename?.run();
-
-    expect(fixture.dispatched).toEqual([{ id: "workspace.rename", scope: "workspace" }]);
   });
 
   it("copies the workspace path without going through the dispatcher", () => {

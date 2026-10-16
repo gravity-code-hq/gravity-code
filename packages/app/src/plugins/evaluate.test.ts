@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { runPluginClientBundle, type PluginClientRuntime } from "./evaluate";
 
 const runtime = {
-  paseo: {},
+  gravity: {},
   async rpc() {},
   openSettings() {},
   openSurface() {},
@@ -343,7 +343,7 @@ describe("evaluatePluginClientBundle", () => {
     const plugin = evaluatePluginClientBundle(
       "review",
       bundle(`
-        if (!plugin.paseo || !plugin.rpc || !plugin.openSurface || !plugin.openPanel || !plugin.addComposerPill) {
+        if (!plugin.gravity || !plugin.rpc || !plugin.openSurface || !plugin.openPanel || !plugin.addComposerPill) {
           throw new Error("missing client runtime");
         }
       `),
@@ -472,11 +472,11 @@ describe("evaluatePluginClientBundle", () => {
     ).toThrow("must return a cleanup function");
   });
 
-  it("provides the host Icon component through @getpaseo/plugin/client/react-native", () => {
+  it("provides the host Icon component through @gravity/plugin/client/react-native", () => {
     const plugin = evaluatePluginClientBundle(
       "example",
       `(function(require) {
-        const { Icon } = require("@getpaseo/plugin/client/react-native");
+        const { Icon } = require("@gravity/plugin/client/react-native");
         const module = { exports: {} };
         module.exports.default = function(plugin) {
           plugin.addSurface("main", function Surface() {
@@ -494,11 +494,11 @@ describe("evaluatePluginClientBundle", () => {
     expect(element).toMatchObject({ props: { size: 18, color: "#123456" } });
   });
 
-  it("provides Paseo UI through @getpaseo/plugin/client/react-native", () => {
+  it("provides Gravity UI through @gravity/plugin/client/react-native", () => {
     const plugin = evaluatePluginClientBundle(
       "example",
       `(function(require) {
-        const { Icon, Modal, useToast } = require("@getpaseo/plugin/client/react-native");
+        const { Icon, Modal, useToast } = require("@gravity/plugin/client/react-native");
         const module = { exports: {} };
         module.exports.default = function(plugin) {
           if (typeof Icon !== "function" || typeof Modal !== "function" || typeof Modal.Content !== "function" || typeof useToast !== "function") {
@@ -519,9 +519,9 @@ describe("evaluatePluginClientBundle", () => {
       evaluatePluginClientBundle(
         "example",
         `(function(require) {
-      const shared = require("@getpaseo/plugin");
-      const client = require("@getpaseo/plugin/client");
-      for (const name of ["usePaseo", "useRpc", "useSettings", "useAgent", "useWorkspace"]) {
+      const shared = require("@gravity/plugin");
+      const client = require("@gravity/plugin/client");
+      for (const name of ["useGravity", "useRpc", "useSettings", "useAgent", "useWorkspace"]) {
         if (name in shared || typeof client[name] !== "function") throw new Error(name);
       }
       if ("Icon" in shared || typeof shared.PluginAttachmentItemSchema.parse !== "function") throw new Error("shared exports");
@@ -532,14 +532,14 @@ describe("evaluatePluginClientBundle", () => {
   });
 
   it.each([
-    "@getpaseo/plugin/server",
-    "@getpaseo/plugin/server/provider",
-    "@getpaseo/plugin/server/acp",
-    "@getpaseo/plugin/client/host",
-    "@getpaseo/plugin/react-native",
-    "@getpaseo/plugin/ui",
-    "@getpaseo/plugin/host",
-    "@paseo/plugin",
+    "@gravity/plugin/server",
+    "@gravity/plugin/server/provider",
+    "@gravity/plugin/server/acp",
+    "@gravity/plugin/client/host",
+    "@gravity/plugin/react-native",
+    "@gravity/plugin/ui",
+    "@gravity/plugin/host",
+    "@gravity/plugin",
   ])("rejects %s in the client loader", (specifier) => {
     expect(() =>
       evaluatePluginClientBundle(
@@ -549,11 +549,11 @@ describe("evaluatePluginClientBundle", () => {
     ).toThrow("not available in plugin client code");
   });
 
-  it("resolves shared RPC helpers from @getpaseo/plugin", () => {
+  it("resolves shared RPC helpers from @gravity/plugin", () => {
     const plugin = evaluatePluginClientBundle(
       "example",
       `(function(require) {
-        const { defineRpc, defineAttachmentSource } = require("@getpaseo/plugin");
+        const { defineRpc, defineAttachmentSource } = require("@gravity/plugin");
         const search = defineRpc({ name: "issues.search", input: {}, output: {} });
         const module = { exports: {} };
         module.exports.default = function(plugin) {

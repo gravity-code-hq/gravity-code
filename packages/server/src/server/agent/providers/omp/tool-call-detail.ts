@@ -1,9 +1,11 @@
 import { z } from "zod";
 
 import type { ToolCallDetail } from "../../agent-sdk-types.js";
+import { nonEmptyString } from "../tool-call-mapper-utils.js";
 
 interface BashToolInput {
   command: string;
+  description?: string;
   timeout?: number;
 }
 
@@ -183,6 +185,7 @@ const OmpToolResultSchema = z.union([z.string(), OmpToolResultObjectSchema, z.nu
 
 const BashToolInputSchema: z.ZodType<BashToolInput> = z.object({
   command: z.string(),
+  description: z.unknown().transform(nonEmptyString).optional(),
   timeout: z.number().optional(),
 });
 
@@ -311,6 +314,7 @@ export function mapToolDetail(
       return {
         type: "shell",
         command: toolCall.args.command,
+        ...(toolCall.args.description ? { description: toolCall.args.description } : {}),
         output: summary.output,
         exitCode: summary.exitCode,
       };

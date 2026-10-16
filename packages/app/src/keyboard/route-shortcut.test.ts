@@ -31,6 +31,7 @@ describe("routeKeyboardShortcut — dispatch passthroughs", () => {
     ["workspace.tab.menu.open", { id: "workspace.tab.menu.open", scope: "workspace" }],
     ["workspace.tab.target.agent", { id: "workspace.tab.target.agent", scope: "workspace" }],
     ["workspace.tab.target.browser", { id: "workspace.tab.target.browser", scope: "workspace" }],
+    ["workspace.tab.target.diff", { id: "workspace.tab.target.diff", scope: "workspace" }],
     ["workspace.tab.target.changes", { id: "workspace.tab.target.changes", scope: "workspace" }],
     ["workspace.tab.target.files", { id: "workspace.tab.target.files", scope: "workspace" }],
     ["workspace.new", { id: "workspace.new", scope: "sidebar" }],
@@ -353,6 +354,26 @@ describe("routeKeyboardShortcut — settings.toggle", () => {
         }),
       ),
     ).toEqual<ShortcutAction>({ kind: "router-back" });
+  });
+});
+
+describe("routeKeyboardShortcut — history.open", () => {
+  it("pushes the History screen", () => {
+    expect(
+      routeKeyboardShortcut(
+        { action: "history.open", payload: null },
+        makeCtx({ pathname: "/h/srv/workspace/ws-2" }),
+      ),
+    ).toEqual<ShortcutAction>({ kind: "router-push", route: "/sessions" });
+  });
+
+  it("does nothing when History is already open", () => {
+    expect(
+      routeKeyboardShortcut(
+        { action: "history.open", payload: null },
+        makeCtx({ pathname: "/sessions" }),
+      ),
+    ).toEqual<ShortcutAction>({ kind: "none" });
   });
 });
 

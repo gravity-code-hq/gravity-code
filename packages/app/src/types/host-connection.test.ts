@@ -124,7 +124,7 @@ describe("normalizeStoredHostProfile", () => {
     const profile = normalizeStoredHostProfile({
       serverId: "srv_old",
       connections: [
-        { id: "socket:/tmp/paseo.sock", type: "directSocket", path: "/tmp/paseo.sock" },
+        { id: "socket:/tmp/gravity.sock", type: "directSocket", path: "/tmp/gravity.sock" },
       ],
     });
 
@@ -136,7 +136,7 @@ describe("normalizeStoredHostProfile", () => {
       serverId: "srv_new",
       appearance: { color: "teal", badgeDisplay: "icon" },
       connections: [
-        { id: "socket:/tmp/paseo.sock", type: "directSocket", path: "/tmp/paseo.sock" },
+        { id: "socket:/tmp/gravity.sock", type: "directSocket", path: "/tmp/gravity.sock" },
       ],
     });
 
@@ -191,9 +191,9 @@ describe("createRemoteSshHostConnection", () => {
 
 describe("upsertHostConnectionInProfiles", () => {
   const connection: HostConnection = {
-    id: "socket:/tmp/paseo.sock",
+    id: "socket:/tmp/gravity.sock",
     type: "directSocket",
-    path: "/tmp/paseo.sock",
+    path: "/tmp/gravity.sock",
   };
 
   it("gives a newly discovered host the default appearance", () => {

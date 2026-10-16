@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
+import { execFileSync } from "node:child_process";
 import path from "path";
 import { createDaemonTestContext, type DaemonTestContext } from "../test-utils/index.js";
 
@@ -23,6 +24,26 @@ afterEach(async () => {
 }, 60000);
 
 describe("file explorer", () => {
+  test("searches file contents through the daemon connection", async () => {
+    const cwd = tmpCwd();
+    try {
+      execFileSync("git", ["init", "--quiet", cwd]);
+      writeFileSync(path.join(cwd, "example.txt"), "before\ntesting file search\nafter\n");
+      const result = await ctx.client.searchFileContents({
+        cwd,
+        query: "testing",
+        maxResults: 2000,
+      });
+      expect(result.error).toBeNull();
+      expect(result.totalMatches).toBe(1);
+      expect(result.files).toMatchObject([
+        { path: "example.txt", matches: [{ line: 2, column: 1, text: "testing file search" }] },
+      ]);
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   test("lists directory contents", async () => {
     const cwd = tmpCwd();
 

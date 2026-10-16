@@ -1,5 +1,5 @@
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
-import type { ActiveTurnBehavior } from "@getpaseo/protocol/messages";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
+import type { ActiveTurnBehavior } from "@gravity/protocol/messages";
 import type { MessagePayload } from "@/composer/types";
 import type { MessageInputKeyboardActionKind } from "@/keyboard/actions";
 
@@ -52,6 +52,13 @@ interface SendActionContext {
   onQueue: ((payload: MessagePayload) => void) | undefined;
   handleSendMessage: () => void;
   handleQueueMessage: () => void;
+}
+
+interface DefaultSendActionContext extends SendActionContext {
+  /** False when the composer has no text, attachments, or external content. */
+  hasSendableContent: boolean;
+  /** Sends the oldest queued message. Returns true when one was sent. */
+  sendOldestQueuedMessage: () => boolean;
 }
 
 interface DictationTranscriptContext {
@@ -117,7 +124,10 @@ export function computeCanStartDictation(input: {
   );
 }
 
-export function runDefaultSendAction(ctx: SendActionContext): void {
+export function runDefaultSendAction(ctx: DefaultSendActionContext): void {
+  // An empty composer has nothing to send or queue, so Enter flushes the head of the queue
+  // instead of doing nothing.
+  if (!ctx.hasSendableContent && ctx.sendOldestQueuedMessage()) return;
   if (ctx.defaultSendBehavior === "queue" && ctx.isAgentRunning && ctx.onQueue) {
     ctx.handleQueueMessage();
     return;

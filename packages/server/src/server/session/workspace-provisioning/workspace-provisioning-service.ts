@@ -15,13 +15,13 @@ import {
   type WorkspaceRegistry,
 } from "../../workspace-registry.js";
 import type { WorkspaceGitService } from "../../workspace-git-service.js";
-import type { CreatePaseoWorktreeWorkflowResult } from "../../worktree-session.js";
+import type { CreateGravityWorktreeWorkflowResult } from "../../worktree-session.js";
 import { deriveProjectKey } from "../../project-key.js";
 import { areEquivalentPaths, createRealpathAwarePathMatcher } from "../../../utils/path.js";
 import type { UntrustedWorkspaceSource } from "../../workspace-automation-gate.js";
 
 export interface ResolveOrCreateWorkspaceIdInput {
-  createdWorktree: CreatePaseoWorktreeWorkflowResult | null;
+  createdWorktree: CreateGravityWorktreeWorkflowResult | null;
   requestedWorkspaceId?: string;
   cwd: string;
   initialTitle: string | null;

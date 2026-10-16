@@ -2,12 +2,11 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { openSettings } from "./app";
 import { clickSettingsBackToWorkspace, openSettingsSection } from "./settings";
 
-const APP_SETTINGS_KEY = "@paseo:app-settings";
+const APP_SETTINGS_KEY = "@gravity:app-settings";
 
 /** Persisted nav key -> the testID the app shell renders that item with. */
 const SHELL_ROW_TEST_IDS = {
   "new-workspace": "sidebar-global-new-workspace",
-  history: "sidebar-sessions",
   search: "sidebar-search",
   schedules: "sidebar-schedules",
 } as const;
@@ -32,9 +31,8 @@ function settingsRow(page: Page, key: SidebarNavKey): Locator {
 function itemLabel(key: SidebarNavKey): string {
   return {
     "new-workspace": "New workspace",
-    history: "History",
     search: "Search",
-    schedules: "Schedules",
+    schedules: "Automations",
   }[key];
 }
 

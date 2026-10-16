@@ -1,4 +1,7 @@
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useTextZoom } from "@/zoom/use-text-zoom";
+import { useZoomTarget } from "@/zoom/target";
+import { TerminalTextSizeMenu } from "@/terminal/text-size-menu";
 import { useRetainedPanelActive } from "@/components/retained-panel";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
@@ -6,12 +9,12 @@ import { Pressable, Text, View, type PressableStateCallbackType } from "react-na
 import Animated, { runOnJS, useAnimatedReaction } from "react-native-reanimated";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { Keyboard as KeyboardIcon, KeyboardOff as KeyboardOffIcon } from "lucide-react-native";
-import type { TerminalKeyInput } from "@getpaseo/protocol/terminal-key-input";
-import type { TerminalState } from "@getpaseo/protocol/messages";
+import type { TerminalKeyInput } from "@gravity/protocol/terminal-key-input";
+import type { TerminalState } from "@gravity/protocol/messages";
 import {
   DEFAULT_TERMINAL_INPUT_MODE_STATE,
   type TerminalInputModeState,
-} from "@getpaseo/protocol/terminal-input-mode";
+} from "@gravity/protocol/terminal-input-mode";
 import { useTranslation } from "react-i18next";
 import { useHostRuntimeClient, useHostRuntimeIsConnected } from "@/runtime/host-runtime";
 import { useKeyboardShiftStyle } from "@/hooks/use-keyboard-shift-style";
@@ -214,6 +217,8 @@ export function TerminalPane({
   const isAppActivelyVisible = useAppActivelyVisible();
   const { theme } = useUnistyles();
   const { settings } = useAppSettings();
+  const { fontSize: terminalFontSize, zoom } = useTextZoom(settings.terminalFontSize, "terminal");
+  const zoomRef = useZoomTarget(".xterm-helper-textarea", zoom);
   const xtermTheme = useMemo(() => toXtermTheme(theme.colors.terminal), [theme]);
   const terminalFontFamily = useMemo(() => {
     const trimmed = settings.monoFontFamily.trim();
@@ -1023,7 +1028,8 @@ export function TerminalPane({
 
   return (
     <Animated.View style={containerStyle}>
-      <View style={styles.outputContainer}>
+      <View ref={zoomRef} style={styles.outputContainer}>
+        <TerminalTextSizeMenu fontSize={terminalFontSize} onZoom={zoom} />
         <View style={styles.terminalGestureContainer}>
           <TerminalEmulator
             ref={emulatorRef}
@@ -1034,7 +1040,7 @@ export function TerminalPane({
             xtermTheme={xtermTheme}
             scrollbackLines={settings.terminalScrollbackLines}
             fontFamily={terminalFontFamily}
-            fontSize={settings.codeFontSize}
+            fontSize={terminalFontSize}
             keyboardInset={keyboardInset}
             isKeyboardVisible={isKeyboardVisible}
             swipeGesturesEnabled={swipeGesturesEnabled}

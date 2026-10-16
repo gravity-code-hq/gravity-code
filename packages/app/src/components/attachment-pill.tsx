@@ -6,7 +6,55 @@ import { isNative } from "@/constants/platform";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import type { AttachmentMetadata } from "@/attachments/types";
 import { useAttachmentPreviewUrl } from "@/attachments/use-attachment-preview-url";
-import type { Theme } from "@/styles/theme";
+import { ICON_SIZE, type Theme } from "@/styles/theme";
+import { MaterialFileIcon } from "@/components/material-file-icon";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+interface FileAttachmentChipProps {
+  fileName: string;
+  detail: string;
+  lineRange?: string;
+  onRemove: () => void;
+  removeAccessibilityLabel: string;
+  disabled: boolean;
+  testID: string;
+}
+
+export function FileAttachmentChip({
+  fileName,
+  detail,
+  lineRange,
+  onRemove,
+  removeAccessibilityLabel,
+  disabled,
+  testID,
+}: FileAttachmentChipProps) {
+  return (
+    <View testID={testID} style={styles.fileChip}>
+      <Tooltip enabledOnMobile>
+        <TooltipTrigger style={styles.fileChipLabel} accessibilityLabel={detail}>
+          <MaterialFileIcon fileName={fileName} size={ICON_SIZE.sm} />
+          <Text style={styles.fileChipTitle} numberOfLines={1}>
+            {fileName}
+          </Text>
+          {lineRange ? <Text style={styles.fileChipDetail}>{lineRange}</Text> : null}
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start">
+          <Text style={styles.fileChipTooltip}>{detail}</Text>
+        </TooltipContent>
+      </Tooltip>
+      <Button
+        variant="ghost"
+        size="xs"
+        leftIcon={X}
+        onPress={onRemove}
+        disabled={disabled}
+        accessibilityLabel={`${removeAccessibilityLabel}: ${fileName}`}
+      />
+    </View>
+  );
+}
 
 // Every attachment pill body — image thumbnail or labelled — renders at this
 // height so mixed attachment trays line up.
@@ -145,6 +193,36 @@ const ThemedX = withUnistyles(X);
 const iconForegroundMutedMapping = (theme: Theme) => ({ color: theme.colors.foregroundMuted });
 
 const styles = StyleSheet.create((theme) => ({
+  fileChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surface2,
+    paddingLeft: theme.spacing[2],
+  },
+  fileChipLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: 260,
+    gap: theme.spacing[1],
+  },
+  fileChipTitle: {
+    flexShrink: 1,
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+  },
+  fileChipDetail: {
+    color: theme.colors.foregroundMuted,
+    fontSize: theme.fontSize.sm,
+  },
+  fileChipTooltip: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.sm,
+  },
   wrapper: {
     position: "relative",
   },
@@ -192,7 +270,7 @@ const styles = StyleSheet.create((theme) => ({
   closeButton: {
     position: "absolute",
     top: -8,
-    left: -8,
+    right: -8,
     width: 24,
     height: 24,
     borderRadius: 12,

@@ -6,10 +6,10 @@ import type {
   ConnectionState,
   FetchAgentsEntry,
   FetchAgentsOptions,
-} from "@getpaseo/client/internal/daemon-client";
-import type { ConnectionOffer } from "@getpaseo/protocol/connection-offer";
-import type { SessionOutboundMessage } from "@getpaseo/protocol/messages";
-import type { AgentPermissionRequest } from "@getpaseo/protocol/agent-types";
+} from "@gravity/client/internal/daemon-client";
+import type { ConnectionOffer } from "@gravity/protocol/connection-offer";
+import type { SessionOutboundMessage } from "@gravity/protocol/messages";
+import type { AgentPermissionRequest } from "@gravity/protocol/agent-types";
 import type { HostConnection, HostProfile } from "@/types/host-connection";
 import { defaultHostAppearance } from "@/hosts/appearance";
 import { useSessionStore, type Agent } from "@/stores/session-store";
@@ -236,7 +236,7 @@ class FakeDaemonClient {
 
 afterEach(() => {
   vi.useRealTimers();
-  delete (globalThis as Record<string, unknown>).__PASEO_INITIAL_DAEMON_CONNECTION__;
+  delete (globalThis as Record<string, unknown>).__GRAVITY_INITIAL_DAEMON_CONNECTION__;
   delete (globalThis as { window?: unknown }).window;
 });
 
@@ -349,7 +349,7 @@ function makeFetchAgentsEntry(input: {
         currentBranch: null,
         remoteUrl: null,
         worktreeRoot: null,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         mainRepoRoot: null,
       },
     },
@@ -371,9 +371,9 @@ function makeHost(input?: Partial<HostProfile>): HostProfile {
     endpoint: "lan:6767",
   };
   const relay: HostConnection = {
-    id: "relay:relay.paseo.sh:443",
+    id: "relay:relay.gravity.example:443",
     type: "relay",
-    relayEndpoint: "relay.paseo.sh:443",
+    relayEndpoint: "relay.gravity.example:443",
     daemonPublicKeyB64: "pk_test",
   };
 
@@ -395,7 +395,7 @@ function makeOffer(input?: Partial<ConnectionOffer>): ConnectionOffer {
     serverId: input?.serverId ?? "srv_offer",
     daemonPublicKeyB64: input?.daemonPublicKeyB64 ?? "pk_test_offer",
     relay: {
-      endpoint: input?.relay?.endpoint ?? "relay.paseo.sh:443",
+      endpoint: input?.relay?.endpoint ?? "relay.gravity.example:443",
       useTls: input?.relay?.useTls ?? false,
     },
   };
@@ -407,7 +407,7 @@ function encodeOfferUrl(payload: unknown): string {
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/g, "");
-  return `https://app.paseo.sh/#offer=${encoded}`;
+  return `https://app.gravity.example/#offer=${encoded}`;
 }
 
 function makeDeps(
@@ -608,9 +608,9 @@ describe("HostRuntimeController", () => {
 
   it("replaces the active relay client when re-pairing changes the daemon public key", async () => {
     const oldRelay: HostConnection = {
-      id: "relay:wss:relay.paseo.sh:443",
+      id: "relay:wss:relay.gravity.example:443",
       type: "relay",
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       useTls: true,
       daemonPublicKeyB64: "pk_old",
     };
@@ -759,7 +759,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 82,
-      "relay:relay.paseo.sh:443": 18,
+      "relay:relay.gravity.example:443": 18,
     };
     const controller = new HostRuntimeController({
       host,
@@ -789,7 +789,7 @@ describe("HostRuntimeController", () => {
         },
         connectToDaemon: async ({ host: hostProfile, connection }) => {
           const client = makeConnectedProbeClient(connection.id === "direct:lan:6767" ? 12 : 30);
-          if (connection.id === "relay:relay.paseo.sh:443") {
+          if (connection.id === "relay:relay.gravity.example:443") {
             client.ping = async () => ({ rttMs: await slowPing.promise });
           }
           clients.push(client);
@@ -830,7 +830,7 @@ describe("HostRuntimeController", () => {
     const probeAttempts: string[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 12,
-      "relay:relay.paseo.sh:443": 65,
+      "relay:relay.gravity.example:443": 65,
     };
     const controller = new HostRuntimeController({
       host,
@@ -881,9 +881,9 @@ describe("HostRuntimeController", () => {
   it("does not create a probe client for the selected connection while it reconnects", async () => {
     useHostRuntimeClock();
     const relay: HostConnection = {
-      id: "relay:relay.paseo.sh:443",
+      id: "relay:relay.gravity.example:443",
       type: "relay",
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       daemonPublicKeyB64: "pk_test",
     };
     const host = makeHost({ connections: [relay], preferredConnectionId: relay.id });
@@ -968,7 +968,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 15,
-      "relay:relay.paseo.sh:443": 55,
+      "relay:relay.gravity.example:443": 55,
     };
     const controller = new HostRuntimeController({
       host,
@@ -983,7 +983,7 @@ describe("HostRuntimeController", () => {
     const activeClient = initialClient as unknown as FakeDaemonClient;
     activeClient.heartbeatReportsRtt(200);
     activeClient.latencyMeasurementsFailWith("active measurement failed");
-    latencies["relay:relay.paseo.sh:443"] = 42;
+    latencies["relay:relay.gravity.example:443"] = 42;
     await vi.advanceTimersByTimeAsync(120_000);
     await controller.runProbeCycleNow();
 
@@ -1036,7 +1036,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 10,
-      "relay:relay.paseo.sh:443": 50,
+      "relay:relay.gravity.example:443": 50,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1049,10 +1049,10 @@ describe("HostRuntimeController", () => {
     const initialClientCount = clients.length;
     const initialRelayProbe = controller
       .getSnapshot()
-      .probeByConnectionId.get("relay:relay.paseo.sh:443");
+      .probeByConnectionId.get("relay:relay.gravity.example:443");
 
     latencies["direct:lan:6767"] = 12;
-    latencies["relay:relay.paseo.sh:443"] = 25;
+    latencies["relay:relay.gravity.example:443"] = 25;
     activeClient.heartbeatReportsRtt(12);
     await vi.advanceTimersByTimeAsync(60_000);
 
@@ -1064,7 +1064,9 @@ describe("HostRuntimeController", () => {
       status: "available",
       latencyMs: 12,
     });
-    expect(snapshot.probeByConnectionId.get("relay:relay.paseo.sh:443")).toEqual(initialRelayProbe);
+    expect(snapshot.probeByConnectionId.get("relay:relay.gravity.example:443")).toEqual(
+      initialRelayProbe,
+    );
   });
 
   it("switches only after the faster alternative wins consecutive probes", async () => {
@@ -1073,7 +1075,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 15,
-      "relay:relay.paseo.sh:443": 60,
+      "relay:relay.gravity.example:443": 60,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1085,7 +1087,7 @@ describe("HostRuntimeController", () => {
     const activeClient = controller.getSnapshot().client as unknown as FakeDaemonClient;
 
     latencies["direct:lan:6767"] = 95;
-    latencies["relay:relay.paseo.sh:443"] = 30;
+    latencies["relay:relay.gravity.example:443"] = 30;
     activeClient.heartbeatReportsRtt(95);
     await vi.advanceTimersByTimeAsync(120_000);
     await controller.runProbeCycleNow();
@@ -1095,11 +1097,12 @@ describe("HostRuntimeController", () => {
     await controller.runProbeCycleNow();
     expect(controller.getSnapshot().activeConnectionId).toBe("direct:lan:6767");
 
-    let switched = controller.getSnapshot().activeConnectionId === "relay:relay.paseo.sh:443";
+    let switched =
+      controller.getSnapshot().activeConnectionId === "relay:relay.gravity.example:443";
     for (let index = 0; index < 6 && !switched; index += 1) {
       await vi.advanceTimersByTimeAsync(120_000);
       await controller.runProbeCycleNow();
-      switched = controller.getSnapshot().activeConnectionId === "relay:relay.paseo.sh:443";
+      switched = controller.getSnapshot().activeConnectionId === "relay:relay.gravity.example:443";
     }
     expect(switched).toBe(true);
     expect(controller.getSnapshot().client).not.toBeNull();
@@ -1111,7 +1114,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 15,
-      "relay:relay.paseo.sh:443": 80,
+      "relay:relay.gravity.example:443": 80,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1123,21 +1126,21 @@ describe("HostRuntimeController", () => {
     const activeClient = controller.getSnapshot().client as unknown as FakeDaemonClient;
 
     latencies["direct:lan:6767"] = 100;
-    latencies["relay:relay.paseo.sh:443"] = 20;
+    latencies["relay:relay.gravity.example:443"] = 20;
     activeClient.heartbeatReportsRtt(100);
     await vi.advanceTimersByTimeAsync(120_000);
     await controller.runProbeCycleNow();
     expect(controller.getSnapshot().activeConnectionId).toBe("direct:lan:6767");
 
     latencies["direct:lan:6767"] = 20;
-    latencies["relay:relay.paseo.sh:443"] = 90;
+    latencies["relay:relay.gravity.example:443"] = 90;
     activeClient.heartbeatReportsRtt(20);
     await vi.advanceTimersByTimeAsync(120_000);
     await controller.runProbeCycleNow();
     expect(controller.getSnapshot().activeConnectionId).toBe("direct:lan:6767");
 
     latencies["direct:lan:6767"] = 100;
-    latencies["relay:relay.paseo.sh:443"] = 20;
+    latencies["relay:relay.gravity.example:443"] = 20;
     activeClient.heartbeatReportsRtt(100);
     await vi.advanceTimersByTimeAsync(120_000);
     await controller.runProbeCycleNow();
@@ -1147,11 +1150,12 @@ describe("HostRuntimeController", () => {
     await controller.runProbeCycleNow();
     expect(controller.getSnapshot().activeConnectionId).toBe("direct:lan:6767");
 
-    let switched = controller.getSnapshot().activeConnectionId === "relay:relay.paseo.sh:443";
+    let switched =
+      controller.getSnapshot().activeConnectionId === "relay:relay.gravity.example:443";
     for (let index = 0; index < 6 && !switched; index += 1) {
       await vi.advanceTimersByTimeAsync(120_000);
       await controller.runProbeCycleNow();
-      switched = controller.getSnapshot().activeConnectionId === "relay:relay.paseo.sh:443";
+      switched = controller.getSnapshot().activeConnectionId === "relay:relay.gravity.example:443";
     }
     expect(switched).toBe(true);
   });
@@ -1161,7 +1165,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 12,
-      "relay:relay.paseo.sh:443": 65,
+      "relay:relay.gravity.example:443": 65,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1265,7 +1269,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 12,
-      "relay:relay.paseo.sh:443": 65,
+      "relay:relay.gravity.example:443": 65,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1285,7 +1289,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 12,
-      "relay:relay.paseo.sh:443": 65,
+      "relay:relay.gravity.example:443": 65,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1316,7 +1320,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 12,
-      "relay:relay.paseo.sh:443": 65,
+      "relay:relay.gravity.example:443": 65,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1338,7 +1342,7 @@ describe("HostRuntimeController", () => {
     const clients: FakeDaemonClient[] = [];
     const latencies: Record<string, number | Error> = {
       "direct:lan:6767": 12,
-      "relay:relay.paseo.sh:443": 65,
+      "relay:relay.gravity.example:443": 65,
     };
     const controller = new HostRuntimeController({
       host,
@@ -1371,9 +1375,9 @@ describe("HostRuntimeController", () => {
           endpoint: "lan:6767",
         },
         {
-          id: "relay:relay.paseo.sh:443",
+          id: "relay:relay.gravity.example:443",
           type: "relay",
-          relayEndpoint: "relay.paseo.sh:443",
+          relayEndpoint: "relay.gravity.example:443",
           daemonPublicKeyB64: "pk_test",
         },
       ],
@@ -1426,12 +1430,12 @@ describe("HostRuntimeController", () => {
     });
 
     const switchRelay = controller.activateConnection({
-      connectionId: "relay:relay.paseo.sh:443",
+      connectionId: "relay:relay.gravity.example:443",
     });
     await waitUntil(() => {
       const snapshot = controller.getSnapshot();
       return (
-        snapshot.activeConnectionId === "relay:relay.paseo.sh:443" &&
+        snapshot.activeConnectionId === "relay:relay.gravity.example:443" &&
         snapshot.connectionStatus === "online"
       );
     });
@@ -1440,7 +1444,7 @@ describe("HostRuntimeController", () => {
     await Promise.allSettled([switchDirect, switchRelay]);
 
     const snapshot = controller.getSnapshot();
-    expect(snapshot.activeConnectionId).toBe("relay:relay.paseo.sh:443");
+    expect(snapshot.activeConnectionId).toBe("relay:relay.gravity.example:443");
     expect(snapshot.connectionStatus).toBe("online");
     expect(snapshot.lastError).toBeNull();
     expect(createdClients).toHaveLength(2);
@@ -1548,9 +1552,9 @@ describe("HostRuntimeStore", () => {
     "keeps reconnect enabled through inactive/background and resumes immediately (mounted %s)",
     async (currentState) => {
       const relay = (suffix: string): HostConnection => ({
-        id: `relay:relay-${suffix}.paseo.sh:443`,
+        id: `relay:relay-${suffix}.github.com/gravity-code-hq/gravity:443`,
         type: "relay",
-        relayEndpoint: `relay-${suffix}.paseo.sh:443`,
+        relayEndpoint: `relay-${suffix}.github.com/gravity-code-hq/gravity:443`,
         daemonPublicKeyB64: `pk_${suffix}`,
       });
       const hostAConnection = relay("a");
@@ -1644,8 +1648,8 @@ describe("HostRuntimeStore", () => {
     const host = makeHost({ connections: [makeHost().connections[0]!] });
     const revocation = createDeferred<void>();
     const storage = createMemoryHostRuntimeStorage({
-      "@paseo:daemon-registry": JSON.stringify([host]),
-      "@paseo:e2e": "1",
+      "@gravity:daemon-registry": JSON.stringify([host]),
+      "@gravity:e2e": "1",
     });
     const store = new HostRuntimeStore({
       storage,
@@ -1670,8 +1674,8 @@ describe("HostRuntimeStore", () => {
     const host = makeHost({ connections: [makeHost().connections[0]!] });
     const revokedServerIds: string[] = [];
     const storage = createMemoryHostRuntimeStorage({
-      "@paseo:daemon-registry": JSON.stringify([host]),
-      "@paseo:e2e": "1",
+      "@gravity:daemon-registry": JSON.stringify([host]),
+      "@gravity:e2e": "1",
     });
     const store = new HostRuntimeStore({
       storage,
@@ -1700,8 +1704,8 @@ describe("HostRuntimeStore", () => {
         return backingStore.read(...args);
       },
     };
-    await storage.setItem("@paseo:daemon-registry", JSON.stringify([host]));
-    await storage.setItem("@paseo:e2e", "1");
+    await storage.setItem("@gravity:daemon-registry", JSON.stringify([host]));
+    await storage.setItem("@gravity:e2e", "1");
     const session = useSessionStore.getState();
 
     const store = new HostRuntimeStore({
@@ -1779,7 +1783,7 @@ describe("HostRuntimeStore", () => {
   it("exposes the default appearance for a host stored before the field existed", async () => {
     const storage = createMemoryHostRuntimeStorage();
     await storage.setItem(
-      "@paseo:daemon-registry",
+      "@gravity:daemon-registry",
       JSON.stringify([
         {
           serverId: "srv_legacy",
@@ -1791,7 +1795,7 @@ describe("HostRuntimeStore", () => {
         },
       ]),
     );
-    await storage.setItem("@paseo:e2e", "1");
+    await storage.setItem("@gravity:e2e", "1");
     const store = createAppearanceStore(storage);
 
     const registryLoaded = onceHostListMatches(store, () => store.isHostRegistryLoaded());
@@ -1806,8 +1810,8 @@ describe("HostRuntimeStore", () => {
   it("records a chosen host color and writes it through to storage", async () => {
     const host = makeHost({ serverId: "srv_appearance", updatedAt: new Date(0).toISOString() });
     const storage = createMemoryHostRuntimeStorage();
-    await storage.setItem("@paseo:daemon-registry", JSON.stringify([host]));
-    await storage.setItem("@paseo:e2e", "1");
+    await storage.setItem("@gravity:daemon-registry", JSON.stringify([host]));
+    await storage.setItem("@gravity:e2e", "1");
     const store = createAppearanceStore(storage);
 
     const registryLoaded = onceHostListMatches(store, () => store.isHostRegistryLoaded());
@@ -1825,7 +1829,7 @@ describe("HostRuntimeStore", () => {
     expect(updated?.appearance).toEqual({ color: "teal", badgeDisplay: null });
     expect(updated?.updatedAt).not.toBe(host.updatedAt);
 
-    const persisted = await storage.getItem("@paseo:daemon-registry");
+    const persisted = await storage.getItem("@gravity:daemon-registry");
     expect(JSON.parse(persisted ?? "[]")[0].appearance).toEqual({
       color: "teal",
       badgeDisplay: null,
@@ -1840,8 +1844,8 @@ describe("HostRuntimeStore", () => {
       appearance: { color: "amber", badgeDisplay: null },
     });
     const storage = createMemoryHostRuntimeStorage();
-    await storage.setItem("@paseo:daemon-registry", JSON.stringify([host]));
-    await storage.setItem("@paseo:e2e", "1");
+    await storage.setItem("@gravity:daemon-registry", JSON.stringify([host]));
+    await storage.setItem("@gravity:e2e", "1");
     const store = createAppearanceStore(storage);
 
     const registryLoaded = onceHostListMatches(store, () => store.isHostRegistryLoaded());
@@ -1857,7 +1861,7 @@ describe("HostRuntimeStore", () => {
 
     expect(store.getHosts()[0]?.appearance).toEqual({ color: "amber", badgeDisplay: "icon" });
 
-    const persisted = await storage.getItem("@paseo:daemon-registry");
+    const persisted = await storage.getItem("@gravity:daemon-registry");
     expect(JSON.parse(persisted ?? "[]")[0].appearance).toEqual({
       color: "amber",
       badgeDisplay: "icon",
@@ -1869,8 +1873,8 @@ describe("HostRuntimeStore", () => {
   it("keeps host appearance unchanged when persistence fails", async () => {
     const host = makeHost({ serverId: "srv_appearance" });
     const storage = createMemoryHostRuntimeStorage();
-    await storage.setItem("@paseo:daemon-registry", JSON.stringify([host]));
-    await storage.setItem("@paseo:e2e", "1");
+    await storage.setItem("@gravity:daemon-registry", JSON.stringify([host]));
+    await storage.setItem("@gravity:e2e", "1");
     const store = createAppearanceStore(storage);
 
     const registryLoaded = onceHostListMatches(store, () => store.isHostRegistryLoaded());
@@ -1890,8 +1894,8 @@ describe("HostRuntimeStore", () => {
   it("serializes overlapping host appearance writes", async () => {
     const host = makeHost({ serverId: "srv_appearance" });
     const storage = createMemoryHostRuntimeStorage();
-    await storage.setItem("@paseo:daemon-registry", JSON.stringify([host]));
-    await storage.setItem("@paseo:e2e", "1");
+    await storage.setItem("@gravity:daemon-registry", JSON.stringify([host]));
+    await storage.setItem("@gravity:e2e", "1");
     const store = createAppearanceStore(storage);
 
     const registryLoaded = onceHostListMatches(store, () => store.isHostRegistryLoaded());
@@ -1916,7 +1920,7 @@ describe("HostRuntimeStore", () => {
     await Promise.all([color, display]);
 
     expect(store.getHosts()[0]?.appearance).toEqual({ color: "teal", badgeDisplay: "icon" });
-    const persistedHosts = JSON.parse((await storage.getItem("@paseo:daemon-registry")) ?? "[]");
+    const persistedHosts = JSON.parse((await storage.getItem("@gravity:daemon-registry")) ?? "[]");
     expect(persistedHosts[0]?.appearance).toEqual({ color: "teal", badgeDisplay: "icon" });
     store.syncHosts([]);
   });
@@ -2220,7 +2224,7 @@ describe("HostRuntimeStore", () => {
         entries: [
           makeFetchAgentsEntry({
             id: "agent-recent",
-            cwd: "/workspaces/paseo",
+            cwd: "/workspaces/gravity",
             updatedAt: "2026-03-04T12:00:00.000Z",
             title: "Recent agent",
           }),
@@ -2233,7 +2237,7 @@ describe("HostRuntimeStore", () => {
         entries: [
           makeFetchAgentsEntry({
             id: "agent-stale-attention",
-            cwd: "/workspaces/paseo-pr67-review",
+            cwd: "/workspaces/gravity-pr67-review",
             updatedAt: "2026-02-20T08:00:00.000Z",
             title: "Needs triage",
             requiresAttention: true,
@@ -3194,7 +3198,7 @@ describe("HostRuntimeStore", () => {
     useSessionStore.getState().setAgents(host.serverId, () => {
       const stale = makeFetchAgentsEntry({
         id: "agent-archived",
-        cwd: "/workspaces/paseo",
+        cwd: "/workspaces/gravity",
         updatedAt: "2026-03-30T15:29:00.000Z",
         archivedAt: null,
         title: "Stale active copy",
@@ -3361,7 +3365,7 @@ describe("HostRuntimeStore", () => {
 
     await store.upsertDirectConnection({
       serverId: "srv_tls_password",
-      endpoint: "example.paseo.test:7443",
+      endpoint: "example.gravity.test:7443",
       useTls: true,
       password: "shared-secret",
       label: "tls host",
@@ -3370,9 +3374,9 @@ describe("HostRuntimeStore", () => {
     const host = store.getHosts().find((entry) => entry.serverId === "srv_tls_password");
     expect(host?.connections).toEqual([
       {
-        id: "direct:example.paseo.test:7443",
+        id: "direct:example.gravity.test:7443",
         type: "directTcp",
-        endpoint: "example.paseo.test:7443",
+        endpoint: "example.gravity.test:7443",
         useTls: true,
         password: "shared-secret",
       },
@@ -3534,7 +3538,7 @@ describe("HostRuntimeStore", () => {
       v: 2,
       serverId: "srv_offer",
       daemonPublicKeyB64: "pk_test_offer",
-      relay: { endpoint: "relay.paseo.sh:443" },
+      relay: { endpoint: "relay.gravity.example:443" },
     });
 
     await store.upsertConnectionFromOfferUrl(oldPairingUrl, "old relay");
@@ -3542,9 +3546,9 @@ describe("HostRuntimeStore", () => {
     const pairedHost = store.getHosts().find((host) => host.serverId === "srv_offer");
     expect(pairedHost?.connections).toEqual([
       {
-        id: "relay:wss:relay.paseo.sh:443",
+        id: "relay:wss:relay.gravity.example:443",
         type: "relay",
-        relayEndpoint: "relay.paseo.sh:443",
+        relayEndpoint: "relay.gravity.example:443",
         useTls: true,
         daemonPublicKeyB64: "pk_test_offer",
       },
@@ -3569,7 +3573,7 @@ describe("HostRuntimeStore", () => {
 
     await store.upsertRelayConnection({
       serverId: "srv_offer",
-      relayEndpoint: "relay.paseo.sh:443",
+      relayEndpoint: "relay.gravity.example:443",
       daemonPublicKeyB64: "pk_test_offer",
       label: "Custom name",
     });
@@ -3589,7 +3593,7 @@ describe("readInitialDaemonConnectionHint", () => {
   });
 
   it("parses a valid listen-only hint", () => {
-    (globalThis as Record<string, unknown>).__PASEO_INITIAL_DAEMON_CONNECTION__ = {
+    (globalThis as Record<string, unknown>).__GRAVITY_INITIAL_DAEMON_CONNECTION__ = {
       listen: "localhost:6767",
     };
     expect(readInitialDaemonConnectionHint({ isWebRuntime: true })).toEqual({
@@ -3599,21 +3603,22 @@ describe("readInitialDaemonConnectionHint", () => {
   });
 
   it("preserves useTls when explicitly true", () => {
-    (globalThis as Record<string, unknown>).__PASEO_INITIAL_DAEMON_CONNECTION__ = {
-      listen: "paseo.example.com:443",
+    (globalThis as Record<string, unknown>).__GRAVITY_INITIAL_DAEMON_CONNECTION__ = {
+      listen: "gravity.example.com:443",
       useTls: true,
     };
     expect(readInitialDaemonConnectionHint({ isWebRuntime: true })).toEqual({
-      listen: "paseo.example.com:443",
+      listen: "gravity.example.com:443",
       useTls: true,
     });
   });
 
   it("ignores invalid shapes", () => {
-    (globalThis as Record<string, unknown>).__PASEO_INITIAL_DAEMON_CONNECTION__ = "localhost:6767";
+    (globalThis as Record<string, unknown>).__GRAVITY_INITIAL_DAEMON_CONNECTION__ =
+      "localhost:6767";
     expect(readInitialDaemonConnectionHint({ isWebRuntime: true })).toBeNull();
 
-    (globalThis as Record<string, unknown>).__PASEO_INITIAL_DAEMON_CONNECTION__ = {
+    (globalThis as Record<string, unknown>).__GRAVITY_INITIAL_DAEMON_CONNECTION__ = {
       useTls: true,
     };
     expect(readInitialDaemonConnectionHint({ isWebRuntime: true })).toBeNull();

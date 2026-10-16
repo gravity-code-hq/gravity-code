@@ -10,7 +10,7 @@ import { basename } from "node:path";
 import defaultLog from "electron-log/main";
 
 const DEFAULT_RESOLVE_TIMEOUT_MS = 30_000;
-const TIMEOUT_ENV_KEY = "PASEO_SHELL_ENV_TIMEOUT_MS";
+const TIMEOUT_ENV_KEY = "GRAVITY_SHELL_ENV_TIMEOUT_MS";
 const STDERR_LOG_LIMIT = 2000;
 
 type LoginShellEnvLogger = Pick<typeof defaultLog, "info" | "warn">;
@@ -406,9 +406,9 @@ function resolveShellEnv({ deps, timeoutMs }: ResolveShellEnvInput): ResolvedShe
   const { command, attempts } = shellEnvCommand({ shell, mark });
 
   const shellEnv = { ...deps.env };
-  delete shellEnv.PASEO_NODE_ENV;
-  delete shellEnv.PASEO_DESKTOP_MANAGED;
-  delete shellEnv.PASEO_SUPERVISED;
+  delete shellEnv.GRAVITY_NODE_ENV;
+  delete shellEnv.GRAVITY_DESKTOP_MANAGED;
+  delete shellEnv.GRAVITY_SUPERVISED;
 
   deps.logger.info("[login-shell-env] start", {
     shell,
@@ -539,5 +539,11 @@ export function inheritLoginShellEnv(input: LoginShellEnvDependencies = {}): voi
       pathChanged: beforePath !== pathEnv(deps.env),
     });
     // Keep inherited environment if shell lookup fails.
+  } finally {
+    // A shell can reintroduce Homebrew image libraries that crash macOS ImageIO
+    // in renderer children. Also clear inherited overrides when shell lookup fails.
+    if (deps.platform === "darwin") {
+      delete deps.env.DYLD_LIBRARY_PATH;
+    }
   }
 }

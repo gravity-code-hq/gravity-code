@@ -1,4 +1,4 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import { describe, expect, it } from "vitest";
 import {
   characterOffsetAtPoint,
@@ -14,8 +14,30 @@ import type { BuildDiffDocumentModelInput, DiffCell, DiffSelection } from "./typ
 const measurer = { measure: (text: string) => Array.from(text).length * 10 };
 
 describe("diff hit testing", () => {
+  it("does not treat the gap between files as an interactive header", () => {
+    const first = splitFile();
+    const second = { ...first, path: "src/next.ts" };
+    const model = buildModel("", { files: [first, second] });
+    expect(
+      hitTestDiffDocument({
+        model,
+        x: 20,
+        documentY: model.files[0]!.bottom + 1,
+        horizontalOffset: 0,
+      }),
+    ).toBeNull();
+    expect(
+      hitTestDiffDocument({
+        model,
+        x: 20,
+        documentY: model.files[1]!.top + 1,
+        horizontalOffset: 0,
+      }),
+    ).toEqual({ kind: "header", path: second.path });
+  });
+
   it("locates the closest character from measured wrapped geometry", () => {
-    const cell = changedCell(buildModel("abcdef", { viewportWidth: 90 }));
+    const cell = changedCell(buildModel("abcdef", { viewportWidth: 138 }));
     expect(characterOffsetAtPoint({ cell, x: 6, y: 20, lineHeight: 18 })).toBe(5);
   });
 
@@ -197,6 +219,9 @@ function buildModel(changedContent: string, overrides: Partial<BuildDiffDocument
     measureText: measurer,
     palette: {
       surface: "#000",
+      hunkBackground: "#123",
+      additionGutterBackground: "#142",
+      deletionGutterBackground: "#412",
       headerSurface: "#111",
       border: "#222",
       foreground: "#fff",

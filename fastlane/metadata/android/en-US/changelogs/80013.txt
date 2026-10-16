@@ -1,0 +1,5 @@
+- Gravity for Apple Silicon Macs is now signed and notarized by Apple. It opens without the Privacy & Security prompt, and future versions update automatically.
+- Provider customizations and improved workspace controls.
+- Fixed agent drafts crashing on duplicate catalog choices, duplicate workspaces and agents on retries, and out-of-memory errors from long tool histories.
+
+Full notes: https://github.com/gravity-code-hq/gravity/changelog

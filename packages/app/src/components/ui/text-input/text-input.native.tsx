@@ -24,6 +24,8 @@ export const EditingTextInput = forwardRef<EditingTextInputHandle, EditingTextIn
     const isInsideBottomSheet = useIsInsideBottomSheet();
     const {
       initialValue = "",
+      commands: _commands,
+      commandHighlightColor: _commandHighlightColor,
       onChangeText,
       onPasteImages,
       onPasteError,

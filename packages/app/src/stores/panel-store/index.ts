@@ -28,7 +28,6 @@ import {
   type MobilePanelView,
   type MobilePanelSelection,
   type PanelLayoutInput,
-  type SortOption,
 } from "./state";
 import { isWeb } from "@/constants/platform";
 import { createValidatedPersistStorage } from "@/storage/validated-persist-storage";
@@ -39,7 +38,6 @@ export type {
   MobilePanelView,
   MobilePanelSelection,
   PanelLayoutInput,
-  SortOption,
 } from "./state";
 export {
   DEFAULT_TREE_RAIL_WIDTH,
@@ -73,7 +71,6 @@ export interface PanelState {
   diffCollapsedFoldersByWorkspace: Record<string, string[]>;
   collapsedFilePathsByWorkspace: Record<string, string[]>;
   sidebarWidth: number;
-  explorerSortOption: SortOption;
   explorerShowHiddenFiles: boolean;
   treeRailWidth: number;
   // File panel's tree rail. The changes panel keeps its own flag in
@@ -103,7 +100,6 @@ export interface PanelState {
   setCollapsedFilePathsForWorkspace: (workspaceKey: string, paths: string[]) => void;
   activateExplorerTabForCheckout: (checkout: ExplorerCheckoutContext) => void;
   setSidebarWidth: (width: number) => void;
-  setExplorerSortOption: (option: SortOption) => void;
   toggleExplorerShowHiddenFiles: () => void;
   setTreeRailWidth: (width: number) => void;
   toggleFileTreeVisible: () => void;
@@ -138,7 +134,6 @@ export const usePanelStore = create<PanelState>()(
       diffCollapsedFoldersByWorkspace: {},
       collapsedFilePathsByWorkspace: {},
       sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
-      explorerSortOption: "name",
       explorerShowHiddenFiles: true,
       treeRailWidth: DEFAULT_TREE_RAIL_WIDTH,
       fileTreeVisible: true,
@@ -279,7 +274,6 @@ export const usePanelStore = create<PanelState>()(
           }),
         })),
       setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
-      setExplorerSortOption: (option) => set({ explorerSortOption: option }),
       toggleExplorerShowHiddenFiles: () =>
         set((state) => ({ explorerShowHiddenFiles: !state.explorerShowHiddenFiles })),
       setTreeRailWidth: (width) => set({ treeRailWidth: clampTreeRailWidth(width) }),
@@ -298,7 +292,6 @@ export const usePanelStore = create<PanelState>()(
         diffCollapsedFoldersByWorkspace: state.diffCollapsedFoldersByWorkspace,
         collapsedFilePathsByWorkspace: state.collapsedFilePathsByWorkspace,
         sidebarWidth: state.sidebarWidth,
-        explorerSortOption: state.explorerSortOption,
         explorerShowHiddenFiles: state.explorerShowHiddenFiles,
         treeRailWidth: state.treeRailWidth,
         fileTreeVisible: state.fileTreeVisible,

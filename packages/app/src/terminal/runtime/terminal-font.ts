@@ -1,4 +1,4 @@
-const DEFAULT_TERMINAL_FONT_SIZE = 13;
+const DEFAULT_TERMINAL_FONT_SIZE = 15;
 
 export const DEFAULT_TERMINAL_FONT_FAMILY = [
   // Prefer common developer fonts, with Nerd Font variants for prompt/TUI glyphs.

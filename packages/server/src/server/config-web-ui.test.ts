@@ -6,13 +6,13 @@ import { afterEach, describe, expect, test } from "vitest";
 import { loadConfig } from "./config.js";
 
 const roots: string[] = [];
-async function createPaseoHome(config: unknown): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), "paseo-config-web-ui-"));
+async function createGravityHome(config: unknown): Promise<string> {
+  const root = await mkdtemp(path.join(os.tmpdir(), "gravity-config-web-ui-"));
   roots.push(root);
-  const paseoHome = path.join(root, ".paseo");
-  await mkdir(paseoHome, { recursive: true });
-  await writeFile(path.join(paseoHome, "config.json"), JSON.stringify(config, null, 2));
-  return paseoHome;
+  const gravityHome = path.join(root, ".gravity");
+  await mkdir(gravityHome, { recursive: true });
+  await writeFile(path.join(gravityHome, "config.json"), JSON.stringify(config, null, 2));
+  return gravityHome;
 }
 
 function expectBundledWebUiDistDir(distDir: string | null): void {
@@ -27,7 +27,7 @@ describe("daemon web UI config", () => {
   });
 
   test("web UI is disabled by default", async () => {
-    const home = await createPaseoHome({ version: 1 });
+    const home = await createGravityHome({ version: 1 });
 
     const config = loadConfig(home, { env: {} });
 
@@ -36,7 +36,7 @@ describe("daemon web UI config", () => {
   });
 
   test("enables web UI from persisted config", async () => {
-    const home = await createPaseoHome({
+    const home = await createGravityHome({
       version: 1,
       features: { webUi: { enabled: true } },
     });
@@ -47,33 +47,33 @@ describe("daemon web UI config", () => {
     expectBundledWebUiDistDir(config.webUi.distDir);
   });
 
-  test("PASEO_WEB_UI_ENABLED overrides persisted setting", async () => {
-    const home = await createPaseoHome({
+  test("GRAVITY_WEB_UI_ENABLED overrides persisted setting", async () => {
+    const home = await createGravityHome({
       version: 1,
       features: { webUi: { enabled: true } },
     });
 
-    const config = loadConfig(home, { env: { PASEO_WEB_UI_ENABLED: "false" } });
+    const config = loadConfig(home, { env: { GRAVITY_WEB_UI_ENABLED: "false" } });
 
     expect(config.webUi.enabled).toBe(false);
   });
 
-  test("PASEO_WEB_UI_ENABLED=true enables web UI", async () => {
-    const home = await createPaseoHome({ version: 1 });
+  test("GRAVITY_WEB_UI_ENABLED=true enables web UI", async () => {
+    const home = await createGravityHome({ version: 1 });
 
-    const config = loadConfig(home, { env: { PASEO_WEB_UI_ENABLED: "true" } });
+    const config = loadConfig(home, { env: { GRAVITY_WEB_UI_ENABLED: "true" } });
 
     expect(config.webUi.enabled).toBe(true);
   });
 
   test("CLI web UI enable override wins over env and persisted config", async () => {
-    const home = await createPaseoHome({
+    const home = await createGravityHome({
       version: 1,
       features: { webUi: { enabled: false } },
     });
 
     const config = loadConfig(home, {
-      env: { PASEO_WEB_UI_ENABLED: "false" },
+      env: { GRAVITY_WEB_UI_ENABLED: "false" },
       cli: { webUiEnabled: true },
     });
 
@@ -81,30 +81,30 @@ describe("daemon web UI config", () => {
   });
 
   test("CLI web UI disable override wins over env and persisted config", async () => {
-    const home = await createPaseoHome({
+    const home = await createGravityHome({
       version: 1,
       features: { webUi: { enabled: true } },
     });
 
     const config = loadConfig(home, {
-      env: { PASEO_WEB_UI_ENABLED: "true" },
+      env: { GRAVITY_WEB_UI_ENABLED: "true" },
       cli: { webUiEnabled: false },
     });
 
     expect(config.webUi.enabled).toBe(false);
   });
 
-  test("resolves PASEO_WEB_UI_DIST_DIR as absolute path", async () => {
-    const home = await createPaseoHome({ version: 1 });
-    const distDir = path.join(os.tmpdir(), "paseo-web-ui-dist");
+  test("resolves GRAVITY_WEB_UI_DIST_DIR as absolute path", async () => {
+    const home = await createGravityHome({ version: 1 });
+    const distDir = path.join(os.tmpdir(), "gravity-web-ui-dist");
 
-    const config = loadConfig(home, { env: { PASEO_WEB_UI_DIST_DIR: distDir } });
+    const config = loadConfig(home, { env: { GRAVITY_WEB_UI_DIST_DIR: distDir } });
 
     expect(config.webUi.distDir).toBe(path.resolve(distDir));
   });
 
-  test("resolves relative persisted distDir against PASEO_HOME", async () => {
-    const home = await createPaseoHome({
+  test("resolves relative persisted distDir against GRAVITY_HOME", async () => {
+    const home = await createGravityHome({
       version: 1,
       features: { webUi: { distDir: "web-ui-dist" } },
     });
@@ -114,14 +114,14 @@ describe("daemon web UI config", () => {
     expect(config.webUi.distDir).toBe(path.join(home, "web-ui-dist"));
   });
 
-  test("PASEO_WEB_UI_DIST_DIR overrides persisted distDir", async () => {
-    const home = await createPaseoHome({
+  test("GRAVITY_WEB_UI_DIST_DIR overrides persisted distDir", async () => {
+    const home = await createGravityHome({
       version: 1,
       features: { webUi: { distDir: "/persisted/dist" } },
     });
     const envDir = path.join(os.tmpdir(), "env-dist");
 
-    const config = loadConfig(home, { env: { PASEO_WEB_UI_DIST_DIR: envDir } });
+    const config = loadConfig(home, { env: { GRAVITY_WEB_UI_DIST_DIR: envDir } });
 
     expect(config.webUi.distDir).toBe(path.resolve(envDir));
   });

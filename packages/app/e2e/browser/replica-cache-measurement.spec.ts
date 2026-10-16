@@ -9,12 +9,12 @@ import {
   type ReplicaCacheMeasurementReport,
 } from "../support/helpers/replica-cache-measurement";
 
-const RUN_MEASUREMENT = process.env.PASEO_REPLICA_CACHE_MEASUREMENT === "1";
-const TARGET_URL = process.env.PASEO_REPLICA_CACHE_MEASUREMENT_URL;
-const REPORT_PATH = process.env.PASEO_REPLICA_CACHE_MEASUREMENT_REPORT;
-const OBSERVATION_MS = Number(process.env.PASEO_REPLICA_CACHE_MEASUREMENT_MS ?? 60_000);
+const RUN_MEASUREMENT = process.env.GRAVITY_REPLICA_CACHE_MEASUREMENT === "1";
+const TARGET_URL = process.env.GRAVITY_REPLICA_CACHE_MEASUREMENT_URL;
+const REPORT_PATH = process.env.GRAVITY_REPLICA_CACHE_MEASUREMENT_REPORT;
+const OBSERVATION_MS = Number(process.env.GRAVITY_REPLICA_CACHE_MEASUREMENT_MS ?? 60_000);
 const HYDRATED_SELECTOR =
-  process.env.PASEO_REPLICA_CACHE_HYDRATED_SELECTOR ??
+  process.env.GRAVITY_REPLICA_CACHE_HYDRATED_SELECTOR ??
   '[data-testid="agent-chat-scroll"], [data-testid^="sidebar-workspace-row-"]';
 
 const measurementDescribe = RUN_MEASUREMENT ? test.describe : test.describe.skip;
@@ -24,8 +24,8 @@ measurementDescribe("Replica cache live measurement", () => {
     page,
   }, testInfo) => {
     test.setTimeout(OBSERVATION_MS + 90_000);
-    expect(TARGET_URL, "PASEO_REPLICA_CACHE_MEASUREMENT_URL must be a full app URL").toBeTruthy();
-    expect(REPORT_PATH, "PASEO_REPLICA_CACHE_MEASUREMENT_REPORT must be set").toBeTruthy();
+    expect(TARGET_URL, "GRAVITY_REPLICA_CACHE_MEASUREMENT_URL must be a full app URL").toBeTruthy();
+    expect(REPORT_PATH, "GRAVITY_REPLICA_CACHE_MEASUREMENT_REPORT must be set").toBeTruthy();
 
     await installReplicaCacheMeasurement(page);
     await page.goto(TARGET_URL!, { waitUntil: "domcontentloaded" });

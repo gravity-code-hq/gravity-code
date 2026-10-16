@@ -7,6 +7,7 @@ import {
   type GroupedToolCalls,
 } from "./grouping";
 import { buildOverviewGroup, type OverviewToolCallGroup } from "./overview/model";
+import { collapseDetailedToolCalls } from "./detailed";
 
 export type { ToolCallDetailLevel } from "@/hooks/use-settings/storage";
 export type ToolCallDetailGroup = OverviewToolCallGroup;
@@ -17,8 +18,6 @@ export interface PreparedToolCallHistory {
 }
 
 export interface ToolCallDetailProjection extends GroupedToolCalls<ToolCallDetailGroup> {}
-
-const EMPTY_TOOL_CALL_GROUPS = new Map<string, ToolCallDetailGroup>();
 
 // Approval UI owns pending plan presentation. Retain the canonical tool in the
 // stream model so resolving it can reveal a card at its original position.
@@ -62,12 +61,10 @@ export function projectToolCallDetailLevel(input: {
   isTurnActive: boolean;
 }): ToolCallDetailProjection {
   if (input.level === "detailed") {
-    return {
+    return collapseDetailedToolCalls({
       tail: visibleToolCallItems(input.tail),
       head: visibleToolCallItems(input.head),
-      groupsByHostId: EMPTY_TOOL_CALL_GROUPS,
-      historyGroupUpdatesByHostId: EMPTY_TOOL_CALL_GROUPS,
-    };
+    });
   }
   if (!input.preparedHistory || input.preparedHistory.mode !== input.level) {
     throw new Error(`Missing prepared ${input.level} tool call history`);

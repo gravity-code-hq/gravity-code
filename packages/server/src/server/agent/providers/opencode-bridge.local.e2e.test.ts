@@ -6,17 +6,17 @@ import { createOpencodeClient } from "@opencode-ai/sdk/v2/client";
 import { expect, test } from "vitest";
 
 import { createTestLogger } from "../../../test-utils/test-logger.js";
-import type { PaseoToolCatalog } from "../tools/types.js";
+import type { GravityToolCatalog } from "../tools/types.js";
 import { OpenCodeAgentClient } from "./opencode-agent.js";
 import { OpenCodeBridge } from "./opencode/bridge.js";
 import { OpenCodeServerManager } from "./opencode/server-manager.js";
 
 test("real OpenCode server shares one process while shell.env stays session-scoped", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "paseo-opencode-real-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "gravity-opencode-real-"));
   const firstCwd = path.join(root, "first");
   const secondCwd = path.join(root, "second");
   const logger = createTestLogger();
-  const bridge = new OpenCodeBridge({ paseoHome: root, logger });
+  const bridge = new OpenCodeBridge({ gravityHome: root, logger });
   await bridge.start();
   const firstTools = createCallerCatalog("real-agent-one");
   const secondTools = createCallerCatalog("real-agent-two");
@@ -43,8 +43,8 @@ test("real OpenCode server shares one process while shell.env stays session-scop
       { provider: "opencode", cwd: firstCwd, model: "opencode/big-pickle", modeId: "build" },
       {
         agentId: "real-agent-one",
-        env: { PASEO_AGENT_ID: "real-agent-one", PASEO_AGENT_CWD: firstCwd },
-        paseoTools: firstTools,
+        env: { GRAVITY_AGENT_ID: "real-agent-one", GRAVITY_AGENT_CWD: firstCwd },
+        gravityTools: firstTools,
       },
       { persistSession: false },
     );
@@ -52,8 +52,8 @@ test("real OpenCode server shares one process while shell.env stays session-scop
       { provider: "opencode", cwd: secondCwd },
       {
         agentId: "real-agent-two",
-        env: { PASEO_AGENT_ID: "real-agent-two", PASEO_AGENT_CWD: secondCwd },
-        paseoTools: secondTools,
+        env: { GRAVITY_AGENT_ID: "real-agent-two", GRAVITY_AGENT_CWD: secondCwd },
+        gravityTools: secondTools,
       },
       { persistSession: false },
     );
@@ -65,13 +65,13 @@ test("real OpenCode server shares one process while shell.env stays session-scop
         sessionID: requireSessionId(first),
         directory: firstCwd,
         agent: "build",
-        command: 'printf "%s|%s" "$PASEO_AGENT_ID" "$PASEO_AGENT_CWD"',
+        command: 'printf "%s|%s" "$GRAVITY_AGENT_ID" "$GRAVITY_AGENT_CWD"',
       }),
       sdk.session.shell({
         sessionID: requireSessionId(second),
         directory: secondCwd,
         agent: "build",
-        command: 'printf "%s|%s" "$PASEO_AGENT_ID" "$PASEO_AGENT_CWD"',
+        command: 'printf "%s|%s" "$GRAVITY_AGENT_ID" "$GRAVITY_AGENT_CWD"',
       }),
     ]);
 
@@ -83,7 +83,7 @@ test("real OpenCode server shares one process while shell.env stays session-scop
 
     const agentResult = await first.run(
       [
-        "Use the bash tool to run: env | grep -E '^(PASEO_AGENT_ID|PASEO_AGENT_CWD)='",
+        "Use the bash tool to run: env | grep -E '^(GRAVITY_AGENT_ID|GRAVITY_AGENT_CWD)='",
         "Then report both values in your response:",
         "AGENT=real-agent-one",
         `CWD=${firstCwd}`,
@@ -100,7 +100,7 @@ test("real OpenCode server shares one process while shell.env stays session-scop
 
     const callerResult = await first.run(
       [
-        "Use the paseo_report_caller_agent_id tool to read your Paseo caller agent ID.",
+        "Use the gravity_report_caller_agent_id tool to read your Gravity caller agent ID.",
         "Then report that ID in your response.",
       ].join("\n"),
     );
@@ -108,7 +108,7 @@ test("real OpenCode server shares one process while shell.env stays session-scop
       expect.arrayContaining([
         expect.objectContaining({
           type: "tool_call",
-          name: "paseo_report_caller_agent_id",
+          name: "gravity_report_caller_agent_id",
           status: "completed",
         }),
       ]),
@@ -129,11 +129,11 @@ function requireSessionId(session: { id: string | null }): string {
   return session.id;
 }
 
-function createCallerCatalog(callerAgentId: string): PaseoToolCatalog {
+function createCallerCatalog(callerAgentId: string): GravityToolCatalog {
   const tool = {
     name: "report_caller_agent_id",
-    title: "Report Paseo caller agent ID",
-    description: "Returns the caller agent ID assigned by Paseo.",
+    title: "Report Gravity caller agent ID",
+    description: "Returns the caller agent ID assigned by Gravity.",
     inputSchema: {},
     async handler() {
       return { content: [{ type: "text", text: callerAgentId }] };

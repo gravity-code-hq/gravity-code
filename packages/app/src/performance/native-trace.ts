@@ -1,13 +1,13 @@
-import type { DaemonClientTrace } from "@getpaseo/client/internal/daemon-client";
+import type { DaemonClientTrace } from "@gravity/client/internal/daemon-client";
 import { requireOptionalNativeModule } from "expo-modules-core";
 import { isProfileBuild } from "@/constants/build-profile";
 
-interface PaseoNativeTraceModule {
+interface GravityNativeTraceModule {
   beginSection(name: string): void;
   endSection(): void;
 }
 
-const traceModule = requireOptionalNativeModule<PaseoNativeTraceModule>("PaseoNativeTrace");
+const traceModule = requireOptionalNativeModule<GravityNativeTraceModule>("GravityNativeTrace");
 
 export const nativePerformanceTrace: DaemonClientTrace = {
   isEnabled() {

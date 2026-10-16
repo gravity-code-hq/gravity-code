@@ -7,12 +7,13 @@ import {
   type TimelineSubscription,
 } from "./connection/index.js";
 import { CreationClient } from "./creation/index.js";
-import type { CreationSnapshot } from "@getpaseo/protocol/messages";
+import type { CreationSnapshot } from "@gravity/protocol/messages";
 import type { z } from "zod";
-import type { SessionEventSubscription } from "@getpaseo/protocol/messages";
-import type { ClientCapability } from "@getpaseo/protocol/client-capabilities";
-import type { AgentAttentionNotificationPayload } from "@getpaseo/protocol/agent-attention-notification";
-import { parsePluginSourceReference } from "@getpaseo/protocol/plugin-source-reference";
+import type { SessionEventSubscription } from "@gravity/protocol/messages";
+import type { ClientCapability } from "@gravity/protocol/client-capabilities";
+import type { LinearIssueListFilter } from "@gravity/protocol/linear/types";
+import type { AgentAttentionNotificationPayload } from "@gravity/protocol/agent-attention-notification";
+import { parsePluginSourceReference } from "@gravity/protocol/plugin-source-reference";
 import {
   AgentCreateFailedStatusPayloadSchema,
   AgentCreatedStatusPayloadSchema,
@@ -27,15 +28,15 @@ import {
   SessionInboundMessageSchema,
   type ActiveTurnBehavior,
   type ServerInfoStatusPayload,
-} from "@getpaseo/protocol/messages";
-import { validateWSOutboundMessage } from "@getpaseo/protocol/validation/ws-outbound";
+} from "@gravity/protocol/messages";
+import { validateWSOutboundMessage } from "@gravity/protocol/validation/ws-outbound";
 import type {
   AgentStreamEventPayload,
   AgentSnapshotPayload,
   ProjectPlacementPayload,
   AgentPermissionResolvedMessage,
   CreateAgentRequestMessage,
-  CreatePaseoWorktreeRequest,
+  CreateGravityWorktreeRequest,
   FileDownloadTokenResponse,
   FileUploadResponse,
   FileExplorerResponse,
@@ -73,8 +74,8 @@ import type {
   GitHubSearchResponse,
   GitHubSearchRequest,
   DirectorySuggestionsResponse,
-  PaseoWorktreeListResponse,
-  PaseoWorktreeArchiveResponse,
+  GravityWorktreeListResponse,
+  GravityWorktreeArchiveResponse,
   ProjectIconSource,
   ProjectIconResponse,
   ProjectIconGetResponse,
@@ -95,9 +96,22 @@ import type {
   RefreshProvidersSnapshotResponseMessage,
   ProviderDiagnosticResponseMessage,
   ProviderUsageListResponseMessage,
+  ProviderAccountsListResponseMessage,
+  ProviderAccountsAddCurrentResponseMessage,
+  ProviderAccountsActivateResponseMessage,
+  ProviderAccountsRemoveResponseMessage,
+  LinearGetStatusResponse,
+  LinearConnectResponse,
+  LinearDisconnectResponse,
+  LinearTeamsListResponse,
+  LinearIssuesListResponse,
+  LinearIssuesGetResponse,
+  LinearIssuesSetStateResponse,
   DaemonGetStatusResponse,
   DaemonGetPairingOfferResponse,
   DaemonConfigReloadResponse,
+  GitHubRepoStarAddResponse,
+  GitHubRepoStarGetStatusResponse,
   DiagnosticsResponse,
   AgentRewindResponseMessage,
   ListTerminalsResponse,
@@ -111,8 +125,8 @@ import type {
   SessionInboundMessage,
   SessionOutboundMessage,
   SendAgentMessageRequest,
-  PaseoConfigRaw,
-  PaseoConfigRevision,
+  GravityConfigRaw,
+  GravityConfigRevision,
   WorkspaceCreateRequest,
   WorkspaceRecoveryState,
   PluginListItem,
@@ -122,7 +136,7 @@ import type {
   AgentSkillSelection,
   AgentSkillsStatus,
   AgentSkillsSaveResult,
-} from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/messages";
 import type {
   AgentPermissionRequest,
   AgentPermissionResponse,
@@ -130,13 +144,13 @@ import type {
   AgentProviderNotice,
   AgentProvider,
   AgentSessionConfig,
-} from "@getpaseo/protocol/agent-types";
+} from "@gravity/protocol/agent-types";
 import type {
   AgentConfigApply,
   MutableDaemonConfig,
   MutableDaemonConfigPatch,
-} from "@getpaseo/protocol/messages";
-import { isRelayClientWebSocketUrl } from "@getpaseo/protocol/daemon-endpoints";
+} from "@gravity/protocol/messages";
+import { isRelayClientWebSocketUrl } from "@gravity/protocol/daemon-endpoints";
 import {
   asUint8Array,
   decodeFileTransferFrame,
@@ -145,7 +159,7 @@ import {
   FileTransferOpcode,
   TerminalStreamOpcode,
   type FileTransferFrame,
-} from "@getpaseo/protocol/binary-frames/index";
+} from "@gravity/protocol/binary-frames/index";
 import {
   createRelayE2eeTransportFactory,
   createWebSocketTransportFactory,
@@ -167,7 +181,7 @@ import { TerminalStreamRouter, type TerminalStreamEvent } from "./terminal-strea
 import type {
   BrowserAutomationExecuteRequest,
   BrowserAutomationExecuteResponse,
-} from "@getpaseo/protocol/browser-automation/rpc-schemas";
+} from "@gravity/protocol/browser-automation/rpc-schemas";
 
 export interface Logger {
   debug(obj: object, msg?: string): void;
@@ -410,8 +424,8 @@ export interface CreateWorkspaceRequestOptions {
   requestId?: string;
 }
 
-export interface CreatePaseoWorktreeInput extends Pick<
-  CreatePaseoWorktreeRequest,
+export interface CreateGravityWorktreeInput extends Pick<
+  CreateGravityWorktreeRequest,
   | "cwd"
   | "projectId"
   | "worktreeSlug"
@@ -452,11 +466,11 @@ type BranchSuggestionsPayload = BranchSuggestionsResponse["payload"];
 type ForgeSearchPayload = ForgeSearchResponse["payload"];
 type GitHubSearchPayload = GitHubSearchResponse["payload"];
 type DirectorySuggestionsPayload = DirectorySuggestionsResponse["payload"];
-type PaseoWorktreeListPayload = PaseoWorktreeListResponse["payload"];
-type PaseoWorktreeArchivePayload = PaseoWorktreeArchiveResponse["payload"];
-type CreatePaseoWorktreePayload = Extract<
+type GravityWorktreeListPayload = GravityWorktreeListResponse["payload"];
+type GravityWorktreeArchivePayload = GravityWorktreeArchiveResponse["payload"];
+type CreateGravityWorktreePayload = Extract<
   SessionOutboundMessage,
-  { type: "create_paseo_worktree_response" }
+  { type: "create_gravity_worktree_response" }
 >["payload"];
 type WorkspaceCreatePayload = Extract<
   SessionOutboundMessage,
@@ -492,6 +506,25 @@ type GetProvidersSnapshotPayload = GetProvidersSnapshotResponseMessage["payload"
 type RefreshProvidersSnapshotPayload = RefreshProvidersSnapshotResponseMessage["payload"];
 type ProviderDiagnosticPayload = ProviderDiagnosticResponseMessage["payload"];
 type ProviderUsageListPayload = ProviderUsageListResponseMessage["payload"];
+type ProviderAccountsListPayload = ProviderAccountsListResponseMessage["payload"];
+type ProviderAccountsAddCurrentPayload = ProviderAccountsAddCurrentResponseMessage["payload"];
+type ProviderAccountsActivatePayload = ProviderAccountsActivateResponseMessage["payload"];
+type ProviderAccountsRemovePayload = ProviderAccountsRemoveResponseMessage["payload"];
+export type LinearGetStatusPayload = LinearGetStatusResponse["payload"];
+export type LinearConnectPayload = LinearConnectResponse["payload"];
+export type LinearDisconnectPayload = LinearDisconnectResponse["payload"];
+export type LinearTeamsListPayload = LinearTeamsListResponse["payload"];
+export type LinearIssuesListPayload = LinearIssuesListResponse["payload"];
+export type LinearIssuesGetPayload = LinearIssuesGetResponse["payload"];
+export type LinearIssuesSetStatePayload = LinearIssuesSetStateResponse["payload"];
+export interface LinearListIssuesOptions {
+  after?: string;
+  filter: LinearIssueListFilter;
+  teamId?: string;
+  search?: string;
+  limit?: number;
+  requestId?: string;
+}
 type DaemonStatusPayload = DaemonGetStatusResponse["payload"];
 type DaemonPairingOfferPayload = DaemonGetPairingOfferResponse["payload"];
 type DiagnosticsPayload = DiagnosticsResponse["payload"];
@@ -511,8 +544,8 @@ type ListCommandsDraftConfig = Pick<
 >;
 export interface WriteProjectConfigInput {
   repoRoot: string;
-  config: PaseoConfigRaw;
-  expectedRevision: PaseoConfigRevision | null;
+  config: GravityConfigRaw;
+  expectedRevision: GravityConfigRevision | null;
   requestId?: string;
 }
 interface ListCommandsOptions {
@@ -1263,7 +1296,7 @@ export class DaemonClient {
     } else if (this.config.authHeader) {
       headers.Authorization = this.config.authHeader;
     }
-    const protocols = password ? [`paseo.bearer.${password}`] : undefined;
+    const protocols = password ? [`gravity.bearer.${password}`] : undefined;
 
     try {
       // Reconnect can overlap with browser close/error delivery ordering.
@@ -1604,7 +1637,7 @@ export class DaemonClient {
   }
 
   private sendJsonMessage(envelopeType: string, messageType: string, message: unknown): void {
-    this.traceInstant("paseo.ws.message.outbound", {
+    this.traceInstant("gravity.ws.message.outbound", {
       envelopeType,
       messageType,
     });
@@ -1615,7 +1648,7 @@ export class DaemonClient {
     if (!this.transport) {
       throw new DaemonConnectionError("Transport not connected");
     }
-    const isOpen = this.beginTraceSection("paseo.ws.frame.outbound", {
+    const isOpen = this.beginTraceSection("gravity.ws.frame.outbound", {
       kind: typeof frame === "string" ? "text" : "binary",
       size: String(getTransportFrameSize(frame)),
     });
@@ -1657,7 +1690,7 @@ export class DaemonClient {
       throw new Error(`Transport not connected (status: ${this.connectionState.status})`);
     }
     try {
-      this.traceInstant("paseo.ws.message.outbound", {
+      this.traceInstant("gravity.ws.message.outbound", {
         envelopeType: "binary",
         messageType: "binary",
       });
@@ -3137,7 +3170,7 @@ export class DaemonClient {
 
   async appendAgentTimelineItem(
     agentId: string,
-    item: Omit<import("@getpaseo/protocol/agent-types").PluginTimelineItem, "pluginId">,
+    item: Omit<import("@gravity/protocol/agent-types").PluginTimelineItem, "pluginId">,
   ): Promise<{ seq: number; epoch: string }> {
     const requestId = this.createRequestId();
     const payload = await this.sendCorrelatedSessionRequest({
@@ -4327,7 +4360,7 @@ export class DaemonClient {
 
   async stashList(
     cwd: string,
-    options?: { paseoOnly?: boolean },
+    options?: { gravityOnly?: boolean },
     requestId?: string,
   ): Promise<StashListPayload> {
     return this.sendCorrelatedSessionRequest({
@@ -4335,28 +4368,28 @@ export class DaemonClient {
       message: {
         type: "stash_list_request",
         cwd,
-        paseoOnly: options?.paseoOnly,
+        gravityOnly: options?.gravityOnly,
       },
       responseType: "stash_list_response",
     });
   }
 
-  async getPaseoWorktreeList(
+  async getGravityWorktreeList(
     input: { cwd?: string; repoRoot?: string },
     requestId?: string,
-  ): Promise<PaseoWorktreeListPayload> {
+  ): Promise<GravityWorktreeListPayload> {
     return this.sendCorrelatedSessionRequest({
       requestId,
       message: {
-        type: "paseo_worktree_list_request",
+        type: "gravity_worktree_list_request",
         cwd: input.cwd,
         repoRoot: input.repoRoot,
       },
-      responseType: "paseo_worktree_list_response",
+      responseType: "gravity_worktree_list_response",
     });
   }
 
-  async archivePaseoWorktree(
+  async archiveGravityWorktree(
     input: {
       worktreePath?: string;
       repoRoot?: string;
@@ -4365,29 +4398,29 @@ export class DaemonClient {
       scope?: "workspace" | "worktree";
     },
     requestId?: string,
-  ): Promise<PaseoWorktreeArchivePayload> {
+  ): Promise<GravityWorktreeArchivePayload> {
     return this.sendCorrelatedSessionRequest({
       requestId,
       message: {
-        type: "paseo_worktree_archive_request",
+        type: "gravity_worktree_archive_request",
         worktreePath: input.worktreePath,
         repoRoot: input.repoRoot,
         branchName: input.branchName,
         ...(input.workspaceId !== undefined ? { workspaceId: input.workspaceId } : {}),
         ...(input.scope !== undefined ? { scope: input.scope } : {}),
       },
-      responseType: "paseo_worktree_archive_response",
+      responseType: "gravity_worktree_archive_response",
     });
   }
 
-  async createPaseoWorktree(
-    input: CreatePaseoWorktreeInput,
+  async createGravityWorktree(
+    input: CreateGravityWorktreeInput,
     requestId?: string,
-  ): Promise<CreatePaseoWorktreePayload> {
+  ): Promise<CreateGravityWorktreePayload> {
     return this.sendCorrelatedSessionRequest({
       requestId,
       message: {
-        type: "create_paseo_worktree_request",
+        type: "create_gravity_worktree_request",
         cwd: input.cwd,
         ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
         worktreeSlug: input.worktreeSlug,
@@ -4399,7 +4432,7 @@ export class DaemonClient {
         ...(input.checkoutSource !== undefined ? { checkoutSource: input.checkoutSource } : {}),
         ...(input.githubPrNumber !== undefined ? { githubPrNumber: input.githubPrNumber } : {}),
       },
-      responseType: "create_paseo_worktree_response",
+      responseType: "create_gravity_worktree_response",
     });
   }
 
@@ -4709,6 +4742,21 @@ export class DaemonClient {
     });
   }
 
+  async searchFileContents(input: {
+    cwd: string;
+    query: string;
+    caseSensitive?: boolean;
+    wholeWord?: boolean;
+    regex?: boolean;
+    include?: string;
+    exclude?: string;
+    maxResults?: number;
+  }): Promise<CorrelatedResponsePayload<"fs.content.search.response">> {
+    return this.sendNamespacedCorrelatedSessionRequest<"fs.content.search.response">({
+      message: { type: "fs.content.search.request", ...input },
+    });
+  }
+
   async checkoutDiscardChanges(
     cwd: string,
     input: { paths: string[] },
@@ -4931,6 +4979,26 @@ export class DaemonClient {
     });
   }
 
+  /** Whether the host's GitHub identity has starred the Gravity repository. */
+  async getGitHubRepoStarStatus(
+    requestId?: string,
+  ): Promise<GitHubRepoStarGetStatusResponse["payload"]> {
+    this.requireGitHubRepoStarSupport();
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId,
+      message: { type: "github.repo_star.get_status.request" },
+    });
+  }
+
+  /** Stars the Gravity repository as the host's GitHub identity, through its gh CLI. */
+  async addGitHubRepoStar(requestId?: string): Promise<GitHubRepoStarAddResponse["payload"]> {
+    this.requireGitHubRepoStarSupport();
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId,
+      message: { type: "github.repo_star.add.request" },
+    });
+  }
+
   async reloadDaemonConfig(requestId?: string): Promise<DaemonConfigReloadResponse["payload"]> {
     this.requireDaemonConfigReloadSupport();
     return this.sendNamespacedCorrelatedSessionRequest({
@@ -5083,12 +5151,174 @@ export class DaemonClient {
     });
   }
 
+  async listProviderCustomizations(options: {
+    provider: "codex" | "claude";
+    cwd?: string;
+    model?: string;
+  }) {
+    return this.sendNamespacedCorrelatedSessionRequest<"provider.customizations.list.response">({
+      message: { type: "provider.customizations.list.request", ...options },
+      timeout: 120_000,
+    });
+  }
+
+  async listProviderMcpServers(options: { provider: "codex" | "claude"; cwd?: string }) {
+    return this.sendNamespacedCorrelatedSessionRequest<"provider.mcp_servers.list.response">({
+      message: { type: "provider.mcp_servers.list.request", ...options },
+      timeout: 90_000,
+    });
+  }
+
+  async createProviderCommand(options: {
+    provider: "codex" | "claude";
+    cwd?: string;
+    name: string;
+    content: string;
+  }) {
+    return this.sendNamespacedCorrelatedSessionRequest<"provider.commands.create.response">({
+      message: { type: "provider.commands.create.request", ...options },
+    });
+  }
+
   async listProviderUsage(options?: { requestId?: string }): Promise<ProviderUsageListPayload> {
     return this.sendNamespacedCorrelatedSessionRequest({
       requestId: options?.requestId,
       message: {
         type: "provider.usage.list.request",
       },
+    });
+  }
+
+  async listProviderAccounts(options?: {
+    refresh?: boolean;
+    requestId?: string;
+  }): Promise<ProviderAccountsListPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options?.requestId,
+      message: {
+        type: "provider.accounts.list.request",
+        ...(options?.refresh ? { refresh: true } : {}),
+      },
+      timeout: 60_000,
+    });
+  }
+
+  async addCurrentProviderAccount(options: {
+    providerId: string;
+    requestId?: string;
+  }): Promise<ProviderAccountsAddCurrentPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "provider.accounts.add_current.request",
+        providerId: options.providerId,
+      },
+    });
+  }
+
+  async activateProviderAccount(options: {
+    providerId: string;
+    accountId: string;
+    requestId?: string;
+  }): Promise<ProviderAccountsActivatePayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "provider.accounts.activate.request",
+        providerId: options.providerId,
+        accountId: options.accountId,
+      },
+      timeout: 60_000,
+    });
+  }
+
+  async removeProviderAccount(options: {
+    providerId: string;
+    accountId: string;
+    requestId?: string;
+  }): Promise<ProviderAccountsRemovePayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "provider.accounts.remove.request",
+        providerId: options.providerId,
+        accountId: options.accountId,
+      },
+    });
+  }
+
+  async linearGetStatus(options?: { requestId?: string }): Promise<LinearGetStatusPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options?.requestId,
+      message: { type: "linear.get_status.request" },
+    });
+  }
+
+  async linearConnect(options: {
+    apiKey: string;
+    requestId?: string;
+  }): Promise<LinearConnectPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: { type: "linear.connect.request", apiKey: options.apiKey },
+      timeout: 60_000,
+    });
+  }
+
+  async linearDisconnect(options?: { requestId?: string }): Promise<LinearDisconnectPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options?.requestId,
+      message: { type: "linear.disconnect.request" },
+    });
+  }
+
+  async linearListTeams(options?: { requestId?: string }): Promise<LinearTeamsListPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options?.requestId,
+      message: { type: "linear.teams.list.request" },
+      timeout: 60_000,
+    });
+  }
+
+  async linearListIssues(options: LinearListIssuesOptions): Promise<LinearIssuesListPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "linear.issues.list.request",
+        filter: options.filter,
+        ...(options.teamId ? { teamId: options.teamId } : {}),
+        ...(options.search ? { search: options.search } : {}),
+        ...(options.limit ? { limit: options.limit } : {}),
+        ...(options.after ? { after: options.after } : {}),
+      },
+      timeout: 60_000,
+    });
+  }
+
+  async linearGetIssue(options: {
+    issueId: string;
+    requestId?: string;
+  }): Promise<LinearIssuesGetPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: { type: "linear.issues.get.request", issueId: options.issueId },
+      timeout: 60_000,
+    });
+  }
+
+  async linearSetIssueState(options: {
+    issueId: string;
+    stateId: string;
+    requestId?: string;
+  }): Promise<LinearIssuesSetStatePayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "linear.issues.set_state.request",
+        issueId: options.issueId,
+        stateId: options.stateId,
+      },
+      timeout: 60_000,
     });
   }
 
@@ -5879,6 +6109,13 @@ export class DaemonClient {
     }
   }
 
+  private requireGitHubRepoStarSupport(): void {
+    // COMPAT(githubRepoStar): added after v0.8.0, remove gate after 2027-03-24.
+    if (this.lastServerInfoMessage?.features?.githubRepoStar !== true) {
+      throw new Error("Update the host to star Gravity on GitHub.");
+    }
+  }
+
   private requireDaemonConfigReloadSupport(): void {
     // COMPAT(daemonConfigReload): added in v0.4.0, remove gate after 2027-02-14.
     if (this.lastServerInfoMessage?.features?.daemonConfigReload !== true) {
@@ -5986,7 +6223,7 @@ export class DaemonClient {
 
     const rawBytes = asUint8Array(rawData);
     const isOpen = this.beginTraceSection(
-      "paseo.ws.frame.inbound",
+      "gravity.ws.frame.inbound",
       describeInboundTransportFrame(rawData, rawBytes),
     );
     try {
@@ -6007,7 +6244,7 @@ export class DaemonClient {
     const bytes = rawBytesLength ?? payload.length;
     const startMs = perfNow();
     let parsedJson: unknown;
-    const parseTraceOpen = this.beginTraceSection("paseo.ws.json.parse", {
+    const parseTraceOpen = this.beginTraceSection("gravity.ws.json.parse", {
       size: String(bytes),
     });
     try {
@@ -6042,7 +6279,7 @@ export class DaemonClient {
     this.consecutiveLivenessFailures = 0;
 
     if (parsed.data.type === "pong") {
-      this.traceInstant("paseo.ws.message.inbound", {
+      this.traceInstant("gravity.ws.message.inbound", {
         envelopeType: "pong",
         messageType: "pong",
       });
@@ -6051,7 +6288,7 @@ export class DaemonClient {
       return;
     }
 
-    this.traceInstant("paseo.ws.message.inbound", {
+    this.traceInstant("gravity.ws.message.inbound", {
       envelopeType: "session",
       messageType: parsed.data.message.type,
     });
@@ -6066,7 +6303,7 @@ export class DaemonClient {
   private tryHandleBinaryFrame(rawBytes: Uint8Array): boolean {
     const fileFrame = decodeFileTransferFrame(rawBytes);
     if (fileFrame) {
-      this.traceInstant("paseo.ws.message.inbound", {
+      this.traceInstant("gravity.ws.message.inbound", {
         envelopeType: "binary",
         messageType: "file",
         opcode: String(fileFrame.opcode),
@@ -6081,7 +6318,7 @@ export class DaemonClient {
     if (!frame) {
       return false;
     }
-    this.traceInstant("paseo.ws.message.inbound", {
+    this.traceInstant("gravity.ws.message.inbound", {
       envelopeType: "binary",
       messageType: "terminal",
       opcode: String(frame.opcode),

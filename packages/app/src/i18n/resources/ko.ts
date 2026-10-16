@@ -2,6 +2,70 @@ import { en, type TranslationResources } from "./en";
 import { pluginSettings } from "./plugin-settings";
 
 export const ko: TranslationResources = {
+  visualization: {
+    previous: "이전 변형",
+    next: "다음 변형",
+    controls: "설정",
+  },
+
+  providerCustomizations: {
+    addCommand: "명령 추가",
+    commandName: "명령 이름",
+    prompt: "프롬프트",
+    invalidName: "영문자, 숫자, 하이픈 또는 밑줄을 사용하세요. 영문자나 숫자로 시작하세요.",
+    commandExists: "이 이름의 명령이 이미 있습니다. 다른 이름을 선택하세요.",
+    models: "모델",
+    commands: "명령어",
+    skills: "스킬",
+    mcpServers: "MCP 서버",
+    mcp: {
+      updated: "{{time}} 확인",
+      checking: "서버 확인 중…",
+      notHealthChecked:
+        "Codex는 연결을 테스트하지 않습니다. '구성됨'은 설정 파일에 있다는 뜻이지 동작한다는 뜻은 아닙니다.",
+      empty: "구성된 MCP 서버가 없습니다.",
+      connectTitle: "더 연결하기",
+      claudeConnectors:
+        "Slack, Gmail, Google Drive, Calendar 등은 claude.ai에서 켜는 커넥터입니다. 계정을 따라 모든 호스트에서 사용되므로 여기서 설정할 것은 없습니다.",
+      claudeConnectorsLink: "claude.ai 커넥터 열기",
+      claudeLocal: "다른 서버는 호스트에서 다음을 실행하세요:",
+      codexAdd: "Codex는 이 호스트의 config.toml에서 서버를 읽습니다. Codex CLI로 추가하세요:",
+      codexLogin: "OAuth를 사용하는 서버는 호스트에서 로그인도 필요합니다:",
+      thenRefresh: "그런 다음 여기서 새로 고침을 누르세요.",
+      status: {
+        connected: "연결됨",
+        failed: "실패",
+        pending_approval: "승인 필요",
+        disabled: "비활성",
+        configured: "구성됨",
+        unknown: "알 수 없음",
+      },
+      scope: {
+        claude_ai: "claude.ai 계정",
+        user: "개인",
+        project: "프로젝트",
+      },
+    },
+    scope: "범위",
+    personal: "개인",
+    project: "프로젝트",
+    plugin: "플러그인",
+    provider: "제공자",
+    searchCommands: "명령어 검색",
+    searchSkills: "스킬 검색",
+    noCommands: "명령어가 없습니다.",
+    noSkills: "스킬이 없습니다.",
+    updateHost: "명령어와 스킬을 관리하려면 호스트를 업데이트하세요.",
+    readOnly: "제공자 또는 플러그인에서 관리합니다. 설치된 파일은 여기서 읽기 전용입니다.",
+    instructions: "지침",
+    improve: "에이전트로 개선",
+    save: "저장",
+    saved: "저장됨",
+    conflict: "디스크의 파일이 변경되었습니다. 덮어쓰지 않도록 저장 전에 다시 불러오세요.",
+    discardTitle: "변경 사항을 버릴까요?",
+    discardMessage: "저장하지 않은 편집 내용이 사라집니다.",
+    discard: "버리기",
+  },
   common: {
     back: "뒤로",
     loading: "불러오는 중...",
@@ -134,6 +198,10 @@ export const ko: TranslationResources = {
       addIssueOrPr_mr: "이슈 또는 MR 추가",
       dropImagesHere: "여기에 이미지를 끌어다 놓으세요",
       dropFilesHere: "여기에 파일을 끌어다 놓으세요",
+      queuedCount: "{{count}}개 대기 중",
+      deleteQueuedMessage: "대기 중인 메시지 삭제",
+      deleteAllQueued: "모두 삭제",
+      sendAllQueuedNow: "지금 모두 보내기",
       editQueuedMessage: "대기 중인 메시지 편집",
       sendQueuedMessageNow: "대기 중인 메시지 지금 보내기",
       openImage: "이미지 첨부 열기",
@@ -172,9 +240,14 @@ export const ko: TranslationResources = {
     },
   },
   agentControls: {
+    moreSettings: "추가 설정",
+    permissions: "권한",
+    plan: "계획",
+    caffeineMode: "카페인 모드",
     provider: {
       fallback: "프로바이더",
       select: "에이전트 프로바이더 선택",
+      switched: "채팅 기록과 함께 새 탭에서 {{provider}}(으)로 계속합니다",
     },
     thinking: {
       title: "사고",
@@ -290,6 +363,7 @@ export const ko: TranslationResources = {
     },
   },
   message: {
+    forkedFrom: "{{title}}에서 분기",
     diagram: {
       diagram: "다이어그램",
       zoomIn: "확대",
@@ -303,9 +377,10 @@ export const ko: TranslationResources = {
       copyCode: "코드 복사",
       copyTurn: "턴 복사",
       copyMessage: "메시지 복사",
+      expandMessage: "더 보기",
+      collapseMessage: "간략히 보기",
       forkMenu: "여기에서 채팅 분기",
       forkInNewTab: "새 탭으로 분기",
-      forkInNewWorkspace: "새 워크스페이스로 분기",
       forkUnavailable: "이를 사용하려면 호스트를 업데이트하세요.",
       forkMissingWorkspace: "이 에이전트는 워크스페이스에 속해 있지 않습니다.",
       forkFailed: "채팅을 분기하지 못했습니다.",
@@ -316,6 +391,8 @@ export const ko: TranslationResources = {
       dismissImage: "이미지 닫기",
       closeImage: "이미지 닫기",
       imageLoadFailed: "이미지를 불러올 수 없습니다",
+      copyImage: "이미지 복사",
+      copyImageFailed: "이미지를 복사하지 못했습니다. 다시 시도해 주세요.",
       imageUnavailable: "이미지를 사용할 수 없습니다",
       imagePreviewUnavailable: "이미지 미리보기를 사용할 수 없습니다.",
       imagePreviewLoadFailed: "이미지 미리보기를 불러올 수 없습니다.",
@@ -333,6 +410,10 @@ export const ko: TranslationResources = {
       details: "세부 정보",
     },
     dictation: {
+      listening: "듣는 중",
+      transcribing: "텍스트로 변환 중…",
+      stopped: "녹음 중지됨",
+      doubleCommand: "⌘을 두 번 눌러 받아쓰기 시작 또는 중지",
       start: "음성 받아쓰기 시작",
       cancel: "받아쓰기 취소",
       retry: "받아쓰기 다시 시도",
@@ -405,6 +486,15 @@ export const ko: TranslationResources = {
     },
   },
   workspace: {
+    zoom: {
+      textSize: "텍스트 크기",
+      increase: "텍스트 크기 늘리기",
+      decrease: "텍스트 크기 줄이기",
+      reset: "초기화",
+      terminalOptions: "터미널 옵션",
+      terminalText: "터미널 텍스트: {{size}} px",
+      editorText: "편집기 텍스트: {{size}} px",
+    },
     route: {
       loading: "워크스페이스 불러오는 중",
       connecting: "연결 중",
@@ -465,11 +555,6 @@ export const ko: TranslationResources = {
       },
     },
     fileExplorer: {
-      sort: {
-        name: "이름",
-        modified: "수정일",
-        size: "크기",
-      },
       context: {
         size: "크기",
         modified: "수정일",
@@ -601,6 +686,8 @@ export const ko: TranslationResources = {
       },
       menu: {
         openFor: "{{label}}의 메뉴 열기",
+        copyConversation: "대화 복사",
+        downloadConversation: "대화 다운로드",
         copyResumeCommand: "재개 명령 복사",
         copyAgentId: "에이전트 ID 복사",
         copyTerminalId: "터미널 ID 복사",
@@ -653,6 +740,14 @@ export const ko: TranslationResources = {
         filePathCopiedLabel: "파일 경로",
         resumeIdUnavailable: "재개 ID를 사용할 수 없습니다",
         resumeCommandUnavailable: "재개 명령을 사용할 수 없습니다",
+        copyingConversation: "대화 복사 중…",
+        conversationCopied: "대화를 복사했습니다",
+        conversationCopyFailed:
+          "대화를 복사할 수 없습니다: {{reason}}. 대화 복사를 다시 시도하세요.",
+        downloadingConversation: "대화 다운로드 준비 중…",
+        conversationChanged: "대화 기록이 변경되었습니다. 다시 시도하세요.",
+        conversationDownloadFailed:
+          "대화를 다운로드할 수 없습니다: {{reason}}. 다시 다운로드해 주세요.",
         reloadingAgent: "에이전트 다시 로드 중...",
         reloadedAgent: "에이전트를 다시 로드했습니다",
         failedToReloadAgent: "에이전트를 다시 로드하지 못했습니다",
@@ -733,7 +828,7 @@ export const ko: TranslationResources = {
       },
       routes: {
         public: "역방향 프록시",
-        paseo: "간편 주소",
+        gravity: "간편 주소",
         direct: "직접",
       },
       states: {
@@ -847,7 +942,7 @@ export const ko: TranslationResources = {
             "이 브랜치가 이미 {{baseRef}}와 최신 상태이므로 업데이트를 사용할 수 없습니다",
           mergePrNoGithub: "GitHub가 연결되어 있지 않아 지금은 PR 병합을 사용할 수 없습니다",
           archiveNotWorktree:
-            "이 워크스페이스가 Paseo 워크트리로 생성되지 않아 여기서 보관을 사용할 수 없습니다",
+            "이 워크스페이스가 Gravity 워크트리로 생성되지 않아 여기서 보관을 사용할 수 없습니다",
           mergePrNoForge:
             "{{brand}}가 연결되어 있지 않기 때문에 지금은 {{noun}} 병합을 사용할 수 없습니다.",
           mergePrMissing: "아직 풀 리퀘스트가 없어 PR 병합을 사용할 수 없습니다",
@@ -1057,6 +1152,20 @@ export const ko: TranslationResources = {
       updateHost: "레이블을 관리하려면 호스트를 업데이트하세요.",
     },
   },
+  githubStar: {
+    title: "Gravity가 마음에 드시나요?",
+    description:
+      "Gravity는 오픈 소스입니다. 오늘 도움이 되었다면 GitHub 스타가 다른 개발자들이 Gravity를 찾는 데 도움이 됩니다.",
+    hostHint: "{{host}}의 gh에 로그인된 GitHub 계정으로 스타를 누릅니다.",
+    directStarFailed:
+      "여기서 스타를 누를 수 없었습니다. GitHub를 열어 브라우저에서 스타를 눌러 주세요.",
+    thanks: "Gravity에 스타를 눌러 주셔서 감사합니다.",
+    star: "GitHub에서 스타 누르기",
+    starring: "스타를 누르는 중...",
+    openGitHub: "GitHub 열기",
+    opening: "여는 중...",
+    later: "나중에",
+  },
   changelog: {
     title: "새로운 소식",
     installed: "설치됨",
@@ -1065,6 +1174,111 @@ export const ko: TranslationResources = {
     error: {
       title: "변경 내역을 불러오지 못했습니다",
       description: "연결을 확인한 후 다시 시도하세요.",
+    },
+  },
+  linear: {
+    title: "작업",
+    connect: {
+      title: "Linear 연결",
+      description:
+        "개인 API 키를 붙여넣으면 여기에 이슈가 표시됩니다. 키는 이 호스트에 보관됩니다.",
+      apiKeyLabel: "API 키",
+      apiKeyPlaceholder: "lin_api_…",
+      action: "연결",
+      pending: "연결 중…",
+      createKey: "Linear에서 API 키 만들기",
+    },
+    filters: {
+      assigned: "담당",
+      created: "생성함",
+      all: "전체",
+      completed: "완료",
+      allTeams: "모든 팀",
+      teamFilterLabel: "팀으로 필터: {{team}}",
+      searchPlaceholder: "이슈 검색",
+      clearSearch: "검색 지우기",
+    },
+    menu: {
+      actions: "Linear 작업",
+      refresh: "새로고침",
+      openLinear: "Linear 열기",
+      disconnect: "연결 해제",
+      disconnecting: "연결 해제 중…",
+      disconnectTitle: "Linear 연결 해제",
+      disconnectMessage: "{{host}}에서 Linear API 키를 제거할까요?",
+      disconnectConfirm: "연결 해제",
+    },
+    states: {
+      noHosts: "Linear를 사용하려면 호스트를 추가하세요.",
+      hostOffline: "이 호스트는 오프라인입니다.",
+      hostUnsupported: "Linear를 사용하려면 이 호스트를 업데이트하세요.",
+      retry: "다시 시도",
+      loadError: "이슈를 불러올 수 없습니다",
+      empty: "이슈 없음",
+      searchEmpty: "검색과 일치하는 이슈가 없습니다",
+      hasMore: "처음 {{count}}개 이슈 표시 중",
+    },
+    pagination: {
+      range: "이슈 {{start}}–{{end}}",
+      previous: "이전",
+      next: "다음",
+      page: "{{page}} 페이지",
+      updateHost: "더 많은 이슈를 보려면 이 호스트를 업데이트하세요.",
+    },
+    start: {
+      repository: "저장소",
+      workspace: "작업 공간",
+      newWorktree: "새 워크트리",
+      newWorkspace: "새 작업 공간",
+      existingWorkspace: "기존 작업 공간",
+      repositoryCheckout: "저장소 체크아웃 (현재 브랜치)",
+      noWorkspaces: "이 저장소에 작업 공간이 없습니다",
+      model: "모델",
+      chooseModel: "모델 선택",
+      noModels: "사용 가능한 모델이 없습니다",
+      prompt: "프롬프트",
+    },
+    issue: {
+      open: "Linear에서 열기",
+      startAgent: "에이전트 시작",
+      actions: "이슈 작업",
+      startFailed: "에이전트를 시작할 수 없습니다",
+      chooseRepo: "저장소 선택",
+      noProjects: "이 호스트에 프로젝트가 없습니다",
+      openComposer: "새 워크스페이스에서 설정",
+      copyBranch: "브랜치 이름 복사",
+      branchCopied: "브랜치 이름을 복사했습니다",
+      state: "상태",
+      changeState: "상태 변경",
+      stateUpdateFailed: "상태를 업데이트할 수 없습니다",
+      priority: "우선순위",
+      assignee: "담당자",
+      unassigned: "미배정",
+      unknownUser: "알 수 없음",
+      labels: "레이블",
+      project: "프로젝트",
+      dueDate: "기한",
+      updated: "업데이트",
+      updatedAgo: "{{time}} 업데이트됨",
+      description: "설명",
+      noDescription: "설명 없음",
+      subIssues: "하위 이슈",
+      comments: "댓글",
+      noComments: "아직 댓글이 없습니다",
+      loadError: "이 이슈를 불러올 수 없습니다",
+    },
+    priority: {
+      none: "우선순위 없음",
+      urgent: "긴급",
+      high: "높음",
+      medium: "보통",
+      low: "낮음",
+    },
+    errors: {
+      auth: "Linear가 API 키를 거부했습니다.",
+      rateLimited: "Linear 요청 한도에 도달했습니다. 잠시 후 다시 시도하세요.",
+      network: "Linear에 연결할 수 없습니다.",
+      notConnected: "이 호스트에 Linear가 연결되어 있지 않습니다.",
     },
   },
   sidebar: {
@@ -1134,15 +1348,16 @@ export const ko: TranslationResources = {
       diagnostics: "진단 실행",
       shortcuts: "키보드 단축키",
       reportIssue: "문제 신고",
-      discord: "Discord",
       github: "GitHub 이슈 만들기",
       whatsNew: "새로운 소식",
-      appName: "Paseo",
+      starOnGithub: "GitHub에서 스타 누르기",
+      appName: "Gravity",
     },
     sections: {
       sessions: "기록",
       search: "검색",
-      schedules: "일정",
+      schedules: "자동화",
+      tasks: "작업",
     },
     worktreeSetup: {
       title: "워크트리 스크립트 설정",
@@ -1198,6 +1413,7 @@ export const ko: TranslationResources = {
         showMore: "더 보기",
         showLess: "간략히 보기",
         createWorkspaceFor: "{{projectName}}을(를) 위한 새 워크스페이스 생성",
+        newAgent: "새 에이전트",
         copyPath: "경로 복사",
         copyBranchName: "브랜치 이름 복사",
         rename: "워크스페이스 이름 변경",
@@ -1235,9 +1451,9 @@ export const ko: TranslationResources = {
     title: "새 워크스페이스",
     create: "생성",
     isolation: {
-      local: "로컬",
+      local: "현재 디렉터리",
       worktree: "새 워크트리",
-      label: "격리",
+      label: "실행 위치",
     },
     fields: {
       project: "프로젝트",
@@ -1252,9 +1468,9 @@ export const ko: TranslationResources = {
       selectModel: "모델을 선택하세요",
     },
     tooltips: {
+      isolation: "여기서 실행하거나 새 워크트리에서 실행",
       project: "Choose the project",
       host: "Choose the host",
-      isolation: "Choose the isolation level",
       startingRef: "시작 위치를 선택하세요",
       launch: "Choose what to launch",
     },
@@ -1284,7 +1500,7 @@ export const ko: TranslationResources = {
       close: "창 닫기",
     },
     quitting: {
-      title: "Paseo 종료 중...",
+      title: "Gravity 종료 중...",
       detail: "로컬 데몬을 중지하는 중입니다.",
     },
     daemon: {
@@ -1299,19 +1515,20 @@ export const ko: TranslationResources = {
       },
       management: {
         title: "내장 데몬 관리",
-        hint: "Paseo가 내장 데몬을 시작하고 중지하도록 허용합니다",
+        hint: "Gravity가 내장 데몬을 시작하고 중지하도록 허용합니다",
         pauseTitle: "내장 데몬 일시 중지",
         pauseMessage:
           "내장 데몬이 즉시 중지됩니다. 내장 데몬에 연결된 실행 중인 에이전트와 터미널이 중지됩니다.",
         pauseAndStop: "일시 중지 후 중지",
         registrationFailed:
-          "내장 데몬이 시작되었지만 Paseo가 localhost 연결을 저장하지 못했습니다. 데몬 관리를 껐다가 다시 켜거나 localhost를 수동으로 추가하세요.",
-        pausedStopFailed: "내장 데몬 관리가 일시 중지되었지만 Paseo가 데몬을 중지하지 못했습니다.",
+          "내장 데몬이 시작되었지만 Gravity가 localhost 연결을 저장하지 못했습니다. 데몬 관리를 껐다가 다시 켜거나 localhost를 수동으로 추가하세요.",
+        pausedStopFailed:
+          "내장 데몬 관리가 일시 중지되었지만 Gravity가 데몬을 중지하지 못했습니다.",
         updateFailed: "내장 데몬 관리를 업데이트할 수 없습니다.",
       },
       keepRunning: {
         title: "종료 후에도 데몬 계속 실행",
-        hint: "Paseo를 종료해도 데몬이 계속 실행됩니다",
+        hint: "Gravity를 종료해도 데몬이 계속 실행됩니다",
       },
       logs: {
         title: "로그 파일",
@@ -1326,7 +1543,7 @@ export const ko: TranslationResources = {
       fullStatus: {
         title: "전체 상태",
         modalTitle: "데몬 상태",
-        hint: "`paseo daemon status`를 실행하고 출력을 표시합니다",
+        hint: "`gravity daemon status`를 실행하고 출력을 표시합니다",
         view: "상태 보기",
         copied: "상태가 클립보드에 복사되었습니다.",
         fetchFailed: "데몬 상태를 가져오지 못했습니다: {{message}}",
@@ -1380,7 +1597,7 @@ export const ko: TranslationResources = {
     },
     rosetta: {
       title: "Apple Silicon 빌드 다운로드",
-      runningIntel: "Apple Silicon에서 Rosetta로 Paseo의 Intel 빌드를 실행하고 있습니다.",
+      runningIntel: "Apple Silicon에서 Rosetta로 Gravity의 Intel 빌드를 실행하고 있습니다.",
       highCpu:
         "이로 인해 CPU 사용량이 높아집니다. 이를 해결하려면 Apple Silicon 빌드를 다운로드하세요.",
       download: "다운로드",
@@ -1423,7 +1640,7 @@ export const ko: TranslationResources = {
         microphone: "마이크 상태를 아직 확인하지 않았습니다.",
       },
       testNotification: {
-        title: "Paseo 알림 테스트",
+        title: "Gravity 알림 테스트",
         body: "이 메시지가 보이면 데스크톱 알림이 작동하는 것입니다.",
         notDelivered: "알림이 전달되지 않았습니다. 시스템 설정 > 알림을 확인하세요.",
         failed: "알림을 보내지 못했습니다.",
@@ -1432,12 +1649,12 @@ export const ko: TranslationResources = {
     integrations: {
       cli: {
         statusFailed: "CLI 설치 상태를 확인할 수 없습니다.",
-        installFailed: "Paseo CLI를 설치할 수 없습니다.",
+        installFailed: "Gravity CLI를 설치할 수 없습니다.",
       },
     },
   },
   rootError: {
-    title: "Paseo에 문제가 발생했습니다.",
+    title: "Gravity에 문제가 발생했습니다.",
     body: "앱을 다시 로드해 보세요. 이런 일이 계속 발생하면 신고할 때 아래 세부정보를 포함하세요.",
     details: "세부",
   },
@@ -1503,6 +1720,8 @@ export const ko: TranslationResources = {
     stashRestored: "스태시된 변경 사항이 복원되었습니다",
   },
   agentAutocomplete: {
+    command: "명령어",
+    skill: "스킬",
     searchingWorkspace: "워크스페이스 검색 중...",
     loadingCommands: "명령 불러오는 중...",
     noFiles: "파일 또는 디렉터리를 찾을 수 없습니다",
@@ -1532,7 +1751,7 @@ export const ko: TranslationResources = {
     },
   },
   onboarding: {
-    title: "Paseo에 오신 것을 환영합니다",
+    title: "Gravity에 오신 것을 환영합니다",
     subtitle: "시작하려면 컴퓨터를 연결하세요",
     actions: {
       settings: "설정",
@@ -1620,7 +1839,7 @@ export const ko: TranslationResources = {
     },
     direct: {
       title: "직접 연결",
-      helper: "Paseo 서버의 주소를 입력하세요.",
+      helper: "Gravity 서버의 주소를 입력하세요.",
       fields: {
         host: "호스트",
         port: "포트",
@@ -1661,7 +1880,7 @@ export const ko: TranslationResources = {
     },
     remoteSsh: {
       title: "원격 SSH",
-      helper: "원격 호스트에서 실행 중인 Paseo 데몬에 연결합니다.",
+      helper: "원격 호스트에서 실행 중인 Gravity 데몬에 연결합니다.",
       fields: {
         target: "SSH 호스트",
       },
@@ -1718,15 +1937,15 @@ export const ko: TranslationResources = {
       enableDescription:
         "릴레이를 사용하면 이 장치를 어디에서나 연결할 수 있습니다. 페어링 트래픽은 종단 간 암호화됩니다.",
       relayDocs: "릴레이 작동 방식",
-      relayDocsAccessibility: "Paseo 릴레이 작동 방식 읽기",
+      relayDocsAccessibility: "Gravity 릴레이 작동 방식 읽기",
       enableRelay: "릴레이 활성화",
       enablingRelay: "활성화 중...",
       notNow: "지금은 아님",
       directConnectionHint:
         "릴레이 없이 TCP, Tailscale 또는 다른 VPN을 통해 직접 연결하세요. QR 코드가 생성되지 않습니다.",
-      updateRequired: "Paseo 데스크톱에서 릴레이를 활성화하려면 호스트를 업데이트하세요.",
+      updateRequired: "Gravity 데스크톱에서 릴레이를 활성화하려면 호스트를 업데이트하세요.",
       unavailable: "페어링 정보를 사용할 수 없습니다.",
-      hint: "휴대폰의 Paseo로 이 QR 코드를 스캔하거나 아래 링크를 복사하세요.",
+      hint: "휴대폰의 Gravity로 이 QR 코드를 스캔하거나 아래 링크를 복사하세요.",
       securityWarning:
         "이 페어링 링크는 비밀번호처럼 취급하세요. 링크를 가진 사람은 누구나 이 데몬에 접근할 수 있습니다.",
       qrUnavailable: "QR 코드를 사용할 수 없습니다.",
@@ -1761,7 +1980,7 @@ export const ko: TranslationResources = {
   serviceUrl: {
     title: "서비스 URL 열기",
     message: "{{url}}을(를) 열까요?",
-    inPaseo: "Paseo에서",
+    inGravity: "Gravity에서",
     externalBrowser: "외부 브라우저",
     dontAskAgain: "다시 묻지 않기",
   },
@@ -1806,6 +2025,19 @@ export const ko: TranslationResources = {
       failedToLoad: "파일을 불러오지 못했습니다",
       failedToLoadPreview: "파일 미리보기를 불러오지 못했습니다",
       editor: {
+        find: {
+          placeholder: "찾기",
+          replace: "바꾸기",
+          toggleReplace: "바꾸기 전환",
+          previous: "이전 일치 항목",
+          next: "다음 일치 항목",
+          selectAll: "모든 일치 항목 선택",
+          close: "찾기 닫기",
+          replaceAll: "모두 바꾸기",
+          count: "{{total}}개 중 {{current}}",
+          invalidRegex: "잘못된 정규식",
+          noResults: "결과 없음",
+        },
         fileSize: "파일 크기 {{size}}",
         lines: "{{count}} 라인",
         editorStatus: "편집기 상태 {{status}}",
@@ -1832,6 +2064,55 @@ export const ko: TranslationResources = {
       subtitle: "워크스페이스 파일",
       tooltip: "워크스페이스 파일 탐색",
       chooseFile: "파일 선택",
+    },
+    search: {
+      label: "검색",
+      subtitle: "파일에서 찾기",
+      tooltip: "워크스페이스 파일 검색",
+      placeholder: "검색",
+      clear: "검색 지우기",
+      modes: {
+        names: "이름",
+        contents: "내용",
+      },
+      options: {
+        caseSensitive: "대소문자 구분",
+        wholeWord: "단어 단위로 일치",
+        regex: "정규식 사용",
+        filters: "포함하거나 제외할 파일",
+      },
+      filters: {
+        includeLabel: "포함할 파일",
+        includePlaceholder: "예: *.ts, src/**",
+        excludeLabel: "제외할 파일",
+        excludePlaceholder: "예: *.min.js, dist/**",
+      },
+      count: {
+        fileResult: "{{files}}개 파일에서 {{count}}개 결과",
+        filesResult: "{{files}}개 파일에서 {{count}}개 결과",
+        fileResults: "{{files}}개 파일에서 {{count}}개 결과",
+        filesResults: "{{files}}개 파일에서 {{count}}개 결과",
+      },
+      states: {
+        prompt: "입력하여 파일 내용 검색",
+        namesPrompt: "입력하여 파일 이름 검색",
+        empty: "결과가 없습니다. 구성된 제외 항목과 gitignore 파일을 확인하세요.",
+        emptyIncludes: "'{{include}}'에서 결과를 찾을 수 없습니다.",
+        emptyExcludes: "'{{exclude}}'을(를) 제외하면 결과가 없습니다.",
+        emptyIncludesExcludes:
+          "'{{exclude}}'을(를) 제외한 '{{include}}'에서 결과를 찾을 수 없습니다.",
+        limitHit:
+          "결과 집합에는 전체 일치 항목 중 일부만 포함되어 있습니다. 검색을 더 구체적으로 지정하여 결과를 좁히세요.",
+      },
+      actions: {
+        refresh: "새로 고침",
+        clear: "검색 결과 지우기",
+        collapseAll: "모두 접기",
+        expandAll: "모두 펼치기",
+        toggleDetails: "검색 세부 정보 전환",
+      },
+      fileMatches_one: "{{count}}개 일치 항목",
+      fileMatches_other: "{{count}}개 일치 항목",
     },
     pullRequest: {
       label: "풀 리퀘스트",
@@ -1860,6 +2141,10 @@ export const ko: TranslationResources = {
     output: "출력",
   },
   toolCallGroup: {
+    earlierCalls: {
+      one: "이전 도구 호출 {{count}}개",
+      other: "이전 도구 호출 {{count}}개",
+    },
     editedFiles: {
       one: "{{count}} 파일을 편집했습니다.",
       other: "{{count}} 파일을 편집했습니다.",
@@ -1880,9 +2165,9 @@ export const ko: TranslationResources = {
       one: "기타 도구 {{count}}개 사용함",
       other: "기타 도구 {{count}}개 사용함",
     },
-    paseoCalls: {
-      one: "Paseo를 {{count}}회 호출함",
-      other: "Paseo를 {{count}}회 호출함",
+    gravityCalls: {
+      one: "Gravity를 {{count}}회 호출함",
+      other: "Gravity를 {{count}}회 호출함",
     },
     and: "그리고",
   },
@@ -1963,7 +2248,7 @@ export const ko: TranslationResources = {
       send: "보내기",
       sending: "보내는 중...",
       sentTitle: "테스트 알림을 보냈습니다",
-      sentDescription: "Paseo가 알림을 운영 체제에 전달했습니다.",
+      sentDescription: "Gravity가 알림을 운영 체제에 전달했습니다.",
       sendFailedTitle: "테스트 알림을 보낼 수 없음",
     },
     hostSections: {
@@ -1986,10 +2271,10 @@ export const ko: TranslationResources = {
       selection: "모델 선택",
       automatic: "자동",
       preferred: "수동",
-      automaticHint: "Paseo가 사용 가능한 빠른 모델을 선택합니다",
-      preferredHint: "Paseo에서 사용할 모델을 선택하세요",
+      automaticHint: "Gravity가 사용 가능한 빠른 모델을 선택합니다",
+      preferredHint: "Gravity에서 사용할 모델을 선택하세요",
       model: "모델",
-      fallbackHint: "사용할 수 없으면 Paseo가 다른 사용 가능한 모델을 사용합니다",
+      fallbackHint: "사용할 수 없으면 Gravity가 다른 사용 가능한 모델을 사용합니다",
       docs: "문서",
       saveError: "메타데이터 생성을 업데이트할 수 없습니다",
     },
@@ -1998,7 +2283,7 @@ export const ko: TranslationResources = {
       browserData: {
         title: "브라우저 데이터",
         siteData: "쿠키 및 사이트 데이터",
-        description: "브라우저 탭은 Paseo 전체에서 로그인 및 사이트 데이터를 공유합니다.",
+        description: "브라우저 탭은 Gravity 전체에서 로그인 및 사이트 데이터를 공유합니다.",
         clear: "브라우저 데이터 지우기",
         clearing: "삭제 중...",
         confirmTitle: "브라우저 데이터를 삭제하시겠습니까?",
@@ -2027,9 +2312,23 @@ export const ko: TranslationResources = {
         description: "실행 중인 스크립트의 URL을 열 위치",
         options: {
           ask: "물어보기",
-          inApp: "Paseo에서",
+          inApp: "Gravity에서",
           external: "외부 브라우저",
         },
+      },
+      power: {
+        title: "전원",
+        label: "덮개를 닫아도 작업 계속하기",
+        description:
+          "끄거나 Gravity를 종료할 때까지 이 Mac을 깨어 있게 합니다. 12시간 후 또는 배터리 20%에서 종료됩니다.",
+        agentLabel: "이 에이전트를 위해 깨어 있기",
+        agentHint:
+          "이 에이전트의 다음 실행이 끝날 때까지 Mac을 깨어 있게 합니다. 관리자 권한이 필요합니다.",
+        pending: "macOS 대기 중…",
+        error: "잠자기 설정을 변경하지 못했습니다. 다시 시도하세요. {{detail}}",
+        agentsActive:
+          "에이전트가 이 Mac을 깨어 있게 하고 있습니다. 입력창에서 해당 스위치를 끄세요.",
+        globalActive: "설정 → 일반에서 이 Mac에 대해 활성화되었습니다.",
       },
       terminalScrollback: {
         label: "터미널 스크롤백",
@@ -2040,14 +2339,9 @@ export const ko: TranslationResources = {
         label: "추론 항상 펼치기",
         description: "에이전트의 사고 및 추론 블록을 기본적으로 모두 펼쳐 표시합니다.",
       },
-      toolCallDetail: {
-        label: "도구 호출 표시",
-        description: "타임라인에 도구 호출이 표시되는 방식",
-        accessibilityLabel: "도구 호출 표시 선택({{value}})",
-        options: {
-          overview: "요약",
-          detailed: "전체 세부정보",
-        },
+      collapseToolCalls: {
+        label: "도구 호출 접기",
+        description: "연속된 도구 호출을 접고 스크롤할 수 있는 섹션으로 묶습니다",
       },
       language: {
         label: "언어",
@@ -2112,7 +2406,7 @@ export const ko: TranslationResources = {
         label: "앱 업데이트",
         readyToInstall: "설치 준비됨: {{version}}",
         installTitle: "데스크톱 업데이트 설치",
-        installMessage: "이 컴퓨터의 Paseo를 업데이트합니다",
+        installMessage: "이 컴퓨터의 Gravity를 업데이트합니다",
         installConfirm: "업데이트 설치",
         update: "업데이트",
         updateTo: "{{version}}(으)로 업데이트",
@@ -2168,8 +2462,11 @@ export const ko: TranslationResources = {
           "코드, diff, 터미널 출력에 사용됩니다. 시스템 기본값을 사용하려면 비워 두세요",
         codeFontAccessibility: "코드 글꼴 패밀리",
         codeSize: "코드 크기",
-        codeSizeHint: "코드, diff 및 터미널 출력에 사용됩니다",
+        codeSizeHint: "코드 및 diff에 사용됩니다",
         codeSizeAccessibility: "코드 글꼴 크기",
+        terminalSize: "터미널 크기",
+        terminalSizeHint: "터미널 출력에 사용됩니다",
+        terminalSizeAccessibility: "터미널 글꼴 크기",
       },
       syntax: {
         title: "구문",
@@ -2235,6 +2532,7 @@ export const ko: TranslationResources = {
         toggleRightSidebar: "사이드 패널 토글",
         toggleBothSidebars: "양쪽 사이드바 토글",
         toggleSettings: "설정 토글",
+        openHistory: "기록 열기",
         toggleFocusMode: "집중 모드 토글",
         cycleTheme: "테마 순환",
         focusMessageInput: "메시지 입력란에 포커스",
@@ -2341,11 +2639,11 @@ export const ko: TranslationResources = {
         title: "오케스트레이션 스킬",
         description: "CLI를 통해 에이전트가 오케스트레이션하도록 가르칩니다",
         updateAvailable: "업데이트 사용 가능",
-        updateTitle: "Paseo 스킬을 업데이트할까요?",
+        updateTitle: "Gravity 스킬을 업데이트할까요?",
         updateFallback: "번들된 스킬을 내 컴퓨터에 동기화합니다.",
-        uninstallTitle: "Paseo 스킬을 제거할까요?",
+        uninstallTitle: "Gravity 스킬을 제거할까요?",
         uninstallMessage:
-          "~/.agents, ~/.claude, ~/.codex에서 모든 Paseo 오케스트레이션 스킬을 제거합니다.",
+          "~/.agents, ~/.claude, ~/.codex에서 모든 Gravity 오케스트레이션 스킬을 제거합니다.",
         choose: "스킬 선택",
         chooseAll: "모든 스킬",
         chooseAllHint: "나중에 추가되는 항목을 포함하여 모든 번들 스킬을 설치된 상태로 유지합니다.",
@@ -2381,9 +2679,9 @@ export const ko: TranslationResources = {
         title: "오케스트레이션",
         unavailable: "오케스트레이션을 관리하려면 이 호스트에 연결하세요",
         enableTools: {
-          title: "Paseo 도구 활성화",
+          title: "Gravity 도구 활성화",
           hint: "에이전트가 워크트리, 에이전트, 일정을 관리할 수 있습니다",
-          accessibilityLabel: "Paseo 도구 주입",
+          accessibilityLabel: "Gravity 도구 주입",
         },
         systemPrompt: {
           title: "시스템 프롬프트",
@@ -2487,15 +2785,15 @@ export const ko: TranslationResources = {
             "이 호스트는 연결되어 있지 않습니다. 재시작하기 전에 온라인 상태가 될 때까지 기다리세요.",
           offlineTitle: "호스트 오프라인",
           offlineMessage:
-            "이 호스트는 오프라인입니다. Paseo가 자동으로 다시 연결하므로 다시 온라인이 될 때까지 기다린 후 재시작하세요.",
+            "이 호스트는 오프라인입니다. Gravity가 자동으로 다시 연결하므로 다시 온라인이 될 때까지 기다린 후 재시작하세요.",
           requestFailedTitle: "오류",
           requestFailedMessage:
-            "재시작 요청을 보내지 못했습니다. Paseo가 자동으로 다시 연결하므로 호스트가 온라인으로 표시되면 다시 시도하세요.",
+            "재시작 요청을 보내지 못했습니다. Gravity가 자동으로 다시 연결하므로 호스트가 온라인으로 표시되면 다시 시도하세요.",
           dialogFailedMessage: "재시작 확인 대화 상자를 열 수 없습니다.",
         },
         update: {
           desktopManagedHint:
-            "이 데몬은 Paseo Desktop에서 관리됩니다. 호스트에서 Paseo 데스크톱을 업데이트합니다.",
+            "이 데몬은 Gravity Desktop에서 관리됩니다. 호스트에서 Gravity 데스크톱을 업데이트합니다.",
           title: "데몬 업데이트",
           hint: "데몬을 최신 버전으로 업데이트하고 다시 시작하세요.",
           confirm: "업데이트",
@@ -2601,6 +2899,43 @@ export const ko: TranslationResources = {
         unknownError: "알 수 없는 오류",
       },
     },
+    accounts: {
+      title: "계정",
+      info: "프로바이더별로 여러 로그인을 저장하고 전환할 수 있습니다. 프로바이더는 활성 로그인을 계속 사용하며, 실행 중인 에이전트는 다음 요청부터 전환이 적용됩니다.",
+      loading: "계정을 불러오는 중...",
+      errorTitle: "계정을 불러올 수 없습니다",
+      providerUnsupported: "이 프로바이더는 저장된 로그인을 지원하지 않습니다",
+      hostUnavailable: "계정을 관리하려면 이 호스트에 연결하세요",
+      hostUpgradeRequired: "계정을 관리하려면 호스트를 업데이트하세요",
+      clientUnavailable: "호스트 연결이 준비되지 않았습니다",
+      refresh: "새로고침",
+      refreshing: "새로고침 중...",
+      retry: "다시 시도",
+      dismiss: "닫기",
+      notSignedIn: "{{provider}}에 로그인되어 있지 않습니다",
+      currentLoginUnsaved:
+        "{{email}}(으)로 로그인되어 있습니다. 나중에 다시 전환할 수 있도록 이 로그인을 저장하세요.",
+      currentLoginExpired:
+        "{{email}}의 현재 로그인이 만료되었습니다. 저장하기 전에 다시 로그인하세요.",
+      save: "현재 로그인 저장",
+      saving: "저장 중...",
+      active: "활성",
+      loginExpired: "로그인 만료됨",
+      loginExpiredHint: "{{provider}}에서 이 계정으로 다시 로그인한 다음 현재 로그인을 저장하세요",
+      usageUnavailable: "사용량을 확인할 수 없음",
+      switch: "전환",
+      switching: "전환 중...",
+      remove: "삭제",
+      removing: "삭제 중...",
+      removeConfirmTitle: "{{email}}을(를) 삭제할까요?",
+      removeConfirmMessage:
+        "Gravity가 이 저장된 로그인을 잊습니다. 프로바이더 자체의 로그인에는 영향이 없습니다.",
+      removeConfirm: "삭제",
+      switchErrorTitle: "계정을 전환할 수 없습니다",
+      saveErrorTitle: "로그인을 저장할 수 없습니다",
+      removeErrorTitle: "로그인을 삭제할 수 없습니다",
+      actionsMenu: "{{email}} 작업",
+    },
     project: {
       noEditableTarget: "이 호스트에서는 이 프로젝트를 편집할 수 없습니다.",
       backToProjects: "프로젝트로 돌아가기",
@@ -2616,13 +2951,13 @@ export const ko: TranslationResources = {
         savedToast: "프로젝트가 업데이트되었습니다.",
       },
       readFailures: {
-        invalidTitle: "paseo.json을 파싱할 수 없습니다",
+        invalidTitle: "gravity.json을 파싱할 수 없습니다",
         invalidDescription: "디스크의 파일을 수정한 후 다시 로드하세요.",
         missingTitle: "이 호스트에는 이 프로젝트가 없습니다",
         missingSingleHost: "선택한 호스트에 이 프로젝트의 기록이 없습니다.",
-        transportTitle: "paseo.json을 불러올 수 없습니다",
+        transportTitle: "gravity.json을 불러올 수 없습니다",
         transportFallback: "호스트가 응답하지 않았습니다.",
-        failedTitle: "paseo.json을 불러올 수 없습니다",
+        failedTitle: "gravity.json을 불러올 수 없습니다",
         failedDescription: "다시 로드하여 재시도하세요.",
       },
       worktree: {
@@ -2632,7 +2967,7 @@ export const ko: TranslationResources = {
         docsTooltip: "자세한 내용과 이 명령에 사용할 수 있는 환경 변수는 문서를 참조하세요",
         setup: "설정",
         setupAccessibility: "워크트리 설정 명령",
-        uncommittedTitle: "paseo.json 변경 사항을 커밋하세요",
+        uncommittedTitle: "gravity.json 변경 사항을 커밋하세요",
         uncommittedDescription: "새 워크트리는 선택한 기본 브랜치의 설정 스크립트를 사용합니다.",
         teardown: "정리",
         teardownAccessibility: "워크트리 정리 명령",
@@ -2656,7 +2991,7 @@ export const ko: TranslationResources = {
         newScript: "새 스크립트",
         editScript: "{{name}} 편집",
         runAsService: "서비스로 실행",
-        serviceHint: "Paseo가 프로세스를 감독하고 $PASEO_PORT를 통해 포트를 할당합니다",
+        serviceHint: "Gravity가 프로세스를 감독하고 $GRAVITY_PORT를 통해 포트를 할당합니다",
         actions: {
           add: "스크립트 추가",
           edit: "편집",
@@ -2665,7 +3000,7 @@ export const ko: TranslationResources = {
       },
       metadata: {
         title: "메타데이터 생성",
-        info: "Paseo가 메타데이터를 생성하는 데 사용하는 AI 프롬프트에 주입되는 프로젝트별 지침 - 브랜치 이름, 커밋 스타일, PR 형식 같은 팀 규칙을 적용하는 데 사용하세요",
+        info: "Gravity가 메타데이터를 생성하는 데 사용하는 AI 프롬프트에 주입되는 프로젝트별 지침 - 브랜치 이름, 커밋 스타일, PR 형식 같은 팀 규칙을 적용하는 데 사용하세요",
         branchName: "브랜치 이름",
         branchNamePlaceholder:
           "브랜치에 feat/ 또는 fix/를 접두사로, 개인 브랜치에는 mb/를 붙이세요",
@@ -2676,8 +3011,8 @@ export const ko: TranslationResources = {
       },
       writeFailures: {
         staleTitle: "디스크에서 구성이 변경되었습니다",
-        staleDescription: "저장하기 전에 다시 로드하여 최신 paseo.json을 가져오세요.",
-        failedTitle: "paseo.json을 저장할 수 없습니다",
+        staleDescription: "저장하기 전에 다시 로드하여 최신 gravity.json을 가져오세요.",
+        failedTitle: "gravity.json을 저장할 수 없습니다",
         failedDescription: "다시 시도하거나 디스크에서 최신 버전을 다시 로드하세요.",
       },
       actions: {

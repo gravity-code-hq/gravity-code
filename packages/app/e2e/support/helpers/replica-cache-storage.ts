@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 
-const DATABASE_NAME = "paseo-replica-row-store";
+const DATABASE_NAME = "gravity-replica-row-store";
 const STORE_NAME = "rows";
 const SINGLETON_ID = "singleton";
 

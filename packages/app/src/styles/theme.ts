@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { darkHighlightColors, lightHighlightColors } from "@getpaseo/highlight";
+import { darkHighlightColors, lightHighlightColors } from "@gravity/highlight";
 
 export const baseColors = {
   // Base colors
@@ -121,6 +121,46 @@ const lightDiffColors = {
 const darkDiffColors = {
   diffAddition: "#4ade80", // green-400
   diffDeletion: "#ef4444", // red-500
+};
+
+export const cursorCharcoalDiffColors = {
+  surface: "#191919",
+  headerSurface: "#161616",
+  headerActiveSurface: "#222222",
+  hunkBackground: "#222222",
+  border: "#303030",
+  headerBorder: "#303030",
+  foreground: "#d4d4d4",
+  foregroundMuted: "#929292",
+  addition: "#93c99b",
+  deletion: "#e3a1ab",
+  additionBackground: "#243e2e",
+  deletionBackground: "#41232d",
+  additionGutterBackground: "#243e2e",
+  deletionGutterBackground: "#41232d",
+  emptyBackground: "#191919",
+  syntax: {
+    keyword: "#80cbc4",
+    comment: "#929292",
+    string: "#d69bd2",
+    number: "#a8bcec",
+    literal: "#a8bcec",
+    function: "#e5b07d",
+    definition: "#e5b07d",
+    class: "#a8bcec",
+    type: "#a8bcec",
+    tag: "#80cbc4",
+    attribute: "#e5b07d",
+    property: "#d4d4d4",
+    variable: "#d4d4d4",
+    operator: "#d4d4d4",
+    punctuation: "#d4d4d4",
+    regexp: "#d69bd2",
+    escape: "#a8bcec",
+    meta: "#929292",
+    heading: "#a8bcec",
+    link: "#d69bd2",
+  } satisfies typeof darkHighlightColors,
 };
 
 // Status colors — semantic signals for success/danger/warning/merged. There is exactly one
@@ -271,7 +311,7 @@ export function buildLightSemanticColors(tint: LightThemeConfig) {
 
     destructive: tint.destructive,
     destructiveForeground: tint.surface0,
-    success: tint.accent,
+    success: lightStatusColors.statusSuccess,
     successForeground: tint.surface0,
 
     background: tint.surface0,
@@ -307,26 +347,26 @@ export function buildLightSemanticColors(tint: LightThemeConfig) {
 
 const lightSemanticColors = buildLightSemanticColors({
   surface0: "#ffffff",
-  surface1: "#fafafa",
-  surface2: "#f4f4f5",
-  surface3: "#e4e4e7",
-  surface4: "#d4d4d8",
+  surface1: "#F2F2F2",
+  surface2: "#F8F8F8",
+  surface3: "#E8E8E8",
+  surface4: "#CCCCCC",
   surfaceDiffEmpty: "#f6f6f6",
-  surfaceSidebar: "#f4f4f5",
-  foreground: "#1a1a1e",
-  foregroundMuted: "#71717a",
-  foregroundExtraMuted: "#a1a1aa",
-  border: "#e4e4e7",
-  borderAccent: "#ececf1",
-  accent: "#20744A",
-  accentBright: "#239956",
+  surfaceSidebar: "#F8F8F8",
+  foreground: "#3B3B3B",
+  foregroundMuted: "#616161",
+  foregroundExtraMuted: "#767676",
+  border: "#E5E5E5",
+  borderAccent: "#CECECE",
+  accent: "#005FB8",
+  accentBright: "#005FB8",
   accentForeground: "#ffffff",
   primary: "#18181b",
   primaryForeground: "#fafafa",
   destructive: "#b04138",
   terminalBlack: "#1a1a1e",
   terminalBrightBlack: "#3f3f46",
-  ring: "#18181b",
+  ring: "#005FB8",
 });
 
 // ---------------------------------------------------------------------------
@@ -401,7 +441,7 @@ export function buildDarkSemanticColors(tint: DarkThemeConfig) {
 
     destructive: tint.destructive,
     destructiveForeground: "#ffffff",
-    success: tint.accent,
+    success: darkStatusColors.statusSuccess,
     successForeground: "#ffffff",
 
     // Legacy aliases (for gradual migration)
@@ -440,24 +480,26 @@ export function buildDarkSemanticColors(tint: DarkThemeConfig) {
 // Dark tint definitions
 // ---------------------------------------------------------------------------
 
-// Paseo — subtle teal-green tint (default)
-const paseoDarkColors = buildDarkSemanticColors({
-  surface0: "#181B1A",
-  surface1: "#1E2120",
-  surface2: "#272A29",
-  surface3: "#434645",
-  surface4: "#595B5B",
-  surfaceDiffEmpty: "#252827",
-  surfaceSidebar: "#141716",
-  foregroundMuted: "#A1A5A4",
-  foregroundExtraMuted: "#717574",
-  border: "#252B2A",
-  borderAccent: "#2F3534",
-  accent: "#20744A",
-  accentBright: "#7ccba0",
-  destructive: "#c64f43", // warm red, hue ~7 — reads as red (not pink) against the green tint
-  terminalBlack: "#141716",
-  terminalBrightBlack: "#434645",
+// Default surfaces and accents follow VS Code's Dark Modern theme.
+const gravityDarkColors = buildDarkSemanticColors({
+  surface0: "#181818",
+  surface1: "#1F1F1F",
+  surface2: "#2B2B2B",
+  surface3: "#313131",
+  surface4: "#3C3C3C",
+  surfaceDiffEmpty: "#252525",
+  surfaceSidebar: "#181818",
+  foreground: "#CCCCCC",
+  foregroundMuted: "#9D9D9D",
+  foregroundExtraMuted: "#868686",
+  border: "#2B2B2B",
+  borderAccent: "#3C3C3C",
+  accent: "#0078D4",
+  accentBright: "#4DAAFC",
+  destructive: "#c44a4a",
+  terminalBlack: "#181818",
+  terminalBrightBlack: "#616161",
+  ring: "#0078D4",
 });
 
 // Zinc — neutral gray, no tint
@@ -611,13 +653,12 @@ export const OPACITY = {
   100: 1,
 } as const;
 
-// Platform default font stacks — copied verbatim from constants/theme.ts `Fonts`
-// (sans -> ui, mono -> mono). These seed the dynamic `fontFamily` theme token and
-// are the fallback an empty user-supplied family resolves to at apply time.
+// Follow VS Code's system UI fonts: San Francisco on macOS, Segoe UI on Windows,
+// and the desktop's system font on Linux. An empty preference uses this stack.
 export const DEFAULT_UI_FONT_STACK: string = Platform.select({
   ios: "system-ui",
   default: "normal",
-  web: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  web: "-apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, Ubuntu, 'Droid Sans', sans-serif",
 });
 
 export const DEFAULT_MONO_FONT_STACK: string = Platform.select({
@@ -688,7 +729,7 @@ export function buildDarkTheme(semanticColors: ReturnType<typeof buildDarkSemant
   } as const;
 }
 
-export const darkTheme = buildDarkTheme(paseoDarkColors);
+export const darkTheme = buildDarkTheme(gravityDarkColors);
 export const darkZincTheme = buildDarkTheme(zincDarkColors);
 export const darkMidnightTheme = buildDarkTheme(midnightDarkColors);
 export const darkClaudeTheme = buildDarkTheme(claudeDarkColors);
@@ -768,7 +809,7 @@ export const THEME_OPTIONS = [
     group: "primary",
     unistylesName: "dark",
     theme: darkTheme,
-    swatch: "#2D8B62",
+    swatch: "#0078D4",
   },
   { name: "auto", group: "primary" },
   {

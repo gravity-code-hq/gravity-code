@@ -5,7 +5,7 @@ import type {
   SessionOutboundMessage,
   WorkspaceDescriptorPayload,
   WorkspaceProjectDescriptorPayload,
-} from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/messages";
 import { type CollectionRead, VersionedCollection } from "./internal/versioned-collection.js";
 
 interface AgentDirectoryEntry {

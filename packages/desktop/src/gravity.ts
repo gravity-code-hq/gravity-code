@@ -1,0 +1,3 @@
+/** Local-only Gravity build. Desktop is the only client. */
+export const GRAVITY_LOCAL_ONLY = true;
+export const GRAVITY_PRODUCT_NAME = "Gravity";

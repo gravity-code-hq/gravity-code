@@ -2,7 +2,7 @@ import type {
   AgentSearchMatch,
   AgentSnapshotPayload,
   ProjectPlacementPayload,
-} from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/messages";
 import {
   compareMatchScores,
   fuzzyPolicyForToken,
@@ -11,7 +11,7 @@ import {
   matchRanges,
   scoreMatch,
   tokenizeQuery,
-} from "@getpaseo/protocol/search/text-match";
+} from "@gravity/protocol/search/text-match";
 
 /**
  * History search ranks what the daemon already knows about a session: the four

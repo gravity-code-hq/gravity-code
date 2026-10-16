@@ -2,6 +2,74 @@ import { en, type TranslationResources } from "./en";
 import { pluginSettings } from "./plugin-settings";
 
 export const fr: TranslationResources = {
+  visualization: {
+    previous: "Variante précédente",
+    next: "Variante suivante",
+    controls: "Réglages",
+  },
+
+  providerCustomizations: {
+    addCommand: "Ajouter une commande",
+    commandName: "Nom de la commande",
+    prompt: "Instructions",
+    invalidName:
+      "Utilisez des lettres latines, des chiffres, des tirets ou des traits de soulignement. Commencez par une lettre ou un chiffre.",
+    commandExists: "Une commande porte déjà ce nom. Choisissez un autre nom.",
+    models: "Modèles",
+    commands: "Commandes",
+    skills: "Compétences",
+    mcpServers: "Serveurs MCP",
+    mcp: {
+      updated: "Vérifié {{time}}",
+      checking: "Vérification des serveurs…",
+      notHealthChecked:
+        "Codex ne teste pas les connexions. Configuré signifie que le serveur est dans la configuration, pas qu'il fonctionne.",
+      empty: "Aucun serveur MCP configuré.",
+      connectTitle: "Connecter d'autres services",
+      claudeConnectors:
+        "Slack, Gmail, Google Drive, Calendar et d'autres sont des connecteurs activés sur claude.ai. Ils suivent votre compte sur chaque hôte, rien n'est configuré ici.",
+      claudeConnectorsLink: "Ouvrir les connecteurs claude.ai",
+      claudeLocal: "Pour tout autre serveur, exécutez ceci sur l'hôte :",
+      codexAdd:
+        "Codex lit les serveurs depuis config.toml sur cet hôte. Ajoutez-en un avec la CLI Codex :",
+      codexLogin: "Les serveurs utilisant OAuth nécessitent aussi une connexion sur l'hôte :",
+      thenRefresh: "Appuyez ensuite sur Actualiser ici.",
+      status: {
+        connected: "Connecté",
+        failed: "Échec",
+        pending_approval: "Approbation requise",
+        disabled: "Désactivé",
+        configured: "Configuré",
+        unknown: "Inconnu",
+      },
+      scope: {
+        claude_ai: "Compte claude.ai",
+        user: "Personnel",
+        project: "Projet",
+      },
+    },
+    scope: "Portée",
+    personal: "Personnel",
+    project: "Projet",
+    plugin: "Plugin",
+    provider: "Fournisseur",
+    searchCommands: "Rechercher des commandes",
+    searchSkills: "Rechercher des compétences",
+    noCommands: "Aucune commande trouvée.",
+    noSkills: "Aucune compétence trouvée.",
+    updateHost: "Mettez cet hôte à jour pour gérer les commandes et compétences.",
+    readOnly:
+      "Géré par le fournisseur ou un plugin. Les fichiers installés sont en lecture seule ici.",
+    instructions: "Instructions",
+    improve: "Améliorer avec un agent",
+    save: "Enregistrer",
+    saved: "Enregistré",
+    conflict:
+      "Ce fichier a changé sur le disque. Rechargez-le avant de l’enregistrer pour ne pas écraser ces modifications.",
+    discardTitle: "Abandonner les modifications ?",
+    discardMessage: "Vos modifications non enregistrées seront perdues.",
+    discard: "Abandonner",
+  },
   common: {
     back: "Dos",
     loading: "Chargement...",
@@ -136,6 +204,10 @@ export const fr: TranslationResources = {
       addIssueOrPr_mr: "Ajouter un problème ou MR",
       dropImagesHere: "Déposez des images ici",
       dropFilesHere: "Drop files here",
+      queuedCount: "En attente : {{count}}",
+      deleteQueuedMessage: "Supprimer le message en attente",
+      deleteAllQueued: "Tout supprimer",
+      sendAllQueuedNow: "Tout envoyer maintenant",
       editQueuedMessage: "Modifier le message en file d'attente",
       sendQueuedMessageNow: "Envoyer le message en file d'attente maintenant",
       openImage: "Ouvrir la pièce jointe de l'image",
@@ -175,9 +247,15 @@ export const fr: TranslationResources = {
     },
   },
   agentControls: {
+    moreSettings: "Plus de réglages",
+    permissions: "Autorisations",
+    plan: "Plan",
+    caffeineMode: "Mode caféine",
     provider: {
       fallback: "Fournisseur",
       select: "Sélectionnez le fournisseur d'agent",
+      switched:
+        "Poursuite dans {{provider}} dans un nouvel onglet avec l’historique de la discussion",
     },
     thinking: {
       title: "Pensée",
@@ -294,6 +372,7 @@ export const fr: TranslationResources = {
     },
   },
   message: {
+    forkedFrom: "Conversation dérivée de {{title}}",
     diagram: {
       diagram: "Diagramme",
       zoomIn: "Zoomer",
@@ -307,9 +386,10 @@ export const fr: TranslationResources = {
       copyCode: "Copier le code",
       copyTurn: "Copier le tour",
       copyMessage: "Copier le message",
+      expandMessage: "Afficher plus",
+      collapseMessage: "Afficher moins",
       forkMenu: "Dupliquer le message",
       forkInNewTab: "Dupliquer dans un nouvel onglet",
-      forkInNewWorkspace: "Dupliquer dans un nouvel espace de travail",
       forkUnavailable: "Mettez l'hôte à jour pour utiliser ceci.",
       forkMissingWorkspace: "Cet agent n'est pas dans un espace de travail.",
       forkFailed: "Impossible de dupliquer le chat",
@@ -320,6 +400,8 @@ export const fr: TranslationResources = {
       dismissImage: "Ignorer l'image",
       closeImage: "Fermer l'image",
       imageLoadFailed: "Impossible de charger l'image",
+      copyImage: "Copier l’image",
+      copyImageFailed: "Impossible de copier l’image. Réessayez.",
       imageUnavailable: "Image indisponible",
       imagePreviewUnavailable: "Aperçu de l'image indisponible.",
       imagePreviewLoadFailed: "Impossible de charger l'aperçu de l'image.",
@@ -337,6 +419,10 @@ export const fr: TranslationResources = {
       details: "Détails",
     },
     dictation: {
+      listening: "À l’écoute",
+      transcribing: "Transcription…",
+      stopped: "Enregistrement arrêté",
+      doubleCommand: "Appuyez deux fois sur ⌘ pour démarrer ou arrêter la dictée",
       start: "Démarrer la dictée vocale",
       cancel: "Annuler la dictée",
       retry: "Réessayer la dictée",
@@ -409,6 +495,15 @@ export const fr: TranslationResources = {
     },
   },
   workspace: {
+    zoom: {
+      textSize: "Taille du texte",
+      increase: "Augmenter la taille du texte",
+      decrease: "Réduire la taille du texte",
+      reset: "Réinitialiser",
+      terminalOptions: "Options du terminal",
+      terminalText: "Texte du terminal : {{size}} px",
+      editorText: "Texte de l’éditeur : {{size}} px",
+    },
     route: {
       loading: "Chargement de l'espace de travail",
       connecting: "De liaison",
@@ -469,11 +564,6 @@ export const fr: TranslationResources = {
       },
     },
     fileExplorer: {
-      sort: {
-        name: "Nom",
-        modified: "Modifié",
-        size: "Taille",
-      },
       context: {
         size: "Taille",
         modified: "Modifié",
@@ -605,6 +695,8 @@ export const fr: TranslationResources = {
       },
       menu: {
         openFor: "Ouvrir le menu pour{{label}}",
+        copyConversation: "Copier la conversation",
+        downloadConversation: "Télécharger la conversation",
         copyResumeCommand: "Copier la commande de reprise",
         copyAgentId: "Copier l'identifiant de l'agent",
         copyTerminalId: "Copier l'identifiant du terminal",
@@ -657,6 +749,14 @@ export const fr: TranslationResources = {
         filePathCopiedLabel: "File path",
         resumeIdUnavailable: "ReprendreIDnon disponible",
         resumeCommandUnavailable: "Commande de reprise non disponible",
+        copyingConversation: "Copie de la conversation…",
+        conversationCopied: "Conversation copiée",
+        conversationCopyFailed:
+          "Impossible de copier la conversation : {{reason}}. Réessayez Copier la conversation.",
+        downloadingConversation: "Préparation du téléchargement de la conversation…",
+        conversationChanged: "L’historique de la conversation a changé. Réessayez.",
+        conversationDownloadFailed:
+          "Impossible de télécharger la conversation : {{reason}}. Réessayez de la télécharger.",
         reloadingAgent: "Agent de rechargement...",
         reloadedAgent: "Agent rechargé",
         failedToReloadAgent: "Échec du rechargement de l'agent",
@@ -740,7 +840,7 @@ export const fr: TranslationResources = {
       },
       routes: {
         public: "Proxy inverse",
-        paseo: "Memorable",
+        gravity: "Memorable",
         direct: "Directe",
       },
       states: {
@@ -865,7 +965,7 @@ export const fr: TranslationResources = {
           mergePrNoGithub:
             "La fusionPRn'est pas disponible pour le moment carGitHubn'est pas connecté",
           archiveNotWorktree:
-            "L'archive n'est pas disponible ici car cet espace de travail n'a pas été créé en tant qu'arbre de travailPaseo",
+            "L'archive n'est pas disponible ici car cet espace de travail n'a pas été créé en tant qu'arbre de travailGravity",
           mergePrNoForge:
             "La fusion {{noun}} n'est pas disponible pour le moment car {{brand}} n'est pas connecté",
           mergePrMissing:
@@ -1084,6 +1184,20 @@ export const fr: TranslationResources = {
       updateHost: "Mettez à jour cet hôte pour gérer les étiquettes.",
     },
   },
+  githubStar: {
+    title: "Vous aimez Gravity ?",
+    description:
+      "Gravity est open source. S'il vous a aidé aujourd'hui, une étoile sur GitHub aide d'autres développeurs à le découvrir.",
+    hostHint: "L'étoile est ajoutée avec le compte GitHub connecté à gh sur {{host}}.",
+    directStarFailed:
+      "Impossible d'ajouter l'étoile d'ici. Ouvrez GitHub pour le faire dans votre navigateur.",
+    thanks: "Merci d'avoir mis une étoile à Gravity.",
+    star: "Mettre une étoile sur GitHub",
+    starring: "Ajout de l'étoile...",
+    openGitHub: "Ouvrir GitHub",
+    opening: "Ouverture...",
+    later: "Plus tard",
+  },
   changelog: {
     title: "Nouveautés",
     installed: "Installée",
@@ -1092,6 +1206,111 @@ export const fr: TranslationResources = {
     error: {
       title: "Impossible de charger le journal des modifications",
       description: "Vérifiez votre connexion et réessayez.",
+    },
+  },
+  linear: {
+    title: "Tâches",
+    connect: {
+      title: "Connecter Linear",
+      description:
+        "Collez une clé API personnelle pour voir vos tickets ici. La clé reste sur cet hôte.",
+      apiKeyLabel: "Clé API",
+      apiKeyPlaceholder: "lin_api_…",
+      action: "Connecter",
+      pending: "Connexion…",
+      createKey: "Créer une clé API dans Linear",
+    },
+    filters: {
+      assigned: "Assignés",
+      created: "Créés",
+      all: "Tous",
+      completed: "Terminés",
+      allTeams: "Toutes les équipes",
+      teamFilterLabel: "Filtrer par équipe : {{team}}",
+      searchPlaceholder: "Rechercher des tickets",
+      clearSearch: "Effacer la recherche",
+    },
+    menu: {
+      actions: "Actions Linear",
+      refresh: "Actualiser",
+      openLinear: "Ouvrir Linear",
+      disconnect: "Déconnecter",
+      disconnecting: "Déconnexion…",
+      disconnectTitle: "Déconnecter Linear",
+      disconnectMessage: "Supprimer la clé API Linear de {{host}} ?",
+      disconnectConfirm: "Déconnecter",
+    },
+    states: {
+      noHosts: "Ajoutez un hôte pour utiliser Linear.",
+      hostOffline: "Cet hôte est hors ligne.",
+      hostUnsupported: "Mettez à jour cet hôte pour utiliser Linear.",
+      retry: "Réessayer",
+      loadError: "Impossible de charger les tickets",
+      empty: "Aucun ticket",
+      searchEmpty: "Aucun ticket ne correspond à votre recherche",
+      hasMore: "Affichage des {{count}} premiers tickets",
+    },
+    pagination: {
+      range: "Tickets {{start}}–{{end}}",
+      previous: "Précédent",
+      next: "Suivant",
+      page: "Page {{page}}",
+      updateHost: "Mettez à jour cet hôte pour parcourir davantage de tickets.",
+    },
+    start: {
+      repository: "Dépôt",
+      workspace: "Espace de travail",
+      newWorktree: "Nouveau worktree",
+      newWorkspace: "Nouvel espace de travail",
+      existingWorkspace: "Espace de travail existant",
+      repositoryCheckout: "Copie du dépôt (branche actuelle)",
+      noWorkspaces: "Aucun espace de travail dans ce dépôt",
+      model: "Modèle",
+      chooseModel: "Choisir un modèle",
+      noModels: "Aucun modèle disponible",
+      prompt: "Instructions",
+    },
+    issue: {
+      open: "Ouvrir dans Linear",
+      startAgent: "Lancer un agent",
+      actions: "Actions du ticket",
+      startFailed: "Impossible de démarrer l'agent",
+      chooseRepo: "Choisir un dépôt",
+      noProjects: "Aucun projet sur cet hôte",
+      openComposer: "Configurer dans Nouvel espace de travail",
+      copyBranch: "Copier le nom de branche",
+      branchCopied: "Nom de branche copié",
+      state: "Statut",
+      changeState: "Changer le statut",
+      stateUpdateFailed: "Impossible de mettre à jour le statut",
+      priority: "Priorité",
+      assignee: "Responsable",
+      unassigned: "Non assigné",
+      unknownUser: "Inconnu",
+      labels: "Étiquettes",
+      project: "Projet",
+      dueDate: "Échéance",
+      updated: "Mis à jour",
+      updatedAgo: "Mis à jour {{time}}",
+      description: "Description",
+      noDescription: "Aucune description",
+      subIssues: "Sous-tickets",
+      comments: "Commentaires",
+      noComments: "Aucun commentaire pour l'instant",
+      loadError: "Impossible de charger ce ticket",
+    },
+    priority: {
+      none: "Sans priorité",
+      urgent: "Urgent",
+      high: "Haute",
+      medium: "Moyenne",
+      low: "Basse",
+    },
+    errors: {
+      auth: "Linear a refusé la clé API.",
+      rateLimited: "Limite de requêtes Linear atteinte. Réessayez bientôt.",
+      network: "Impossible de joindre Linear.",
+      notConnected: "Linear n'est pas connecté sur cet hôte.",
     },
   },
   sidebar: {
@@ -1162,15 +1381,16 @@ export const fr: TranslationResources = {
       diagnostics: "Lancer le diagnostic",
       shortcuts: "Raccourcis clavier",
       reportIssue: "Signaler un problème",
-      discord: "Discord",
       github: "Créer un ticket GitHub",
       whatsNew: "Nouveautés",
-      appName: "Paseo",
+      starOnGithub: "Mettre une étoile sur GitHub",
+      appName: "Gravity",
     },
     sections: {
       sessions: "Historique",
       search: "Rechercher",
-      schedules: "Planifications",
+      schedules: "Automatisations",
+      tasks: "Tâches",
     },
     worktreeSetup: {
       title: "Configurer les scripts d'arbre de travail",
@@ -1226,6 +1446,7 @@ export const fr: TranslationResources = {
         showMore: "Afficher plus",
         showLess: "Afficher moins",
         createWorkspaceFor: "Créer un nouvel espace de travail pour{{projectName}}",
+        newAgent: "Nouvel agent",
         copyPath: "Copier le chemin",
         copyBranchName: "Copier le nom de la branche",
         rename: "Renommer l'espace de travail",
@@ -1263,9 +1484,9 @@ export const fr: TranslationResources = {
     title: "Nouvel espace de travail",
     create: "Créer",
     isolation: {
-      local: "Local",
+      local: "Répertoire actuel",
       worktree: "Nouveau worktree",
-      label: "Isolation",
+      label: "Où exécuter",
     },
     fields: {
       project: "Projet",
@@ -1280,9 +1501,9 @@ export const fr: TranslationResources = {
       selectModel: "Sélectionnez un modèle",
     },
     tooltips: {
+      isolation: "Exécuter ici ou dans un nouveau worktree",
       project: "Choose the project",
       host: "Choose the host",
-      isolation: "Choose the isolation level",
       startingRef: "Choisissez par où commencer",
       launch: "Choose what to launch",
     },
@@ -1312,7 +1533,7 @@ export const fr: TranslationResources = {
       close: "Fermer la fenêtre",
     },
     quitting: {
-      title: "QuitterPaseo...",
+      title: "QuitterGravity...",
       detail: "Arrêt du démon local.",
     },
     daemon: {
@@ -1327,20 +1548,20 @@ export const fr: TranslationResources = {
       },
       management: {
         title: "Gérer le démon intégré",
-        hint: "LaissezPaseodémarrer et arrêter le démon intégré",
+        hint: "LaissezGravitydémarrer et arrêter le démon intégré",
         pauseTitle: "Suspendre le démon intégré",
         pauseMessage:
           "Cela arrêtera immédiatement le démon intégré. Les agents en cours d'exécution et les terminaux connectés au démon intégré seront arrêtés.",
         pauseAndStop: "Pause et arrêt",
         registrationFailed:
-          "Built-in daemon started, but Paseo could not save the localhost connection. Toggle daemon management off and on again, or add localhost manually.",
+          "Built-in daemon started, but Gravity could not save the localhost connection. Toggle daemon management off and on again, or add localhost manually.",
         pausedStopFailed:
-          "La gestion du démon intégré a été suspendue, maisPaseon'a ​​pas pu arrêter le démon.",
+          "La gestion du démon intégré a été suspendue, maisGravityn'a ​​pas pu arrêter le démon.",
         updateFailed: "Impossible de mettre à jour la gestion des démons intégrés.",
       },
       keepRunning: {
         title: "Laisser le démon fonctionner après avoir quitté",
-        hint: "Daemoncontinue de fonctionner lorsque vous quittezPaseo",
+        hint: "Daemoncontinue de fonctionner lorsque vous quittezGravity",
       },
       logs: {
         title: "Fichier journal",
@@ -1355,7 +1576,7 @@ export const fr: TranslationResources = {
       fullStatus: {
         title: "Statut complet",
         modalTitle: "StatutDaemon",
-        hint: "Exécute`paseo daemon status`et affiche la sortie",
+        hint: "Exécute`gravity daemon status`et affiche la sortie",
         view: "Afficher l'état",
         copied: "Statut copié dans le presse-papiers.",
         fetchFailed: "Échec de la récupération de l'état du démon:{{message}}",
@@ -1410,7 +1631,7 @@ export const fr: TranslationResources = {
     },
     rosetta: {
       title: "Téléchargez la versionApple Silicon",
-      runningIntel: "Vous exécutez la versionInteldePaseosousRosettasurApple Silicon.",
+      runningIntel: "Vous exécutez la versionInteldeGravitysousRosettasurApple Silicon.",
       highCpu:
         "Cela entraîne une utilisation élevée du processeur. Téléchargez la versionApple Siliconpour le réparer.",
       download: "Télécharger",
@@ -1460,7 +1681,7 @@ export const fr: TranslationResources = {
         microphone: "L'état du microphone n'a pas encore été vérifié.",
       },
       testNotification: {
-        title: "Test de notificationPaseo",
+        title: "Test de notificationGravity",
         body: "Si vous pouvez voir cela, les notifications sur le bureau fonctionnent.",
         notDelivered:
           "La notification n'a pas été délivrée. Vérifiez Paramètres système > Notifications.",
@@ -1470,12 +1691,12 @@ export const fr: TranslationResources = {
     integrations: {
       cli: {
         statusFailed: "Impossible de vérifier l'état de l'installation deCLI.",
-        installFailed: "Impossible d'installer lePaseoCLI.",
+        installFailed: "Impossible d'installer leGravityCLI.",
       },
     },
   },
   rootError: {
-    title: "Paseo a rencontré un problème.",
+    title: "Gravity a rencontré un problème.",
     body: "Réessayez pour recharger l'application. Si cela continue, joignez les détails ci-dessous au signalement.",
     details: "Détails",
   },
@@ -1542,6 +1763,8 @@ export const fr: TranslationResources = {
     stashRestored: "Modifications cachées restaurées",
   },
   agentAutocomplete: {
+    command: "Commande",
+    skill: "Compétence",
     searchingWorkspace: "Recherche dans l'espace de travail...",
     loadingCommands: "Chargement des commandes...",
     noFiles: "Aucun fichier ou répertoire trouvé",
@@ -1571,7 +1794,7 @@ export const fr: TranslationResources = {
     },
   },
   onboarding: {
-    title: "Bienvenue surPaseo",
+    title: "Bienvenue surGravity",
     subtitle: "Connectez votre ordinateur pour commencer",
     actions: {
       settings: "Paramètres",
@@ -1659,7 +1882,7 @@ export const fr: TranslationResources = {
     },
     direct: {
       title: "Connexion directe",
-      helper: "Saisissez l'adresse d'un serveurPaseo.",
+      helper: "Saisissez l'adresse d'un serveurGravity.",
       fields: {
         host: "Host",
         port: "Port",
@@ -1702,7 +1925,7 @@ export const fr: TranslationResources = {
     },
     remoteSsh: {
       title: "SSH distant",
-      helper: "Connectez-vous à un daemon Paseo sur l’hôte distant.",
+      helper: "Connectez-vous à un daemon Gravity sur l’hôte distant.",
       fields: {
         target: "Hôte SSH",
       },
@@ -1759,15 +1982,15 @@ export const fr: TranslationResources = {
       enableDescription:
         "Le relais permet à cet appareil de se connecter depuis n’importe où. Le trafic de couplage est chiffré de bout en bout.",
       relayDocs: "Fonctionnement du relais",
-      relayDocsAccessibility: "Lire comment fonctionne le relais Paseo",
+      relayDocsAccessibility: "Lire comment fonctionne le relais Gravity",
       enableRelay: "Activer le relais",
       enablingRelay: "Activation...",
       notNow: "Pas maintenant",
       directConnectionHint:
         "Sans relais, connectez-vous directement via TCP, Tailscale ou un autre VPN. Aucun code QR n’est créé.",
-      updateRequired: "Mettez à jour l’hôte pour activer le relais depuis Paseo Desktop.",
+      updateRequired: "Mettez à jour l’hôte pour activer le relais depuis Gravity Desktop.",
       unavailable: "Offre de jumelage indisponible.",
-      hint: "Scannez ce codeQRavecPaseosur votre téléphone ou copiez le lien ci-dessous.",
+      hint: "Scannez ce codeQRavecGravitysur votre téléphone ou copiez le lien ci-dessous.",
       securityWarning:
         "Traitez ce lien d’association comme un mot de passe. Toute personne qui le possède peut accéder à ce daemon.",
       qrUnavailable: "CodeQRindisponible.",
@@ -1802,7 +2025,7 @@ export const fr: TranslationResources = {
   serviceUrl: {
     title: "Service ouvertURL",
     message: "Ouvrir{{url}}?",
-    inPaseo: "DansPaseo",
+    inGravity: "DansGravity",
     externalBrowser: "Navigateur externe",
     dontAskAgain: "Ne demande plus",
   },
@@ -1847,6 +2070,19 @@ export const fr: TranslationResources = {
       failedToLoad: "Échec du chargement du fichier",
       failedToLoadPreview: "Échec du chargement de l'aperçu du fichier",
       editor: {
+        find: {
+          placeholder: "Rechercher",
+          replace: "Remplacer",
+          toggleReplace: "Afficher le remplacement",
+          previous: "Résultat précédent",
+          next: "Résultat suivant",
+          selectAll: "Sélectionner tous les résultats",
+          close: "Fermer la recherche",
+          replaceAll: "Tout remplacer",
+          count: "{{current}} sur {{total}}",
+          invalidRegex: "Expression invalide",
+          noResults: "Aucun résultat",
+        },
         fileSize: "Taille {{size}}",
         lines: "{{count}} lignes",
         editorStatus: "État de l’éditeur : {{status}}",
@@ -1873,6 +2109,56 @@ export const fr: TranslationResources = {
       subtitle: "Fichiers de l’espace de travail",
       tooltip: "Parcourir les fichiers de l’espace de travail",
       chooseFile: "Choisissez un fichier",
+    },
+    search: {
+      label: "Rechercher",
+      subtitle: "Rechercher dans les fichiers",
+      tooltip: "Rechercher dans les fichiers de l’espace de travail",
+      placeholder: "Rechercher",
+      clear: "Effacer la recherche",
+      modes: {
+        names: "Noms",
+        contents: "Contenu",
+      },
+      options: {
+        caseSensitive: "Respecter la casse",
+        wholeWord: "Mot entier",
+        regex: "Utiliser une expression régulière",
+        filters: "Fichiers à inclure ou exclure",
+      },
+      filters: {
+        includeLabel: "Fichiers à inclure",
+        includePlaceholder: "ex. *.ts, src/**",
+        excludeLabel: "Fichiers à exclure",
+        excludePlaceholder: "ex. *.min.js, dist/**",
+      },
+      count: {
+        fileResult: "{{count}} résultat dans {{files}} fichier",
+        filesResult: "{{count}} résultat dans {{files}} fichiers",
+        fileResults: "{{count}} résultats dans {{files}} fichier",
+        filesResults: "{{count}} résultats dans {{files}} fichiers",
+      },
+      states: {
+        prompt: "Saisissez du texte pour rechercher dans le contenu des fichiers",
+        namesPrompt: "Saisissez du texte pour rechercher des noms de fichiers",
+        empty:
+          "Aucun résultat trouvé. Vérifiez vos exclusions configurées et vos fichiers gitignore.",
+        emptyIncludes: "Aucun résultat trouvé dans '{{include}}'.",
+        emptyExcludes: "Aucun résultat trouvé en excluant '{{exclude}}'.",
+        emptyIncludesExcludes:
+          "Aucun résultat trouvé dans '{{include}}' en excluant '{{exclude}}'.",
+        limitHit:
+          "L’ensemble de résultats ne contient qu’une partie de toutes les correspondances. Précisez votre recherche pour réduire les résultats.",
+      },
+      actions: {
+        refresh: "Actualiser",
+        clear: "Effacer les résultats de recherche",
+        collapseAll: "Tout réduire",
+        expandAll: "Tout développer",
+        toggleDetails: "Afficher ou masquer les détails de la recherche",
+      },
+      fileMatches_one: "{{count}} correspondance trouvée",
+      fileMatches_other: "{{count}} correspondances trouvées",
     },
     pullRequest: {
       label: "Demande de fusion",
@@ -1902,6 +2188,10 @@ export const fr: TranslationResources = {
     output: "Sortir",
   },
   toolCallGroup: {
+    earlierCalls: {
+      one: "{{count}} appel d’outil précédent",
+      other: "{{count}} appels d’outils précédents",
+    },
     editedFiles: {
       one: "a modifié {{count}} fichier",
       other: "a modifié {{count}} fichiers",
@@ -1922,9 +2212,9 @@ export const fr: TranslationResources = {
       one: "a utilisé {{count}} autre outil",
       other: "a utilisé {{count}} autres outils",
     },
-    paseoCalls: {
-      one: "a appelé Paseo {{count}} fois",
-      other: "a appelé Paseo {{count}} fois",
+    gravityCalls: {
+      one: "a appelé Gravity {{count}} fois",
+      other: "a appelé Gravity {{count}} fois",
     },
     and: "et",
   },
@@ -2005,7 +2295,7 @@ export const fr: TranslationResources = {
       send: "Envoyer",
       sending: "Envoi...",
       sentTitle: "Notification de test envoyée",
-      sentDescription: "Paseo a transmis la notification au système d’exploitation.",
+      sentDescription: "Gravity a transmis la notification au système d’exploitation.",
       sendFailedTitle: "Impossible d’envoyer la notification de test",
     },
     hostSections: {
@@ -2024,14 +2314,14 @@ export const fr: TranslationResources = {
     metadataGeneration: {
       title: "Génération de métadonnées",
       description:
-        "Choisissez le modèle utilisé par Paseo pour les titres d’espaces de travail, les noms de branches, les messages de commit et les brouillons de pull request",
+        "Choisissez le modèle utilisé par Gravity pour les titres d’espaces de travail, les noms de branches, les messages de commit et les brouillons de pull request",
       selection: "Sélection du modèle",
       automatic: "Automatique",
       preferred: "Manuel",
-      automaticHint: "Paseo choisit un modèle rapide disponible",
-      preferredHint: "Choisissez le modèle utilisé par Paseo",
+      automaticHint: "Gravity choisit un modèle rapide disponible",
+      preferredHint: "Choisissez le modèle utilisé par Gravity",
       model: "Modèle",
-      fallbackHint: "S’il est indisponible, Paseo utilise un autre modèle disponible",
+      fallbackHint: "S’il est indisponible, Gravity utilise un autre modèle disponible",
       docs: "Documentation",
       saveError: "Impossible de mettre à jour la génération de métadonnées",
     },
@@ -2041,7 +2331,7 @@ export const fr: TranslationResources = {
         title: "Données du navigateur",
         siteData: "Cookies et données des sites",
         description:
-          "Les onglets du navigateur partagent les connexions et les données des sites dans Paseo.",
+          "Les onglets du navigateur partagent les connexions et les données des sites dans Gravity.",
         clear: "Effacer les données du navigateur",
         clearing: "Effacement...",
         confirmTitle: "Effacer les données du navigateur ?",
@@ -2070,9 +2360,23 @@ export const fr: TranslationResources = {
         description: "Où ouvrir les URL à partir de scripts en cours d'exécution",
         options: {
           ask: "Demander",
-          inApp: "DansPaseo",
+          inApp: "DansGravity",
           external: "Navigateur externe",
         },
+      },
+      power: {
+        title: "Alimentation",
+        label: "Continuer à travailler avec le capot fermé",
+        description:
+          "Maintient ce Mac éveillé jusqu’à désactivation ou fermeture de Gravity. S’arrête après 12 heures ou à 20 % de batterie.",
+        agentLabel: "Garder éveillé pour cet agent",
+        agentHint:
+          "Maintient ce Mac éveillé pendant la prochaine exécution de cet agent, puis se désactive. Autorisation administrateur requise.",
+        pending: "En attente de macOS…",
+        error: "Impossible de modifier la mise en veille. Réessayez. {{detail}}",
+        agentsActive:
+          "Un agent maintient ce Mac éveillé. Désactivez son bouton dans la zone de saisie.",
+        globalActive: "Activé pour ce Mac dans Réglages → Général.",
       },
       terminalScrollback: {
         label: "DéfilementTerminal",
@@ -2083,14 +2387,10 @@ export const fr: TranslationResources = {
         label: "Toujours afficher le raisonnement",
         description: "Afficher le raisonnement de l'agent entièrement développé par défaut",
       },
-      toolCallDetail: {
-        label: "Affichage des appels d’outils",
-        description: "Comment les appels d’outils apparaissent dans la chronologie",
-        accessibilityLabel: "Sélectionner l’affichage des appels d’outils ({{value}})",
-        options: {
-          overview: "Résumé",
-          detailed: "Détails complets",
-        },
+      collapseToolCalls: {
+        label: "Replier les appels aux outils",
+        description:
+          "Regroupe les appels consécutifs aux outils dans une section repliable et défilante",
       },
       language: {
         label: "Langue",
@@ -2156,7 +2456,7 @@ export const fr: TranslationResources = {
         label: "Mises à jour de l'application",
         readyToInstall: "Prêt à installer:{{version}}",
         installTitle: "Installer la mise à jour du bureau",
-        installMessage: "Cela met à jourPaseosur cet ordinateur",
+        installMessage: "Cela met à jourGravitysur cet ordinateur",
         installConfirm: "Installer la mise à jour",
         update: "Mise à jour",
         updateTo: "Mise à jour vers{{version}}",
@@ -2213,8 +2513,11 @@ export const fr: TranslationResources = {
           "Utilisé dans le code, les différences et la sortie du terminal. Laisser vide pour la valeur par défaut du système",
         codeFontAccessibility: "Famille de polices de code",
         codeSize: "Taille du code",
-        codeSizeHint: "Utilisée pour le code, les diffs et la sortie du terminal",
+        codeSizeHint: "Utilisée pour le code et les diffs",
         codeSizeAccessibility: "Taille de la police du code",
+        terminalSize: "Taille du terminal",
+        terminalSizeHint: "Utilisée pour la sortie du terminal",
+        terminalSizeAccessibility: "Taille de police du terminal",
       },
       syntax: {
         title: "Syntaxe",
@@ -2281,6 +2584,7 @@ export const fr: TranslationResources = {
         toggleRightSidebar: "Basculer le panneau latéral",
         toggleBothSidebars: "Basculer les deux barres latérales",
         toggleSettings: "Basculer les paramètres",
+        openHistory: "Ouvrir l'historique",
         toggleFocusMode: "Basculer le mode de mise au point",
         cycleTheme: "Thème du cycle",
         focusMessageInput: "Saisie du message de focus",
@@ -2388,11 +2692,11 @@ export const fr: TranslationResources = {
         title: "Compétences en orchestration",
         description: "Apprenez à vos agents à orchestrer via leCLI",
         updateAvailable: "Mise à jour disponible",
-        updateTitle: "Mettre à jour les compétencesPaseo?",
+        updateTitle: "Mettre à jour les compétencesGravity?",
         updateFallback: "Synchronisez les compétences regroupées sur votre machine.",
-        uninstallTitle: "Désinstaller les compétencesPaseo?",
+        uninstallTitle: "Désinstaller les compétencesGravity?",
         uninstallMessage:
-          "Supprime toutes les compétences d'orchestrationPaseode ~/.agents, ~/.claude, ~/.codex.",
+          "Supprime toutes les compétences d'orchestrationGravityde ~/.agents, ~/.claude, ~/.codex.",
         choose: "Choisir les compétences",
         chooseAll: "Toutes les compétences",
         chooseAllHint:
@@ -2430,9 +2734,9 @@ export const fr: TranslationResources = {
         title: "Orchestration",
         unavailable: "Connectez-vous à cet hôte pour gérer l'orchestration",
         enableTools: {
-          title: "Activer les outilsPaseo",
+          title: "Activer les outilsGravity",
           hint: "Les agents pourront gérer les arbres de travail, les agents et les horaires",
-          accessibilityLabel: "Injecter les outilsPaseo",
+          accessibilityLabel: "Injecter les outilsGravity",
         },
         systemPrompt: {
           title: "Invite système",
@@ -2538,16 +2842,16 @@ export const fr: TranslationResources = {
             "Cet hôte n'est pas connecté. Attendez qu'il soit en ligne avant de redémarrer.",
           offlineTitle: "Hosthors ligne",
           offlineMessage:
-            "Cet hôte est hors ligne.Paseose reconnecte automatiquement: attendez qu'il soit de nouveau en ligne avant de redémarrer.",
+            "Cet hôte est hors ligne.Gravityse reconnecte automatiquement: attendez qu'il soit de nouveau en ligne avant de redémarrer.",
           requestFailedTitle: "Erreur",
           requestFailedMessage:
-            "Échec de l'envoi de la demande de redémarrage.Paseose reconnecte automatiquement - réessayez une fois que l'hôte apparaît comme en ligne.",
+            "Échec de l'envoi de la demande de redémarrage.Gravityse reconnecte automatiquement - réessayez une fois que l'hôte apparaît comme en ligne.",
           dialogFailedMessage:
             "Impossible d'ouvrir la boîte de dialogue de confirmation de redémarrage.",
         },
         update: {
           desktopManagedHint:
-            "Ce daemon est géré par Paseo Desktop. Mettez à jour Paseo Desktop sur l’hôte.",
+            "Ce daemon est géré par Gravity Desktop. Mettez à jour Gravity Desktop sur l’hôte.",
           title: "Update daemon",
           hint: "Update the daemon to the latest version and restart it",
           confirm: "Update",
@@ -2651,6 +2955,44 @@ export const fr: TranslationResources = {
         unknownError: "Erreur inconnue",
       },
     },
+    accounts: {
+      title: "Comptes",
+      info: "Enregistrez plusieurs connexions par fournisseur et passez de l'une à l'autre. Le fournisseur continue d'utiliser la connexion active ; les agents en cours prennent le changement en compte à leur prochaine requête.",
+      loading: "Chargement des comptes...",
+      errorTitle: "Impossible de charger les comptes",
+      providerUnsupported: "Ce fournisseur ne prend pas en charge les connexions enregistrées",
+      hostUnavailable: "Connectez-vous à cet hôte pour gérer les comptes",
+      hostUpgradeRequired: "Mettez à jour l'hôte pour gérer les comptes",
+      clientUnavailable: "La connexion à l'hôte n'est pas prête",
+      refresh: "Actualiser",
+      refreshing: "Actualisation...",
+      retry: "Réessayer",
+      dismiss: "Fermer",
+      notSignedIn: "Non connecté à {{provider}}",
+      currentLoginUnsaved:
+        "Connecté en tant que {{email}}. Enregistrez cette connexion pour y revenir plus tard.",
+      currentLoginExpired:
+        "La connexion actuelle de {{email}} a expiré. Reconnectez-vous avant de l'enregistrer.",
+      save: "Enregistrer la connexion actuelle",
+      saving: "Enregistrement...",
+      active: "Actif",
+      loginExpired: "Connexion expirée",
+      loginExpiredHint:
+        "Reconnectez-vous avec ce compte dans {{provider}}, puis enregistrez la connexion actuelle",
+      usageUnavailable: "Utilisation indisponible",
+      switch: "Basculer",
+      switching: "Basculement...",
+      remove: "Supprimer",
+      removing: "Suppression...",
+      removeConfirmTitle: "Supprimer {{email}} ?",
+      removeConfirmMessage:
+        "Gravity oublie cette connexion enregistrée. La connexion du fournisseur lui-même n'est pas affectée.",
+      removeConfirm: "Supprimer",
+      switchErrorTitle: "Impossible de changer de compte",
+      saveErrorTitle: "Impossible d'enregistrer la connexion",
+      removeErrorTitle: "Impossible de supprimer la connexion",
+      actionsMenu: "Actions pour {{email}}",
+    },
     project: {
       noEditableTarget: "Ce projet n'est pas modifiable sur cet hôte.",
       backToProjects: "Retour aux projets",
@@ -2666,13 +3008,13 @@ export const fr: TranslationResources = {
         savedToast: "Projet mis à jour",
       },
       readFailures: {
-        invalidTitle: "paseo.json n'a pas pu être analysé",
+        invalidTitle: "gravity.json n'a pas pu être analysé",
         invalidDescription: "Corrigez le fichier sur le disque, puis rechargez.",
         missingTitle: "Cet hôte n'a pas ce projet",
         missingSingleHost: "L'hôte sélectionné n'a aucune trace de ce projet.",
-        transportTitle: "Impossible de charger paseo.json",
+        transportTitle: "Impossible de charger gravity.json",
         transportFallback: "L'hôte n'a pas répondu.",
-        failedTitle: "Impossible de charger paseo.json",
+        failedTitle: "Impossible de charger gravity.json",
         failedDescription: "Rechargez pour réessayer.",
       },
       worktree: {
@@ -2683,7 +3025,7 @@ export const fr: TranslationResources = {
           "Voir la documentation pour plus de détails et les variables d'environnement disponibles pour ces commandes",
         setup: "Installation",
         setupAccessibility: "Commandes de configuration de Worktree",
-        uncommittedTitle: "Validez les modifications de paseo.json",
+        uncommittedTitle: "Validez les modifications de gravity.json",
         uncommittedDescription:
           "Les nouveaux worktrees utilisent le script de configuration de la branche de base sélectionnée.",
         teardown: "Démolir",
@@ -2708,7 +3050,7 @@ export const fr: TranslationResources = {
         newScript: "Nouveau scénario",
         editScript: "Modifier{{name}}",
         runAsService: "Exécuter en tant que service",
-        serviceHint: "Paseosupervise le processus et attribue un port via $PASEO_PORT",
+        serviceHint: "Gravitysupervise le processus et attribue un port via $GRAVITY_PORT",
         actions: {
           add: "Ajouter un script",
           edit: "Modifier",
@@ -2717,7 +3059,7 @@ export const fr: TranslationResources = {
       },
       metadata: {
         title: "Génération de métadonnées",
-        info: "Instructions spécifiques au projet injectées dans les invites de l'IA quePaseoutilise pour générer des métadonnées: utilisez-les pour appliquer les conventions de votre équipe telles que la dénomination des branches, le style de validation ou le formatPR.",
+        info: "Instructions spécifiques au projet injectées dans les invites de l'IA queGravityutilise pour générer des métadonnées: utilisez-les pour appliquer les conventions de votre équipe telles que la dénomination des branches, le style de validation ou le formatPR.",
         branchName: "Noms des succursales",
         branchNamePlaceholder:
           "Préfixez les branches avec feat/ ou fix/, mb/ pour les branches personnelles",
@@ -2729,8 +3071,8 @@ export const fr: TranslationResources = {
       },
       writeFailures: {
         staleTitle: "Configuration modifiée sur le disque",
-        staleDescription: "Rechargez pour récupérer le dernier paseo.json avant de sauvegarder.",
-        failedTitle: "Impossible d'enregistrer paseo.json",
+        staleDescription: "Rechargez pour récupérer le dernier gravity.json avant de sauvegarder.",
+        failedTitle: "Impossible d'enregistrer gravity.json",
         failedDescription: "Réessayez ou rechargez la dernière version à partir du disque.",
       },
       actions: {

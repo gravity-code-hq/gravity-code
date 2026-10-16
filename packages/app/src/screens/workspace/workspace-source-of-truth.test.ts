@@ -1,3 +1,4 @@
+import { resolveSidebarWorkspacePrimaryLabel } from "@/components/sidebar/sidebar-workspace-title";
 import { describe, expect, it, vi } from "vitest";
 
 vi.hoisted(() => {
@@ -15,13 +16,14 @@ import type { WorkspaceDescriptor } from "@/stores/session-store";
 function createWorkspaceDescriptor(input: Partial<WorkspaceDescriptor> = {}): WorkspaceDescriptor {
   return {
     id: "/repo/main",
-    projectId: "remote:github.com/getpaseo/paseo",
-    projectDisplayName: "getpaseo/paseo",
+    projectId: "remote:github.com/gravity-code-hq/gravity",
+    projectDisplayName: "gravity-code-hq/gravity",
     projectRootPath: "/repo/main",
     workspaceDirectory: "/repo/main",
     projectKind: "git",
     workspaceKind: "local_checkout",
-    name: "feat/workspace-sot",
+    name: "Old first-chat title",
+    gitRuntime: { currentBranch: "feat/workspace-sot", isDirty: false, aheadOfOrigin: 0 },
     status: "running",
     diffStat: null,
     scripts: [],
@@ -32,7 +34,7 @@ function createWorkspaceDescriptor(input: Partial<WorkspaceDescriptor> = {}): Wo
 }
 
 describe("workspace source of truth consumption", () => {
-  it("uses the same descriptor name in header and sidebar row", () => {
+  it("ignores saved chat titles and uses the same workspace directory and branch in header and sidebar", () => {
     const workspace = createWorkspaceDescriptor();
 
     const header = resolveWorkspaceHeader({ workspace });
@@ -41,10 +43,26 @@ describe("workspace source of truth consumption", () => {
       workspace,
     });
 
-    expect(header.title).toBe("feat/workspace-sot");
-    expect(header.subtitle).toBe("getpaseo/paseo");
-    expect(sidebarWorkspace.name).toBe(header.title);
+    expect(header.title).toBe("main: feat/workspace-sot");
+    expect(header.subtitle).toBe("");
+    expect(resolveSidebarWorkspacePrimaryLabel({ workspace: sidebarWorkspace })).toBe(header.title);
     expect(sidebarWorkspace.statusBucket).toBe("running");
+  });
+
+  it("keeps the worktree name consistent in sidebar rows, tooltips, and headers", () => {
+    const workspace = createWorkspaceDescriptor({
+      workspaceDirectory: "/worktrees/friendly-husky/packages/app",
+      worktreeSlug: "friendly-husky",
+      workspaceKind: "worktree",
+    });
+    const sidebarWorkspace = createSidebarWorkspaceEntry({ serverId: "srv", workspace });
+    const expectedTitle = "friendly-husky: feat/workspace-sot";
+
+    expect(sidebarWorkspace.name).toBe(expectedTitle);
+    expect(resolveSidebarWorkspacePrimaryLabel({ workspace: sidebarWorkspace })).toBe(
+      expectedTitle,
+    );
+    expect(resolveWorkspaceHeader({ workspace }).title).toBe(expectedTitle);
   });
 
   it("maps the sidebar entry branch from gitRuntime.currentBranch", () => {
@@ -83,7 +101,7 @@ describe("workspace source of truth consumption", () => {
 
     expect(detached.currentBranch).toBeNull();
     expect(blank.currentBranch).toBeNull();
-    expect(missing.currentBranch).toBeNull();
+    expect(missing.currentBranch).toBe("feat/workspace-sot");
   });
 
   it("keeps the header skeleton while the workspace descriptor is missing", () => {
@@ -103,9 +121,9 @@ describe("workspace source of truth consumption", () => {
       }),
     ).toEqual({
       kind: "ready",
-      title: "feat/workspace-sot",
-      subtitle: "getpaseo/paseo",
-      isSubtitleDistinct: true,
+      title: "main: feat/workspace-sot",
+      subtitle: "",
+      isSubtitleDistinct: false,
       isGitCheckout: false,
       currentBranchName: null,
     });
@@ -124,9 +142,9 @@ describe("workspace source of truth consumption", () => {
       }),
     ).toEqual({
       kind: "ready",
-      title: "notes",
-      subtitle: "Local folders",
-      isSubtitleDistinct: true,
+      title: "Local folders",
+      subtitle: "",
+      isSubtitleDistinct: false,
       isGitCheckout: false,
       currentBranchName: null,
     });
@@ -143,9 +161,9 @@ describe("workspace source of truth consumption", () => {
       }),
     ).toEqual({
       kind: "ready",
-      title: "feat/workspace-sot",
-      subtitle: "getpaseo/paseo",
-      isSubtitleDistinct: true,
+      title: "main: feat/workspace-sot",
+      subtitle: "",
+      isSubtitleDistinct: false,
       isGitCheckout: true,
       currentBranchName: "feat/workspace-sot",
     });
@@ -168,7 +186,7 @@ describe("workspace source of truth consumption", () => {
     ).toEqual({
       kind: "ready",
       title: "notes",
-      subtitle: "notes",
+      subtitle: "",
       isSubtitleDistinct: false,
       isGitCheckout: false,
       currentBranchName: null,
@@ -183,9 +201,9 @@ describe("workspace source of truth consumption", () => {
       }),
     ).toEqual({
       kind: "ready",
-      title: "feat/workspace-sot",
-      subtitle: "getpaseo/paseo",
-      isSubtitleDistinct: true,
+      title: "main: feat/workspace-sot",
+      subtitle: "",
+      isSubtitleDistinct: false,
       isGitCheckout: false,
       currentBranchName: null,
     });

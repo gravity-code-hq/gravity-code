@@ -1,0 +1,8 @@
+Added
+- Workspace search: find files by name or search their contents, with match case, whole word, regex, and include/exclude filters
+- Find and replace in the file editor
+- MCP servers tab in Claude Code and Codex settings showing each server's status and how to connect more
+- Automations (formerly Schedules) gain a runs table, filters, and prompt templates
+- Queued messages in the composer
+
+Full notes: https://github.com/gravity-code-hq/gravity/changelog

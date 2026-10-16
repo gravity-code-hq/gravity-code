@@ -2,8 +2,8 @@ import type {
   PluginTimelineData,
   PluginTimelineItem,
   PluginTimelineTransformResult,
-} from "@getpaseo/plugin";
-import type { AgentTimelineItem } from "@getpaseo/protocol/agent-types";
+} from "@gravity/plugin";
+import type { AgentTimelineItem } from "@gravity/protocol/agent-types";
 import type { InstalledPlugin } from "../types";
 
 export interface InstalledPluginTimelineItem extends PluginTimelineItem {

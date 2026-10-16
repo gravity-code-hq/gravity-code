@@ -8,7 +8,7 @@ import {
   readDaemonInstance,
   waitForDaemonReady,
   type PersistedConfig,
-} from "@getpaseo/server";
+} from "@gravity/server";
 import { withGlobalOptions } from "../utils/command-options.js";
 import type { CommandOptions } from "../output/index.js";
 import { launchLocalDaemon, parseTimeoutMs } from "./daemon/local-daemon.js";
@@ -112,22 +112,22 @@ async function resolveVoiceSelection(mode: OnboardOptions["voice"]): Promise<boo
   return answer;
 }
 
-function printNextSteps(pairingUrl: string | null, paseoHome: string, richUi: boolean): void {
-  const daemonLogPath = path.join(paseoHome, "daemon.log");
+function printNextSteps(pairingUrl: string | null, gravityHome: string, richUi: boolean): void {
+  const daemonLogPath = path.join(gravityHome, "daemon.log");
   const nextStepsLines = [
     pairingUrl
-      ? "1. Open Paseo and scan the QR code above, or paste the pairing link."
-      : "1. Open Paseo and connect to your daemon.",
-    "2. Web app: https://app.paseo.sh",
-    "3. Desktop app: https://github.com/getpaseo/paseo/releases/latest",
-    "4. Docs: https://paseo.sh/docs",
-    `5. Example: paseo run --home ${JSON.stringify(paseoHome)} --output-schema schema.json "extract fields"`,
+      ? "1. Open Gravity and scan the QR code above, or paste the pairing link."
+      : "1. Open Gravity and connect to your daemon.",
+    "2. Web app: https://app.gravity.example",
+    "3. Desktop app: https://github.com/gravity-code-hq/gravity/releases/latest",
+    "4. Docs: https://github.com/gravity-code-hq/gravity/docs",
+    `5. Example: gravity run --home ${JSON.stringify(gravityHome)} --output-schema schema.json "extract fields"`,
   ];
   const quickReferenceLines = [
-    "1. paseo --help",
-    `2. paseo ls --home ${JSON.stringify(paseoHome)}`,
-    `3. paseo run --home ${JSON.stringify(paseoHome)} "your prompt"`,
-    `4. paseo status --home ${JSON.stringify(paseoHome)}`,
+    "1. gravity --help",
+    `2. gravity ls --home ${JSON.stringify(gravityHome)}`,
+    `3. gravity run --home ${JSON.stringify(gravityHome)} "your prompt"`,
+    `4. gravity status --home ${JSON.stringify(gravityHome)}`,
     `5. Daemon logs: ${daemonLogPath}`,
   ];
 
@@ -176,10 +176,10 @@ export function onboardCommand(): Command {
 }
 
 async function resolveAndPersistVoice(
-  paseoHome: string,
+  gravityHome: string,
   options: OnboardOptions,
 ): Promise<boolean> {
-  let persisted = loadPersistedConfig(paseoHome) as OnboardPersistedConfig;
+  let persisted = loadPersistedConfig(gravityHome) as OnboardPersistedConfig;
   const persistedVoiceSelection = resolvePersistedVoiceSelection(persisted);
   const shouldPrompt = options.voice === "ask" || options.voice === undefined;
   let voiceEnabled: boolean;
@@ -201,12 +201,12 @@ async function resolveAndPersistVoice(
   }
 
   persisted = applyVoiceSelection(persisted, voiceEnabled);
-  savePersistedConfig(paseoHome, persisted);
+  savePersistedConfig(gravityHome, persisted);
   return voiceEnabled;
 }
 
-function persistSetupChoices(paseoHome: string, options: OnboardOptions): void {
-  const persisted = loadPersistedConfig(paseoHome, { defaultsIfMissing: true });
+function persistSetupChoices(gravityHome: string, options: OnboardOptions): void {
+  const persisted = loadPersistedConfig(gravityHome, { defaultsIfMissing: true });
   if (options.listen || options.port) {
     persisted.daemon = {
       ...persisted.daemon,
@@ -228,13 +228,13 @@ function persistSetupChoices(paseoHome: string, options: OnboardOptions): void {
       ...persisted.daemon,
       hostnames: options.hostnames === "true" ? true : options.hostnames.split(","),
     };
-  savePersistedConfig(paseoHome, persisted);
+  savePersistedConfig(gravityHome, persisted);
 }
 
 export async function runOnboard(options: OnboardOptions): Promise<void> {
   const richUi = process.stdin.isTTY && process.stdout.isTTY;
   if (richUi) {
-    intro("Welcome to Paseo");
+    intro("Welcome to Gravity");
   }
 
   if (options.listen && options.port) {
@@ -245,14 +245,14 @@ export async function runOnboard(options: OnboardOptions): Promise<void> {
   const timeoutMs = parseTimeoutMs(options.timeout);
 
   if (options.daemonTarget.kind !== "instance") throw new Error("Onboarding requires a local home");
-  const paseoHome = options.daemonTarget.home;
-  const alreadyRunning = await readDaemonInstance(paseoHome);
-  persistSetupChoices(paseoHome, options);
+  const gravityHome = options.daemonTarget.home;
+  const alreadyRunning = await readDaemonInstance(gravityHome);
+  persistSetupChoices(gravityHome, options);
   if (richUi) {
-    renderNote(paseoHome, "Paseo home");
+    renderNote(gravityHome, "Gravity home");
   }
 
-  const voiceEnabled = await resolveAndPersistVoice(paseoHome, options);
+  const voiceEnabled = await resolveAndPersistVoice(gravityHome, options);
   log.message(
     voiceEnabled
       ? "Voice features enabled. Local speech models will be downloaded automatically if missing."
@@ -268,20 +268,20 @@ export async function runOnboard(options: OnboardOptions): Promise<void> {
       await client.close();
     }
   } else {
-    await launchLocalDaemon({ home: paseoHome, timeoutMs });
+    await launchLocalDaemon({ home: gravityHome, timeoutMs });
   }
-  const ready = await waitForDaemonReady(paseoHome, { timeoutMs });
+  const ready = await waitForDaemonReady(gravityHome, { timeoutMs });
   log.message(`Daemon ready on ${ready.listen}`);
 
   if (options.relay === false) {
     log.message("Relay pairing skipped because --no-relay was provided.");
-    printNextSteps(null, paseoHome, richUi);
-    if (richUi) outro("Paseo daemon is running.");
+    printNextSteps(null, gravityHome, richUi);
+    if (richUi) outro("Gravity daemon is running.");
     return;
   }
 
   let pairing = await resolveLocalPairingOffer({
-    paseoHome,
+    gravityHome,
     enableRelay: options.relay === true,
   });
 
@@ -289,19 +289,19 @@ export async function runOnboard(options: OnboardOptions): Promise<void> {
     const shouldEnable = richUi ? await confirmRelayPairing() : false;
     if (!shouldEnable) {
       printDirectConnectionGuidance();
-      printNextSteps(null, paseoHome, richUi);
-      if (richUi) outro("Paseo daemon is running.");
+      printNextSteps(null, gravityHome, richUi);
+      if (richUi) outro("Gravity daemon is running.");
       return;
     }
-    pairing = await resolveLocalPairingOffer({ paseoHome, enableRelay: true });
+    pairing = await resolveLocalPairingOffer({ gravityHome, enableRelay: true });
     log.success("Relay enabled");
   }
 
   if (!pairing.url) {
     log.warn("Relay pairing URL is unavailable for this daemon configuration.");
-    printNextSteps(null, paseoHome, richUi);
+    printNextSteps(null, gravityHome, richUi);
     if (richUi) {
-      outro("Paseo daemon is running.");
+      outro("Gravity daemon is running.");
     }
     return;
   }
@@ -313,8 +313,8 @@ export async function runOnboard(options: OnboardOptions): Promise<void> {
       columns: process.stdout.columns,
     }),
   );
-  printNextSteps(pairing.url, paseoHome, richUi);
+  printNextSteps(pairing.url, gravityHome, richUi);
   if (richUi) {
-    outro("Paseo is ready!");
+    outro("Gravity is ready!");
   }
 }

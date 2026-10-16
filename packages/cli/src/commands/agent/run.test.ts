@@ -9,12 +9,12 @@ import {
 const daemonTarget = { kind: "endpoint" as const, host: "example.test:12345" };
 
 describe("managed agent caller context", () => {
-  it("propagates a trimmed PASEO_AGENT_ID", () => {
-    expect(resolveRunCallerAgentId({ PASEO_AGENT_ID: "  parent-agent  " })).toBe("parent-agent");
+  it("propagates a trimmed GRAVITY_AGENT_ID", () => {
+    expect(resolveRunCallerAgentId({ GRAVITY_AGENT_ID: "  parent-agent  " })).toBe("parent-agent");
   });
 
   it("omits blank caller ids", () => {
-    expect(resolveRunCallerAgentId({ PASEO_AGENT_ID: "   " })).toBeUndefined();
+    expect(resolveRunCallerAgentId({ GRAVITY_AGENT_ID: "   " })).toBeUndefined();
   });
 });
 
@@ -53,17 +53,17 @@ describe("existing run workspace resolution", () => {
 // validateRunOptions runs before the CLI ever connects to a daemon, so these
 // invalid combinations reject without one running.
 describe("runRunCommand option validation", () => {
-  const originalWorkspaceId = process.env.PASEO_WORKSPACE_ID;
+  const originalWorkspaceId = process.env.GRAVITY_WORKSPACE_ID;
 
   beforeEach(() => {
-    delete process.env.PASEO_WORKSPACE_ID;
+    delete process.env.GRAVITY_WORKSPACE_ID;
   });
 
   afterEach(() => {
     if (originalWorkspaceId === undefined) {
-      delete process.env.PASEO_WORKSPACE_ID;
+      delete process.env.GRAVITY_WORKSPACE_ID;
     } else {
-      process.env.PASEO_WORKSPACE_ID = originalWorkspaceId;
+      process.env.GRAVITY_WORKSPACE_ID = originalWorkspaceId;
     }
   });
 

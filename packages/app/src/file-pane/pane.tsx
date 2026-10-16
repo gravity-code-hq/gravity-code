@@ -8,7 +8,7 @@ import React, {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
 import { ScrollView as RNScrollView, Text, View } from "react-native";
 import { StyleSheet, UnistylesRuntime, withUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
@@ -91,6 +91,7 @@ function ReadonlySource({
   const { t } = useTranslation();
   const visualTheme = useMemo(
     () => ({
+      uiTheme: theme,
       colorScheme: theme.colorScheme,
       background: theme.colors.surface0,
       foreground: theme.colors.foreground,
@@ -525,6 +526,7 @@ function EditableFilePane({
   const theme = UnistylesRuntime.getTheme();
   const visualTheme = useMemo(
     () => ({
+      uiTheme: theme,
       colorScheme: theme.colorScheme,
       background: theme.colors.surface0,
       foreground: theme.colors.foreground,
@@ -536,18 +538,7 @@ function EditableFilePane({
       codeFontSize: theme.fontSize.code,
       syntax: theme.colors.syntax,
     }),
-    [
-      theme.colors.border,
-      theme.colors.foreground,
-      theme.colors.foregroundMuted,
-      theme.colors.surface0,
-      theme.colors.syntax,
-      theme.colors.terminal.cursor,
-      theme.colors.terminal.selectionBackground,
-      theme.colorScheme,
-      theme.fontFamily.mono,
-      theme.fontSize.code,
-    ],
+    [theme],
   );
 
   useEffect(() => () => model.dispose(), [model]);

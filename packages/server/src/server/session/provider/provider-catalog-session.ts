@@ -1,7 +1,7 @@
 import type pino from "pino";
 import { createHash } from "node:crypto";
-import { getErrorMessage } from "@getpaseo/protocol/error-utils";
-import { compactProviderSnapshot } from "@getpaseo/protocol/provider-snapshot-codec";
+import { getErrorMessage } from "@gravity/protocol/error-utils";
+import { compactProviderSnapshot } from "@gravity/protocol/provider-snapshot-codec";
 import type { SessionInboundMessage, SessionOutboundMessage } from "../../messages.js";
 import {
   isGlobalProviderSnapshotKey,
@@ -21,6 +21,7 @@ import {
 import type { ProviderAvailability } from "../../agent/agent-manager.js";
 import type { ProviderUsageService } from "../../../services/quota-fetcher/service.js";
 import { expandTilde } from "../../../utils/path.js";
+import { listProviderMcpServers } from "../../../services/provider-mcp-servers.js";
 
 // COMPAT(customModeIcons): the only mode icons known to clients before v0.1.84. Any
 // other icon name is downgraded to "ShieldCheck" for those clients.
@@ -155,7 +156,7 @@ export class ProviderCatalogSession {
     const snapshotHash = createHash("sha256")
       .update(
         JSON.stringify([
-          "paseo.providers-snapshot/1",
+          "gravity.providers-snapshot/1",
           references ? "references" : "embedded",
           customModeIcons ? "icons" : "legacy-icons",
           records.map(({ entry, contentHash }) => [
@@ -454,6 +455,32 @@ export class ProviderCatalogSession {
         requestId: msg.requestId,
       },
     });
+  }
+
+  async handleProviderMcpServersListRequest(
+    msg: Extract<SessionInboundMessage, { type: "provider.mcp_servers.list.request" }>,
+  ): Promise<void> {
+    try {
+      const result = await listProviderMcpServers({
+        provider: msg.provider,
+        cwd: msg.cwd ? expandTilde(msg.cwd) : undefined,
+        runtimeSettings: this.providerSnapshotManager.getProviderRuntimeSettings(msg.provider),
+      });
+      this.host.emit({
+        type: "provider.mcp_servers.list.response",
+        payload: { requestId: msg.requestId, ...result },
+      });
+    } catch (error) {
+      this.host.emit({
+        type: "rpc_error",
+        payload: {
+          requestId: msg.requestId,
+          requestType: msg.type,
+          code: "provider_mcp_servers_list_failed",
+          error: getErrorMessage(error),
+        },
+      });
+    }
   }
 
   async handleProviderDiagnosticRequest(

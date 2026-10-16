@@ -1,4 +1,4 @@
-import type { PaseoConfigRaw } from "@getpaseo/protocol/messages";
+import type { GravityConfigRaw } from "@gravity/protocol/messages";
 import { i18n } from "@/i18n/i18next";
 import { buildProjectSettingsRoute } from "@/utils/host-routes";
 
@@ -16,7 +16,7 @@ export interface ActiveGitWorkspaceProject {
 
 interface ReadProjectConfigResult {
   ok: boolean;
-  config?: PaseoConfigRaw | null;
+  config?: GravityConfigRaw | null;
 }
 
 export interface WorktreeSetupCalloutPolicy {
@@ -68,7 +68,7 @@ export function buildWorktreeSetupCalloutPolicy(
   };
 }
 
-function hasSetupCommands(config: PaseoConfigRaw): boolean {
+function hasSetupCommands(config: GravityConfigRaw): boolean {
   const setup = config.worktree?.setup;
   if (typeof setup === "string") {
     return setup.trim().length > 0;

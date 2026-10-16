@@ -24,7 +24,7 @@ interface SchedulesTableProps {
   rows: ScheduleRowView[];
   /**
    * The form sheet is owned by the screen (it serves both create and edit and
-   * shares the screen's "New schedule" button), so the table delegates edit
+   * shares the screen's "New automation" button), so the table delegates edit
    * upward rather than mounting a second sheet here.
    */
   onEditSchedule: (schedule: AggregatedSchedule) => void;

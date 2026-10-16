@@ -149,7 +149,7 @@ function useBuiltInRows(open: boolean): {
           allWorkspaces.push({
             kind: "workspace",
             id: `workspace:${host.serverId}:${workspace.id}`,
-            title: workspace.title ?? workspace.name,
+            title: workspace.name,
             subtitle: joinSubtitleParts([
               showHost ? host.serverName : null,
               project.projectName,

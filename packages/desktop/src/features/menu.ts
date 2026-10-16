@@ -1,5 +1,5 @@
 import { app, Menu, BrowserWindow, ipcMain } from "electron";
-import { getActivePaseoBrowserWebContentsForHostWindow } from "./browser-webviews/index.js";
+import { getActiveGravityBrowserWebContentsForHostWindow } from "./browser-webviews/index.js";
 
 interface ShowContextMenuInput {
   kind?: "terminal";
@@ -8,6 +8,12 @@ interface ShowContextMenuInput {
 
 interface ApplicationMenuOptions {
   onNewWindow: () => void;
+}
+
+function zoomAppWindow(win: BrowserWindow, direction: "in" | "out" | "reset"): void {
+  const step = direction === "in" ? 0.5 : -0.5;
+  const level = direction === "reset" ? 0 : win.webContents.getZoomLevel() + step;
+  win.webContents.setZoomLevel(level);
 }
 
 function withBrowserWindow(
@@ -64,7 +70,7 @@ export function reloadActiveBrowserOrWindow({
   win.webContents.reload();
 }
 
-function buildApplicationMenuTemplate(
+export function buildApplicationMenuTemplate(
   options: ApplicationMenuOptions,
   capturing: boolean,
 ): Electron.MenuItemConstructorOptions[] {
@@ -122,7 +128,7 @@ function buildApplicationMenuTemplate(
           accelerator: "CmdOrCtrl+=",
           enabled: zoomEnabled,
           click: withBrowserWindow((win) => {
-            win.webContents.setZoomLevel(win.webContents.getZoomLevel() + 0.5);
+            win.webContents.send("gravity:event:zoom", "in");
           }),
         },
         {
@@ -130,16 +136,37 @@ function buildApplicationMenuTemplate(
           accelerator: "CmdOrCtrl+-",
           enabled: zoomEnabled,
           click: withBrowserWindow((win) => {
-            win.webContents.setZoomLevel(win.webContents.getZoomLevel() - 0.5);
+            win.webContents.send("gravity:event:zoom", "out");
           }),
         },
         {
-          label: "Actual Size",
+          label: "Zoom In (+)",
+          accelerator: "CmdOrCtrl+Plus",
+          visible: false,
+          acceleratorWorksWhenHidden: true,
+          enabled: zoomEnabled,
+          click: withBrowserWindow((win) => {
+            win.webContents.send("gravity:event:zoom", "in");
+          }),
+        },
+        {
+          label: "Reset Size",
           accelerator: "CmdOrCtrl+0",
           enabled: zoomEnabled,
           click: withBrowserWindow((win) => {
-            win.webContents.setZoomLevel(0);
+            win.webContents.send("gravity:event:zoom", "reset");
           }),
+        },
+        {
+          label: "App Zoom",
+          submenu: [
+            { label: "Zoom In", click: withBrowserWindow((win) => zoomAppWindow(win, "in")) },
+            { label: "Zoom Out", click: withBrowserWindow((win) => zoomAppWindow(win, "out")) },
+            {
+              label: "Actual Size",
+              click: withBrowserWindow((win) => zoomAppWindow(win, "reset")),
+            },
+          ],
         },
         { type: "separator" },
         {
@@ -148,7 +175,8 @@ function buildApplicationMenuTemplate(
           click: withBrowserWindow((win) => {
             reloadActiveBrowserOrWindow({
               win,
-              getActiveBrowserContentsForHostWindow: getActivePaseoBrowserWebContentsForHostWindow,
+              getActiveBrowserContentsForHostWindow:
+                getActiveGravityBrowserWebContentsForHostWindow,
             });
           }),
         },
@@ -158,7 +186,8 @@ function buildApplicationMenuTemplate(
           click: withBrowserWindow((win) => {
             reloadActiveBrowserOrWindow({
               win,
-              getActiveBrowserContentsForHostWindow: getActivePaseoBrowserWebContentsForHostWindow,
+              getActiveBrowserContentsForHostWindow:
+                getActiveGravityBrowserWebContentsForHostWindow,
               ignoreCache: true,
             });
           }),
@@ -171,7 +200,8 @@ function buildApplicationMenuTemplate(
     {
       label: "Window",
       submenu: [
-        { role: "minimize" },
+        // Cmd+M belongs to the renderer's Explorer toggle.
+        { role: "minimize", accelerator: "" },
         { role: "zoom" },
         ...(isMac
           ? [{ type: "separator" as const }, { role: "front" as const }]
@@ -196,7 +226,14 @@ export function setupApplicationMenu(options: ApplicationMenuOptions): void {
   applicationMenuOptions = options;
   rebuildApplicationMenu();
 
-  ipcMain.handle("paseo:menu:showContextMenu", (event, input?: ShowContextMenuInput) => {
+  ipcMain.handle("gravity:menu:zoom-app", (event, direction: unknown) => {
+    if (direction !== "in" && direction !== "out" && direction !== "reset") return;
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    zoomAppWindow(win, direction);
+  });
+
+  ipcMain.handle("gravity:menu:showContextMenu", (event, input?: ShowContextMenuInput) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) {
       return;
@@ -230,7 +267,7 @@ export function setupApplicationMenu(options: ApplicationMenuOptions): void {
 
   // Disable the zoom accelerators while capturing a shortcut so combos like
   // Cmd+- / Cmd+= reach the renderer instead of zooming the window.
-  ipcMain.handle("paseo:menu:set-capturing-shortcut", (_event, capturing?: boolean) => {
+  ipcMain.handle("gravity:menu:set-capturing-shortcut", (_event, capturing?: boolean) => {
     capturingShortcut = capturing === true;
     rebuildApplicationMenu();
   });

@@ -6,7 +6,7 @@ import type { PermissionResult, SDKMessage, SDKUserMessage } from "@anthropic-ai
 
 import { createTestLogger } from "../../../../test-utils/test-logger.js";
 import * as executableUtils from "../../../../executable-resolution/executable-resolution.js";
-import { buildAgentAttentionNotificationPayload } from "@getpaseo/protocol/agent-attention-notification";
+import { buildAgentAttentionNotificationPayload } from "@gravity/protocol/agent-attention-notification";
 import {
   ClaudeAgentClient,
   convertClaudeHistoryEntry,
@@ -415,12 +415,13 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
   const logger = createTestLogger();
 
   test("returns hardcoded claude models", async () => {
-    const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-models-empty-"));
+    const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-models-empty-"));
     try {
       const client = new ClaudeAgentClient({
         logger,
         resolveBinary: async () => "/test/claude/bin",
         resolveVersion: async () => "2.1.219",
+        probeModels: async () => [],
         configDir: emptyConfigDir,
       });
       const { models } = await client.fetchCatalog({
@@ -461,13 +462,14 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
   });
 
   test("preserves the catalog when Claude Code version detection fails", async () => {
-    const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-models-empty-"));
+    const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-models-empty-"));
     try {
       const client = new ClaudeAgentClient({
         logger,
         resolveVersion: async () => {
           throw new Error("unrecognized version output");
         },
+        probeModels: async () => [],
         configDir: emptyConfigDir,
       });
       const { models } = await client.fetchCatalog({
@@ -484,12 +486,13 @@ describe("ClaudeAgentClient.fetchCatalog", () => {
   });
 
   test("exposes Ultra Code on xhigh-capable Claude models", async () => {
-    const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-models-empty-"));
+    const emptyConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-models-empty-"));
     try {
       const client = new ClaudeAgentClient({
         logger,
         resolveBinary: async () => "/test/claude/bin",
         resolveVersion: async () => "2.1.219",
+        probeModels: async () => [],
         configDir: emptyConfigDir,
       });
       const { models } = await client.fetchCatalog({
@@ -787,7 +790,10 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "claude-opus-4-8",
       }),
-    ).resolves.toEqual([expect.objectContaining({ id: "fast_mode", value: false })]);
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "fast_mode", value: false }),
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
+    ]);
 
     await expect(
       client.listFeatures({
@@ -795,7 +801,10 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "claude-opus-4-8[1m]",
       }),
-    ).resolves.toEqual([expect.objectContaining({ id: "fast_mode", value: false })]);
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "fast_mode", value: false }),
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
+    ]);
 
     await expect(
       client.listFeatures({
@@ -803,7 +812,10 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "claude-opus-4-8-20260101",
       }),
-    ).resolves.toEqual([expect.objectContaining({ id: "fast_mode", value: false })]);
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "fast_mode", value: false }),
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
+    ]);
 
     await expect(
       client.listFeatures({
@@ -811,7 +823,10 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "claude-opus-5",
       }),
-    ).resolves.toEqual([expect.objectContaining({ id: "fast_mode", value: false })]);
+    ).resolves.toEqual([
+      expect.objectContaining({ id: "fast_mode", value: false }),
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
+    ]);
 
     await expect(
       client.listFeatures({
@@ -819,7 +834,7 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "openrouter/anthropic/claude-opus-4-8",
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual([expect.objectContaining({ id: "context_budget", value: "auto" })]);
 
     await expect(
       client.listFeatures({
@@ -827,7 +842,7 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "claude-sonnet-5",
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual([expect.objectContaining({ id: "context_budget", value: "auto" })]);
 
     await expect(
       client.listFeatures({
@@ -835,7 +850,39 @@ describe("ClaudeAgentSession features", () => {
         cwd: process.cwd(),
         model: "claude-sonnet-4-6",
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual([expect.objectContaining({ id: "context_budget", value: "auto" })]);
+  });
+
+  test("applies and clears a context budget without restarting Claude", async () => {
+    const { queryFactory, queryMock } = createQueryMock();
+    const client = new ClaudeAgentClient({
+      logger,
+      queryFactory,
+      resolveBinary: async () => "/test/claude/bin",
+    });
+    const session = await client.createSession({
+      provider: "claude",
+      cwd: process.cwd(),
+      model: "claude-sonnet-5",
+      featureValues: { context_budget: "250000" },
+    });
+    try {
+      await session.setModel("claude-sonnet-5");
+      expect(queryFactory.mock.calls[0]?.[0].options.settings).toMatchObject({
+        autoCompactWindow: 250000,
+      });
+      await session.setFeature?.("context_budget", "500000");
+      expect(queryMock.applyFlagSettings).toHaveBeenLastCalledWith({ autoCompactWindow: 500000 });
+      expect(session.features).toContainEqual(
+        expect.objectContaining({ id: "context_budget", value: "500000" }),
+      );
+      await session.setFeature?.("context_budget", "auto");
+      expect(queryMock.applyFlagSettings).toHaveBeenLastCalledWith({ autoCompactWindow: null });
+      expect(queryFactory).toHaveBeenCalledTimes(1);
+      expect(queryMock.close).not.toHaveBeenCalled();
+    } finally {
+      await session.close();
+    }
   });
 
   test("passes initial fast mode through Claude flag settings", async () => {
@@ -864,6 +911,36 @@ describe("ClaudeAgentSession features", () => {
     expect(queryMock.applyFlagSettings).toHaveBeenCalledWith({ fastMode: true });
 
     await session.close();
+  });
+
+  test("keeps the previous context budget when Claude rejects an update", async () => {
+    const { queryFactory, queryMock } = createQueryMock();
+    const session = await new ClaudeAgentClient({
+      logger,
+      queryFactory,
+      resolveBinary: async () => "/test/claude/bin",
+    }).createSession({
+      provider: "claude",
+      cwd: process.cwd(),
+      model: "claude-sonnet-5",
+      featureValues: { context_budget: "250000" },
+    });
+    try {
+      await session.setModel("claude-sonnet-5");
+      queryMock.applyFlagSettings.mockRejectedValueOnce(new Error("Claude refused the setting"));
+      await expect(session.setFeature?.("context_budget", "500000")).rejects.toThrow(
+        "Claude refused the setting",
+      );
+      await expect(session.setFeature?.("context_budget", "unlimited")).rejects.toThrow();
+      expect(session.features).toContainEqual(
+        expect.objectContaining({
+          id: "context_budget",
+          value: "250000",
+        }),
+      );
+    } finally {
+      await session.close();
+    }
   });
 
   test("maps Ultracode to xhigh effort and Claude ultracode settings", async () => {
@@ -1495,7 +1572,7 @@ describe("normalizeClaudeAskUserQuestionUpdatedInput", () => {
 
 describe("ClaudeAgentClient.listImportableSessions", () => {
   test("uses the latest native custom title and leaves fixture mtimes unchanged", async () => {
-    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-import-"));
+    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-import-"));
     const previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = tmpConfigDir;
 
@@ -1529,7 +1606,7 @@ describe("ClaudeAgentClient.listImportableSessions", () => {
       await expect(client.listImportableSessions({ limit: 1 })).resolves.toEqual([
         {
           providerHandleId: "native-title-session",
-          cwd: "/tmp/paseo-claude-native-title",
+          cwd: "/tmp/gravity-claude-native-title",
           title: "My research session",
           firstPromptPreview: "Review this project",
           lastPromptPreview: "Focus on the import flow",
@@ -1551,7 +1628,7 @@ describe("ClaudeAgentClient.listImportableSessions", () => {
   });
 
   test("scopes candidates to the requested cwd before applying the limit", async () => {
-    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-import-"));
+    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-import-"));
     const previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = tmpConfigDir;
 
@@ -1620,14 +1697,14 @@ describe("ClaudeAgentClient.listImportableSessions", () => {
   });
 
   test("shows Claude slash command prompts without transcript tags", async () => {
-    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-import-"));
+    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-import-"));
     const previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = tmpConfigDir;
 
     try {
       const commandSessionId = "session-command-import";
       const argsSessionId = "session-command-args-import";
-      const cwd = "/tmp/paseo-test-claude-import";
+      const cwd = "/tmp/gravity-test-claude-import";
       const sanitized = cwd.replace(/[\\/._:]/g, "-");
       const projectDir = path.join(tmpConfigDir, "projects", sanitized);
       await fs.mkdir(projectDir, { recursive: true });
@@ -2160,13 +2237,13 @@ describe("ClaudeAgentSession context window usage", () => {
   });
 
   test("deletes the persisted session jsonl on close when persistSession=false", async () => {
-    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-persist-"));
+    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-persist-"));
     const previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = tmpConfigDir;
 
     try {
       const sessionId = "session-ephemeral";
-      const cwd = "/tmp/paseo-test-claude";
+      const cwd = "/tmp/gravity-test-claude";
       const sanitized = cwd.replace(/[\\/._:]/g, "-");
       const projectDir = path.join(tmpConfigDir, "projects", sanitized);
       await fs.mkdir(projectDir, { recursive: true });
@@ -2226,13 +2303,13 @@ describe("ClaudeAgentSession context window usage", () => {
   });
 
   test("preserves the persisted session jsonl on close when persistSession is undefined", async () => {
-    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "paseo-claude-persist-"));
+    const tmpConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), "gravity-claude-persist-"));
     const previousConfigDir = process.env.CLAUDE_CONFIG_DIR;
     process.env.CLAUDE_CONFIG_DIR = tmpConfigDir;
 
     try {
       const sessionId = "session-persistent";
-      const cwd = "/tmp/paseo-test-claude";
+      const cwd = "/tmp/gravity-test-claude";
       const sanitized = cwd.replace(/[\\/._:]/g, "-");
       const projectDir = path.join(tmpConfigDir, "projects", sanitized);
       await fs.mkdir(projectDir, { recursive: true });

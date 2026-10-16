@@ -48,7 +48,7 @@ describe("workspace route parsing", () => {
 
   it("decodes non-canonical base64url workspace IDs used by older links", () => {
     expect(decodeWorkspaceIdFromPathSegment("L2hvbWUvdXNlci9kZXYvcGFzZW8")).toBe(
-      "/home/user/dev/paseo",
+      "/home/user/dev/gravity",
     );
   });
 
@@ -230,16 +230,6 @@ describe("global routes", () => {
         projectId: "project-1",
       }),
     ).toBe("/new?serverId=local&dir=%2Frepo%2Fproject&name=Project&projectId=project-1");
-  });
-
-  it("buildNewWorkspaceRoute carries a draft context id", () => {
-    expect(
-      buildNewWorkspaceRoute({
-        serverId: "local",
-        sourceDirectory: "/repo/project",
-        draftId: "draft-1",
-      }),
-    ).toBe("/new?serverId=local&dir=%2Frepo%2Fproject&draftId=draft-1");
   });
 });
 

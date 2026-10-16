@@ -3,6 +3,13 @@ import type { Agent, WorkspaceDescriptor } from "@/stores/session-store";
 import type { WorkspaceStructureProject } from "@/projects/workspace-structure";
 import { buildWorkspaceAgentActivityIndex } from "@/utils/workspace-agent-activity";
 import {
+  indexSidebarAgents,
+  deriveSidebarAgentList,
+  deriveSidebarSessionList,
+  sidebarAgentsEqual,
+} from "@/components/sidebar/workspace-agent-model";
+import { normalizeLayout } from "@/stores/workspace-layout-actions";
+import {
   appendMissingOrderKeys,
   applyStoredOrdering,
   buildSidebarWorkspaceEntries,
@@ -69,7 +76,7 @@ describe("createSidebarWorkspaceEntry forge threading", () => {
 });
 
 describe("createSidebarWorkspaceEntry workspace directory label", () => {
-  it("uses the daemon-provided slug for a Paseo-owned worktree", () => {
+  it("uses the daemon-provided slug for a Gravity-owned worktree", () => {
     const descriptor = workspaceWithForge(undefined, "https://github.com/acme/repo/pull/42");
     descriptor.workspaceDirectory = "/worktrees/feature/packages/app";
     descriptor.worktreeSlug = "feature";
@@ -274,19 +281,19 @@ describe("buildSidebarProjectsFromStructure", () => {
           projectKey: "project-1",
           hosts: [
             {
-              serverId: "relay:paseo-host",
+              serverId: "relay:gravity-host",
               iconWorkingDir: "/repo/project-1",
               worktreeSupport: "supported" as const,
             },
           ],
-          workspaceKeys: ["relay:paseo-host:ws-main"],
+          workspaceKeys: ["relay:gravity-host:ws-main"],
         }),
       ],
     });
 
     expect(projects[0]?.workspaces[0]).toMatchObject({
-      workspaceKey: "relay:paseo-host:ws-main",
-      serverId: "relay:paseo-host",
+      workspaceKey: "relay:gravity-host:ws-main",
+      serverId: "relay:gravity-host",
       workspaceId: "ws-main",
     });
   });
@@ -297,18 +304,18 @@ describe("shared sidebar workspace model", () => {
     const model = buildSidebarWorkspacePlacementModel({
       projects: [
         project({
-          projectKey: "getpaseo/paseo",
-          projectName: "getpaseo/paseo",
-          iconWorkingDir: "/repo/getpaseo/paseo",
+          projectKey: "gravity-code-hq/gravity",
+          projectName: "gravity-code-hq/gravity",
+          iconWorkingDir: "/repo/gravity-code-hq/gravity",
           hosts: [
             {
               serverId: "host-a",
-              iconWorkingDir: "/repo/getpaseo/paseo",
+              iconWorkingDir: "/repo/gravity-code-hq/gravity",
               worktreeSupport: "supported" as const,
             },
             {
               serverId: "host-b",
-              iconWorkingDir: "/repo/getpaseo/paseo",
+              iconWorkingDir: "/repo/gravity-code-hq/gravity",
               worktreeSupport: "supported" as const,
             },
           ],
@@ -322,14 +329,15 @@ describe("shared sidebar workspace model", () => {
         {
           serverId: "host-a",
           workspaceAgentActivity: new Map(),
+          agents: new Map(),
           workspaces: new Map([
             [
               "main",
               workspace({
                 id: "main",
                 name: "main",
-                projectId: "getpaseo/paseo",
-                projectDisplayName: "getpaseo/paseo",
+                projectId: "gravity-code-hq/gravity",
+                projectDisplayName: "gravity-code-hq/gravity",
                 status: "done",
               }),
             ],
@@ -338,14 +346,15 @@ describe("shared sidebar workspace model", () => {
         {
           serverId: "host-b",
           workspaceAgentActivity: new Map(),
+          agents: new Map(),
           workspaces: new Map([
             [
               "feature",
               workspace({
                 id: "feature",
                 name: "feature/status-flow",
-                projectId: "getpaseo/paseo",
-                projectDisplayName: "getpaseo/paseo",
+                projectId: "gravity-code-hq/gravity",
+                projectDisplayName: "gravity-code-hq/gravity",
                 status: "running",
                 statusEnteredAt: new Date("2026-06-10T00:00:00.000Z"),
               }),
@@ -361,18 +370,18 @@ describe("shared sidebar workspace model", () => {
     ]);
     expect(model.projects).toEqual([
       expect.objectContaining({
-        viewKey: "getpaseo/paseo",
+        viewKey: "gravity-code-hq/gravity",
         hosts: [
           {
             serverId: "host-a",
-            projectId: "getpaseo/paseo",
-            iconWorkingDir: "/repo/getpaseo/paseo",
+            projectId: "gravity-code-hq/gravity",
+            iconWorkingDir: "/repo/gravity-code-hq/gravity",
             worktreeSupport: "supported" as const,
           },
           {
             serverId: "host-b",
-            projectId: "getpaseo/paseo",
-            iconWorkingDir: "/repo/getpaseo/paseo",
+            projectId: "gravity-code-hq/gravity",
+            iconWorkingDir: "/repo/gravity-code-hq/gravity",
             worktreeSupport: "supported" as const,
           },
         ],
@@ -397,10 +406,12 @@ describe("shared sidebar workspace model", () => {
         entry.name,
       ]),
     ).toEqual([
-      ["host-a:main", "done", "main"],
-      ["host-b:feature", "running", "feature/status-flow"],
+      ["host-a:main", "done", "gravity-code-hq/gravity: HEAD"],
+      ["host-b:feature", "running", "gravity-code-hq/gravity: HEAD"],
     ]);
-    expect(model.projectNamesByViewKey).toEqual(new Map([["getpaseo/paseo", "getpaseo/paseo"]]));
+    expect(model.projectNamesByViewKey).toEqual(
+      new Map([["gravity-code-hq/gravity", "gravity-code-hq/gravity"]]),
+    );
   });
 
   it("preserves unchanged row identities when another workspace updates", () => {
@@ -425,6 +436,7 @@ describe("shared sidebar workspace model", () => {
         {
           serverId: "srv",
           workspaceAgentActivity: new Map(),
+          agents: new Map(),
           workspaces: new Map([
             ["one", one],
             ["two", two],
@@ -438,6 +450,7 @@ describe("shared sidebar workspace model", () => {
         {
           serverId: "srv",
           workspaceAgentActivity: new Map(),
+          agents: new Map(),
           workspaces: new Map([
             ["one", one],
             ["two", { ...two, status: "running" }],
@@ -462,6 +475,7 @@ describe("shared sidebar workspace model", () => {
         {
           serverId: "srv",
           workspaceAgentActivity: new Map(),
+          agents: new Map(),
           workspaces: new Map([
             [
               "clone-a",
@@ -532,16 +546,16 @@ describe("shouldShowSidebarHostLabels", () => {
     const projects = buildSidebarProjectsFromStructure({
       projects: [
         project({
-          projectKey: "getpaseo/paseo",
+          projectKey: "gravity-code-hq/gravity",
           hosts: [
             {
               serverId: "host-a",
-              iconWorkingDir: "/repo/paseo",
+              iconWorkingDir: "/repo/gravity",
               worktreeSupport: "supported" as const,
             },
             {
               serverId: "host-b",
-              iconWorkingDir: "/repo/paseo",
+              iconWorkingDir: "/repo/gravity",
               worktreeSupport: "supported" as const,
             },
           ],
@@ -723,6 +737,146 @@ function agent(input: {
     labels: {},
   };
 }
+
+describe("workspace sidebar agents", () => {
+  it("uses workspace identity, omits archived agents, and keeps unopened children in their parent track", () => {
+    const root = agent({ id: "root", workspaceId: "one", status: "running" });
+    const child = agent({
+      id: "child",
+      workspaceId: "one",
+      parentAgentId: root.id,
+      status: "idle",
+    });
+    const crossWorkspace = agent({
+      id: "cross",
+      workspaceId: "two",
+      parentAgentId: root.id,
+      status: "idle",
+    });
+    const archived = agent({
+      id: "archived",
+      workspaceId: "one",
+      status: "idle",
+      archivedAt: new Date(),
+    });
+    const index = indexSidebarAgents(
+      new Map([root, child, crossWorkspace, archived].map((entry) => [entry.id, entry])),
+    );
+    expect(
+      deriveSidebarAgentList(index.get("one")!, undefined).agents.map((entry) => entry.id),
+    ).toEqual(["root"]);
+    expect(
+      deriveSidebarAgentList(index.get("two")!, undefined).agents.map((entry) => entry.id),
+    ).toEqual(["cross"]);
+    expect(index.get("one")?.[0].statusBucket).toBe("running");
+  });
+
+  it("includes terminal tabs alongside chats and selects the focused terminal", () => {
+    const root = agent({ id: "root", workspaceId: "one", status: "idle" });
+    root.createdAt = new Date(1_000);
+    const rows = indexSidebarAgents(new Map([[root.id, root]])).get("one")!;
+    const layout = normalizeLayout({
+      root: {
+        kind: "pane",
+        pane: {
+          id: "main",
+          focusedTabId: "terminal-tab",
+          tabs: [
+            { tabId: "root-tab", target: { kind: "agent", agentId: "root" }, createdAt: 0 },
+            {
+              tabId: "terminal-tab",
+              target: { kind: "terminal", terminalId: "shell" },
+              createdAt: 2_000,
+            },
+            { tabId: "files-tab", target: { kind: "files" }, createdAt: 3_000 },
+          ],
+        },
+      },
+      focusedPaneId: "main",
+    });
+    const list = deriveSidebarSessionList(rows, layout);
+    expect(list.items.map((session) => session.key)).toEqual(["terminal:shell", "agent:root"]);
+    expect(list.activeKey).toBe("terminal:shell");
+    expect(deriveSidebarSessionList([], layout).items.map((session) => session.key)).toEqual([
+      "terminal:shell",
+    ]);
+    expect(deriveSidebarSessionList(rows, undefined).items.map((session) => session.key)).toEqual([
+      "agent:root",
+    ]);
+  });
+
+  it("shows newest chats first regardless of tab order and keeps the focused selection", () => {
+    const root = agent({ id: "root", workspaceId: "one", status: "idle" });
+    root.createdAt = new Date(1_000);
+    const child = agent({
+      id: "child",
+      workspaceId: "one",
+      parentAgentId: root.id,
+      status: "idle",
+    });
+    child.createdAt = new Date(2_000);
+    const newest = agent({ id: "newest", workspaceId: "one", status: "idle" });
+    newest.createdAt = new Date(3_000);
+    const index = indexSidebarAgents(
+      new Map([child, root, newest].map((entry) => [entry.id, entry])),
+    );
+    const rows = index.get("one")!;
+    const layout = normalizeLayout({
+      root: {
+        kind: "pane",
+        pane: {
+          id: "main",
+          focusedTabId: "child-tab",
+          tabs: [
+            { tabId: "root-tab", target: { kind: "agent", agentId: "root" }, createdAt: 0 },
+            { tabId: "child-tab", target: { kind: "agent", agentId: "child" }, createdAt: 0 },
+          ],
+        },
+      },
+      focusedPaneId: "main",
+    });
+    const list = deriveSidebarAgentList(rows, layout);
+    expect(list.agents.map((entry) => entry.id)).toEqual(["newest", "child", "root"]);
+    expect(deriveSidebarAgentList(rows, undefined).agents.map((entry) => entry.id)).toEqual([
+      "newest",
+      "root",
+    ]);
+    expect(list.activeAgentId).toBe("child");
+    expect(
+      sidebarAgentsEqual(
+        rows,
+        rows.map((row) => ({ ...row })),
+      ),
+    ).toBe(true);
+    const renamed = structuredClone(rows);
+    renamed[0].title = "Renamed";
+    expect(sidebarAgentsEqual(rows, renamed)).toBe(false);
+  });
+
+  it("moves an old chat to the top when it gets a new message", () => {
+    const old = agent({ id: "old", workspaceId: "one", status: "idle" });
+    old.createdAt = new Date(1_000);
+    old.lastUserMessageAt = new Date(5_000);
+    const recent = agent({ id: "recent", workspaceId: "one", status: "idle" });
+    recent.createdAt = new Date(3_000);
+    recent.lastUserMessageAt = new Date(4_000);
+    const fresh = agent({ id: "fresh", workspaceId: "one", status: "idle" });
+    fresh.createdAt = new Date(2_000);
+    const rows = indexSidebarAgents(
+      new Map([old, recent, fresh].map((entry) => [entry.id, entry])),
+    ).get("one")!;
+    expect(deriveSidebarAgentList(rows, undefined).agents.map((entry) => entry.id)).toEqual([
+      "old",
+      "recent",
+      "fresh",
+    ]);
+    const bumped = rows.map((row) => (row.id === "fresh" ? { ...row, lastMessageAt: 6_000 } : row));
+    expect(sidebarAgentsEqual(rows, bumped)).toBe(false);
+    expect(deriveSidebarSessionList(bumped, undefined).items.map((session) => session.key)).toEqual(
+      ["agent:fresh", "agent:old", "agent:recent"],
+    );
+  });
+});
 
 function sessionWith(input: {
   workspaces: WorkspaceDescriptor[];

@@ -29,11 +29,11 @@ function createGitRepo(): string {
   tempRoots.push(tempRoot);
   const repoDir = path.join(tempRoot, "repo");
   execFileSync("git", ["init", "-b", "main", repoDir], { stdio: "pipe" });
-  execFileSync("git", ["config", "user.email", "test@getpaseo.local"], {
+  execFileSync("git", ["config", "user.email", "test@gravity.local"], {
     cwd: repoDir,
     stdio: "pipe",
   });
-  execFileSync("git", ["config", "user.name", "Paseo Test"], { cwd: repoDir, stdio: "pipe" });
+  execFileSync("git", ["config", "user.name", "Gravity Test"], { cwd: repoDir, stdio: "pipe" });
   writeFileSync(path.join(repoDir, "README.md"), "hello\n");
   execFileSync("git", ["add", "README.md"], { cwd: repoDir, stdio: "pipe" });
   execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-m", "initial"], {
@@ -81,7 +81,7 @@ async function expectWorktreePresentInList(repoDir: string, worktreePath: string
   await expect
     .poll(
       async () => {
-        const listed = await ctx.client.getPaseoWorktreeList({ cwd: repoDir });
+        const listed = await ctx.client.getGravityWorktreeList({ cwd: repoDir });
         return listed.worktrees.map((worktree) => worktree.worktreePath).includes(worktreePath);
       },
       { timeout: 5000, interval: 100 },
@@ -90,7 +90,7 @@ async function expectWorktreePresentInList(repoDir: string, worktreePath: string
 }
 
 async function expectWorktreeListEmpty(repoDir: string): Promise<void> {
-  const listed = await ctx.client.getPaseoWorktreeList({ cwd: repoDir });
+  const listed = await ctx.client.getGravityWorktreeList({ cwd: repoDir });
   expect(listed.worktrees).toEqual([]);
 }
 
@@ -140,7 +140,7 @@ test("create_agent_request creates a worktree and auto-archives both after the f
   const created = await ctx.client.createAgent(request);
 
   expect(created.cwd).not.toBe(repoDir);
-  const listedWithWorktree = await ctx.client.getPaseoWorktreeList({ cwd: repoDir });
+  const listedWithWorktree = await ctx.client.getGravityWorktreeList({ cwd: repoDir });
   expect(listedWithWorktree.worktrees).toHaveLength(1);
   const listedWorktree = listedWithWorktree.worktrees[0];
   expect(listedWorktree?.branchName).toBe("agent-lifecycle-dispatch-test");
@@ -168,7 +168,7 @@ test("create_agent_request creates a worktree and auto-archives both after the f
   await expectAgentPresentInActiveList(subsequent.id);
 }, 30000);
 
-test("create_agent_request auto-archives a nested workspace from an existing Paseo worktree", async () => {
+test("create_agent_request auto-archives a nested workspace from an existing Gravity worktree", async () => {
   const repoDir = createGitRepoWithNestedDirectory();
   const source = await createAgentInBranchOffWorktree({ branchName: "nested-source", repoDir });
   await ctx.client.waitForFinish(source.agentId, 10000);
@@ -215,7 +215,7 @@ test("create_agent_request auto-archives a nested workspace from an existing Pas
   await expect.poll(() => existsSync(created.cwd), { timeout: 10000, interval: 100 }).toBe(false);
   expect(existsSync(source.worktreePath)).toBe(true);
 
-  await ctx.client.archivePaseoWorktree({ worktreePath: source.worktreePath });
+  await ctx.client.archiveGravityWorktree({ worktreePath: source.worktreePath });
 }, 30000);
 
 test("failed nested worktree creation cleans up the created workspace and backing directory", async () => {
@@ -242,7 +242,7 @@ test("failed nested worktree creation cleans up the created workspace and backin
   await expect
     .poll(
       async () => {
-        const listed = await ctx.client.getPaseoWorktreeList({ cwd: source.repoDir });
+        const listed = await ctx.client.getGravityWorktreeList({ cwd: source.repoDir });
         return (
           listed.worktrees.length === 1 &&
           createRealpathAwarePathMatcher(source.worktreePath)(
@@ -268,7 +268,7 @@ test("failed nested worktree creation cleans up the created workspace and backin
     )
     .toBe(true);
 
-  await ctx.client.archivePaseoWorktree({ worktreePath: source.worktreePath });
+  await ctx.client.archiveGravityWorktree({ worktreePath: source.worktreePath });
 }, 30000);
 
 test("create_agent_request with autoArchive archives only the agent when no worktree was created", async () => {
@@ -287,7 +287,7 @@ test("create_agent_request with autoArchive archives only the agent when no work
   await expectAgentAbsentFromActiveList(created.id);
   const archived = await ctx.client.fetchAgents({ filter: { includeArchived: true } });
   expect(archived.entries.map((entry) => entry.agent.id)).toContain(created.id);
-  const worktrees = await ctx.client.getPaseoWorktreeList({ cwd: repoDir });
+  const worktrees = await ctx.client.getGravityWorktreeList({ cwd: repoDir });
   expect(worktrees.worktrees).toEqual([]);
 });
 
@@ -332,14 +332,14 @@ test("create_agent_request with worktree but no autoArchive leaves agent and wor
   await expectAgentPresentInActiveList(created.agentId);
   await expectWorktreePresentInList(created.repoDir, created.worktreePath);
 
-  await ctx.client.archivePaseoWorktree({ worktreePath: created.worktreePath });
+  await ctx.client.archiveGravityWorktree({ worktreePath: created.worktreePath });
 });
 
 test("archiving a created worktree removes the directory on last reference", async () => {
   const created = await createAgentInBranchOffWorktree();
 
   await ctx.client.waitForFinish(created.agentId, 10000);
-  await ctx.client.archivePaseoWorktree({ worktreePath: created.worktreePath });
+  await ctx.client.archiveGravityWorktree({ worktreePath: created.worktreePath });
 
   await expectAgentAbsentFromActiveList(created.agentId);
   await expectWorktreeListEmpty(created.repoDir);
@@ -364,7 +364,7 @@ test("auto-archiving a created worktree keeps the directory when a sibling works
   await expectWorktreePresentInList(created.repoDir, created.worktreePath);
   expect(existsSync(created.worktreePath)).toBe(true);
 
-  await ctx.client.archivePaseoWorktree({ worktreePath: created.worktreePath });
+  await ctx.client.archiveGravityWorktree({ worktreePath: created.worktreePath });
 });
 
 test("create_agent_request rejects legacy git options before creating a worktree", async () => {

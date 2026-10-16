@@ -1,51 +1,36 @@
 import { test, expect, type Page } from "../support/fixtures";
 import { gotoAppShell } from "../support/helpers/app";
-import { gotoWorkspace } from "../support/helpers/launcher";
 import {
   assertNewWorkspaceSidebarAndHeader,
   connectNewWorkspaceDaemonClient,
   openGlobalNewWorkspaceComposer,
   selectNewWorkspaceProject,
-  selectWorkspaceIsolation,
   submitNewWorkspaceEmpty,
 } from "../support/helpers/new-workspace";
 import { seedWorkspace, type SeededWorkspace } from "../support/helpers/seed-client";
-import { expectExplorerEntryVisible } from "../support/helpers/file-explorer";
 import { getServerId } from "../support/helpers/server-id";
-import { openFilesPanel } from "../support/helpers/workspace-tabs";
 import { projectEquivalenceViewKey } from "../support/helpers/project-view-key";
 import { waitForSidebarHydration } from "../support/helpers/workspace-ui";
 
-// Model B reshape: a workspace is the unit, its isolation (local checkout or
-// worktree) is a CHOICE at creation, and creation NEVER dedupes by
-// directory. These specs drive the real creation UI (workspace-create-* test
-// IDs) to prove a single directory can back any number of workspaces.
+// Model B reshape: a workspace is the unit, creation always cuts a worktree
+// for a git project and attaches to the directory for anything else, and
+// creation NEVER dedupes by directory. These specs drive the real creation UI
+// to prove a single directory can back any number of workspaces.
 
 function workspaceRowTestId(workspaceId: string): string {
   return `sidebar-workspace-row-${getServerId()}:${workspaceId}`;
-}
-
-async function openFilesTab(page: Page): Promise<void> {
-  await openFilesPanel(page);
-  await expect(page.getByTestId("file-explorer-tree-scroll")).toBeVisible({ timeout: 30_000 });
 }
 
 async function createWorkspaceViaUi(
   page: Page,
   input: {
     project: { projectKey: string; projectDisplayName: string };
-    // null when the project has no git checkout: there is no Isolation control to
-    // touch, the isolation is implicitly local.
-    isolation: "local" | "worktree" | null;
     previousWorkspaceId: string;
     client: Awaited<ReturnType<typeof connectNewWorkspaceDaemonClient>>;
   },
 ): Promise<{ workspaceId: string; workspaceName: string; workspaceDirectory: string }> {
   await openGlobalNewWorkspaceComposer(page);
   await selectNewWorkspaceProject(page, input.project);
-  if (input.isolation !== null) {
-    await selectWorkspaceIsolation(page, input.isolation);
-  }
   await submitNewWorkspaceEmpty(page);
 
   return assertNewWorkspaceSidebarAndHeader(page, {
@@ -71,59 +56,7 @@ test.describe("Workspace multiplicity creation flow", () => {
     await client?.close().catch(() => undefined);
   });
 
-  test("two Local workspaces share one git checkout and both are independently selectable", async ({
-    page,
-  }) => {
-    const seeded: SeededWorkspace = await seedWorkspace({
-      repoPrefix: "multiplicity-local-git-",
-    });
-
-    try {
-      const project = {
-        projectKey: seeded.projectKey,
-        projectDisplayName: seeded.projectDisplayName,
-      };
-
-      await gotoAppShell(page);
-      await waitForSidebarHydration(page);
-      await expect(page.getByTestId(workspaceRowTestId(seeded.workspaceId))).toBeVisible({
-        timeout: 30_000,
-      });
-
-      const second = await createWorkspaceViaUi(page, {
-        project,
-        isolation: "local",
-        previousWorkspaceId: seeded.workspaceId,
-        client,
-      });
-
-      // A second workspace was minted on the SAME checkout — creation did not
-      // dedupe the directory away.
-      expect(second.workspaceId).not.toBe(seeded.workspaceId);
-      expect(second.workspaceDirectory).toBe(seeded.workspaceDirectory);
-
-      // Both rows live under the same project and are distinct.
-      const firstRow = page.getByTestId(workspaceRowTestId(seeded.workspaceId));
-      const secondRow = page.getByTestId(workspaceRowTestId(second.workspaceId));
-      await expect(firstRow).toBeVisible({ timeout: 30_000 });
-      await expect(secondRow).toBeVisible({ timeout: 30_000 });
-      await expect(secondRow).toContainText(second.workspaceName);
-
-      // Selecting the second workspace shows the shared checkout's files.
-      await gotoWorkspace(page, second.workspaceId);
-      await openFilesTab(page);
-      await expectExplorerEntryVisible(page, "README.md");
-
-      // Selecting the first workspace shows the SAME shared directory data.
-      await gotoWorkspace(page, seeded.workspaceId);
-      await openFilesTab(page);
-      await expectExplorerEntryVisible(page, "README.md");
-    } finally {
-      await seeded.cleanup();
-    }
-  });
-
-  test("New worktree isolation creates a worktree-backed workspace in a distinct directory", async ({
+  test("a git project creates a worktree-backed workspace in a distinct directory", async ({
     page,
   }) => {
     const seeded: SeededWorkspace = await seedWorkspace({
@@ -144,7 +77,6 @@ test.describe("Workspace multiplicity creation flow", () => {
 
       const worktree = await createWorkspaceViaUi(page, {
         project,
-        isolation: "worktree",
         previousWorkspaceId: seeded.workspaceId,
         client,
       });
@@ -163,7 +95,7 @@ test.describe("Workspace multiplicity creation flow", () => {
       expect(descriptor?.workspaceKind).toBe("worktree");
 
       await client
-        .archivePaseoWorktree({ worktreePath: worktree.workspaceDirectory })
+        .archiveGravityWorktree({ worktreePath: worktree.workspaceDirectory })
         .catch(() => undefined);
     } finally {
       await seeded.cleanup();
@@ -195,8 +127,8 @@ test.describe("Workspace multiplicity creation flow", () => {
 
       const second = await createWorkspaceViaUi(page, {
         project,
-        // Non-git project: no Isolation control, isolation is implicitly local.
-        isolation: null,
+        // Non-git project: nothing to cut a worktree from, so the workspace
+        // attaches to the directory itself.
         previousWorkspaceId: seeded.workspaceId,
         client,
       });

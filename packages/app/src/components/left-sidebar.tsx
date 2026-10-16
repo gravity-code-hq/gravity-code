@@ -21,7 +21,7 @@ import {
   SIDEBAR_RESIZE_ACTIVATION_OFFSET,
   SIDEBAR_RESIZE_FAIL_OFFSET,
 } from "@/components/sidebar-resize-handle-layout";
-import { HostPicker } from "@/components/hosts/host-picker";
+import { ALL_HOSTS_OPTION_ID, HostPicker } from "@/components/hosts/host-picker";
 import { SidebarDisplayPreferencesMenu } from "@/components/sidebar/display-preferences/menu";
 import { SidebarNavRows } from "@/components/sidebar/sidebar-nav-rows";
 import { SidebarHelpMenu } from "@/components/sidebar/sidebar-help-menu";
@@ -55,7 +55,7 @@ import { SidebarWorkspaceList } from "./sidebar-workspace-list";
 
 type SidebarTheme = ReturnType<typeof useUnistyles>["theme"];
 
-const DEV_BUILD_LABEL = process.env.EXPO_PUBLIC_PASEO_DEV_BUILD_LABEL?.trim() || null;
+const DEV_BUILD_LABEL = process.env.EXPO_PUBLIC_GRAVITY_DEV_BUILD_LABEL?.trim() || null;
 
 interface SidebarSharedProps {
   theme: SidebarTheme;
@@ -371,6 +371,11 @@ function FooterAddProjectButton({
   );
 }
 
+/**
+ * The footer's host switcher. Pressing a host pins the sidebar to it (and with
+ * it every per-host surface such as Tasks); "All hosts" clears the pin. The
+ * gear on each row opens that host's settings, and "Add host" stays at the end.
+ */
 function SidebarHostPicker({
   theme,
   label,
@@ -383,14 +388,26 @@ function SidebarHostPicker({
   onOpenHostSettings: (serverId: string) => void;
 }) {
   const hosts = useHosts();
+  const hostFilters = useSidebarViewStore((state) => state.hostFilters);
+  const setHostFilter = useSidebarViewStore((state) => state.setHostFilter);
+  const clearHostFilters = useSidebarViewStore((state) => state.clearHostFilters);
   const triggerRef = useRef<View | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
+  // A multi-host filter (set from display preferences) has no single row to check.
+  let value = "";
+  if (hostFilters.length === 0) value = ALL_HOSTS_OPTION_ID;
+  else if (hostFilters.length === 1) value = hostFilters[0] ?? "";
+
   const handleSelect = useCallback(
     (id: string) => {
-      onOpenHostSettings(id);
+      if (id === ALL_HOSTS_OPTION_ID) {
+        clearHostFilters();
+      } else {
+        setHostFilter(id);
+      }
     },
-    [onOpenHostSettings],
+    [clearHostFilters, setHostFilter],
   );
 
   const handleOpen = useCallback(() => setIsOpen(true), []);
@@ -398,11 +415,12 @@ function SidebarHostPicker({
   return (
     <HostPicker
       hosts={hosts}
-      value=""
+      value={value}
       onSelect={handleSelect}
       open={isOpen}
       onOpenChange={setIsOpen}
       anchorRef={triggerRef}
+      includeAllHost={hosts.length > 1}
       includeAddHost
       onAddHost={onAddHost}
       showActiveConnection

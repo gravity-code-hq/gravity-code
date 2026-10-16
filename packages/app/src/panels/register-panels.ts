@@ -1,5 +1,6 @@
 import { agentPanelRegistration } from "@/panels/agent-panel";
 import { browserPanelRegistration } from "@/desktop/browser/panel";
+import { GRAVITY_LOCAL_ONLY } from "@/gravity";
 import {
   changesTreePanelRegistration,
   commitDiffPanelRegistration,
@@ -28,7 +29,9 @@ export function ensurePanelsRegistered(): void {
   registerPanel(providerSubagentPanelRegistration);
   registerPanel(setupPanelRegistration);
   registerPanel(terminalPanelRegistration);
-  registerPanel(browserPanelRegistration);
+  if (!GRAVITY_LOCAL_ONLY) {
+    registerPanel(browserPanelRegistration);
+  }
   registerPanel(filePanelRegistration);
   registerPanel(filesPanelRegistration);
   registerPanel(pullRequestPanelRegistration);

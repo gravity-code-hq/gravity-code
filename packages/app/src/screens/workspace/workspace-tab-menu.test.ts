@@ -20,6 +20,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
     const onCopyAgentId = vi.fn();
     const onCopyFilePath = vi.fn();
     const onReloadAgent = vi.fn();
+    const onDownloadConversation = vi.fn();
+    const onCopyConversation = vi.fn();
     const onRenameTab = vi.fn();
     const onCloseTab = vi.fn();
     const onCloseTabsBefore = vi.fn();
@@ -37,6 +39,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath,
       onReloadAgent,
+      onDownloadConversation,
+      onCopyConversation,
       onRenameTab,
       onCloseTab,
       onCloseTabsBefore,
@@ -47,6 +51,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
     expect(entries.filter((entry) => entry.kind === "item").map((entry) => entry.label)).toEqual([
       "Copy resume command",
       "Copy agent id",
+      "Copy conversation",
+      "Download conversation",
       "Rename",
       "Close to the left",
       "Close to the right",
@@ -54,6 +60,19 @@ describe("buildWorkspaceTabMenuEntries", () => {
       "Reload agent",
       "Close",
     ]);
+    const copy = entries.find(
+      (entry) => entry.kind === "item" && entry.key === "copy-conversation",
+    );
+    if (!copy || copy.kind !== "item") throw new Error("Missing copy conversation action");
+    copy.onSelect();
+    expect(onCopyConversation).toHaveBeenCalledExactlyOnceWith("agent-123");
+    const download = entries.find(
+      (entry) => entry.kind === "item" && entry.key === "download-conversation",
+    );
+    if (!download || download.kind !== "item") throw new Error("Missing download action");
+    download.onSelect();
+    expect(onDownloadConversation).toHaveBeenCalledExactlyOnceWith("agent-123");
+    expect(onCopyConversation).toHaveBeenCalledTimes(1);
   });
 
   it("uses stacked ordering labels for mobile menus", () => {
@@ -68,6 +87,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab: vi.fn(),
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),
@@ -78,6 +99,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
     expect(entries.filter((entry) => entry.kind === "item").map((entry) => entry.label)).toEqual([
       "Copy resume command",
       "Copy agent id",
+      "Copy conversation",
+      "Download conversation",
       "Rename",
       "Close tabs above",
       "Close tabs below",
@@ -104,6 +127,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab: vi.fn(),
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),
@@ -133,6 +158,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab: vi.fn(),
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),
@@ -163,6 +190,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab,
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),
@@ -199,6 +228,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId,
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab,
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),
@@ -213,6 +244,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
     expect(labels).not.toContain("Copy agent id");
     expect(labels).not.toContain("Copy file path");
     expect(labels).not.toContain("Reload agent");
+    expect(labels).not.toContain("Download conversation");
+    expect(labels).not.toContain("Copy conversation");
 
     const copyTerminalIdEntry = entries.find(
       (entry) => entry.kind === "item" && entry.key === "copy-terminal-id",
@@ -250,6 +283,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath,
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab: vi.fn(),
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),
@@ -263,6 +298,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
     expect(labels).not.toContain("Copy agent id");
     expect(labels).not.toContain("Rename");
     expect(labels).not.toContain("Reload agent");
+    expect(labels).not.toContain("Download conversation");
+    expect(labels).not.toContain("Copy conversation");
 
     const copyFilePathEntry = entries.find(
       (entry) => entry.kind === "item" && entry.key === "copy-file-path",
@@ -293,6 +330,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab: vi.fn(),
       onCloseTab: vi.fn(),
       onCloseTabsToLeft: vi.fn(),
@@ -324,6 +363,8 @@ describe("buildWorkspaceTabMenuEntries", () => {
       onCopyTerminalId: vi.fn(),
       onCopyFilePath: vi.fn(),
       onReloadAgent: vi.fn(),
+      onDownloadConversation: vi.fn(),
+      onCopyConversation: vi.fn(),
       onRenameTab: vi.fn(),
       onCloseTab: vi.fn(),
       onCloseTabsBefore: vi.fn(),

@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { withPreviewCsp } from "./html-preview-csp";
 
 // `allow-scripts` alone: the file gets an opaque origin, so a plan page can run
-// its own scripts (Excalidraw, charts) but cannot reach the Paseo app's DOM,
+// its own scripts (Excalidraw, charts) but cannot reach the Gravity app's DOM,
 // cookies, or storage, and cannot navigate the top window. Agent-written HTML is
 // not trusted markup. No popup tokens — a preview is a viewer, not a browser, and
 // escaping the sandbox to open one buys nothing for reading a local plan. The same
@@ -23,11 +23,29 @@ const iframeStyle = {
   backgroundColor: "white",
 } as const;
 
-export function FileHtmlPreview({ html, testID }: { html: string; testID?: string }) {
+export function FileHtmlPreview({
+  html,
+  testID,
+  onMessage,
+}: {
+  html: string;
+  testID?: string;
+  onMessage?: (value: unknown) => void;
+}) {
   const { t } = useTranslation();
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    if (!onMessage) return;
+    function receive(event: MessageEvent<unknown>): void {
+      if (event.source === frame.current?.contentWindow) onMessage?.(event.data);
+    }
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, [onMessage]);
   const document = useMemo(() => withPreviewCsp(html), [html]);
   return (
     <iframe
+      ref={frame}
       data-testid={testID}
       title={t("panels.file.editor.preview")}
       srcDoc={document}

@@ -71,6 +71,57 @@ test("opens a timeline image in a zoomable lightbox", async ({
   expect(initialBox).not.toBeNull();
   expect(canvasBox).not.toBeNull();
   expect(initialBox!.width).toBeLessThan(canvasBox!.width);
+  const toolbar = page.getByTestId("zoomable-viewport-toolbar");
+  const toolbarBox = await toolbar.boundingBox();
+  expect(toolbarBox).not.toBeNull();
+  expect(toolbarBox!.y).toBe(canvasBox!.y + 24);
+  expect(toolbarBox!.x + toolbarBox!.width).toBe(canvasBox!.x + canvasBox!.width - 24);
+  await expect(toolbar.getByRole("button")).toHaveCount(4);
+  await expect(toolbar.getByRole("button", { name: "Reset view" })).toHaveCount(0);
+  const copyButton = page.getByTestId("attachment-lightbox-copy");
+  const copyBox = await copyButton.boundingBox();
+  expect(copyBox).not.toBeNull();
+  expect(copyBox!.width).toBe(32);
+  expect(copyBox!.height).toBe(32);
+
+  const session = await page.context().newCDPSession(page);
+  const { targetInfo } = await session.send("Target.getTargetInfo");
+  await session.send("Browser.setPermission", {
+    permission: { name: "clipboard-write" },
+    setting: "denied",
+    origin: new URL(page.url()).origin,
+    browserContextId: targetInfo.browserContextId,
+  });
+  await copyButton.click();
+  const copyError = page.getByRole("alert").filter({ hasText: "Couldn't copy image. Try again." });
+  await expect(copyError).toBeVisible();
+  await expect(copyButton).toBeEnabled();
+
+  await session.send("Browser.resetPermissions", {
+    browserContextId: targetInfo.browserContextId,
+  });
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await copyButton.click();
+  await expect(copyButton).toHaveAttribute("aria-label", "Copied");
+  await expect(copyError).toHaveCount(0);
+  const copiedImageSize = await page.evaluate(async () => {
+    const items = await navigator.clipboard.read();
+    const blob = await items[0].getType("image/png");
+    const bitmap = await createImageBitmap(blob);
+    const size = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return size;
+  });
+  const originalImageSize = await lightboxImage
+    .locator("img")
+    .evaluate((element: HTMLImageElement) => ({
+      width: element.naturalWidth,
+      height: element.naturalHeight,
+    }));
+  expect(copiedImageSize).toEqual(originalImageSize);
+  await page.screenshot({ path: test.info().outputPath("image-lightbox-toolbar.png") });
+  await session.detach();
+
   const zoomIn = page.getByRole("button", { name: "Zoom in", exact: true });
   await zoomIn.click();
   await zoomIn.click();
@@ -187,9 +238,9 @@ test("reloading a timeline anchors near-tail assistant image growth", async ({
       }
       (
         window as unknown as {
-          __paseoReloadImageGeometry?: typeof state;
+          __gravityReloadImageGeometry?: typeof state;
         }
-      ).__paseoReloadImageGeometry = state;
+      ).__gravityReloadImageGeometry = state;
     },
     { accessibleName: image.alt },
   );
@@ -203,9 +254,9 @@ test("reloading a timeline anchors near-tail assistant image growth", async ({
   const events = await page.evaluate(() => {
     const state = (
       window as unknown as {
-        __paseoReloadImageGeometry?: { events: Array<unknown> };
+        __gravityReloadImageGeometry?: { events: Array<unknown> };
       }
-    ).__paseoReloadImageGeometry;
+    ).__gravityReloadImageGeometry;
     if (!state) throw new Error("Reload image geometry observer was not installed");
     return state.events;
   });

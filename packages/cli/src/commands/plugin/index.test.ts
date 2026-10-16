@@ -17,7 +17,7 @@ const listPlugins = vi.fn(async () => [
     path: "/plugins/legacy-plugin",
     enabled: true,
     status: "failed" as const,
-    error: "This plugin was made for an older version of Paseo",
+    error: "This plugin was made for an older version of Gravity",
   },
 ]);
 const getPluginLogs = vi.fn(async () => [
@@ -100,7 +100,7 @@ describe("plugin management commands", () => {
     expect(output).toContain("COMMIT");
     expect(output).not.toContain("LATEST");
     expect(output).toContain("1557a34c91e2");
-    expect(output).toContain("This plugin was made for an older version of Paseo");
+    expect(output).toContain("This plugin was made for an older version of Gravity");
   });
 
   it("filters the shared ls and status command by plugin ID", async () => {

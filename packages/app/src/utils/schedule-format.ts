@@ -1,5 +1,5 @@
-import type { ScheduleCadence, ScheduleSummary } from "@getpaseo/protocol/schedule/types";
-import { validateCronExpression } from "@getpaseo/protocol/schedule/cron-expression";
+import type { ScheduleCadence, ScheduleSummary } from "@gravity/protocol/schedule/types";
+import { validateCronExpression } from "@gravity/protocol/schedule/cron-expression";
 
 export type IntervalUnit = "minutes" | "hours" | "days";
 type CronCadence = Extract<ScheduleCadence, { type: "cron" }>;
@@ -28,8 +28,8 @@ export function isNewAgentSchedule(schedule: ScheduleSummary): boolean {
   return schedule.target.type === "new-agent";
 }
 
-export function scheduleProductName(schedule: ScheduleSummary): "Heartbeat" | "Schedule" {
-  return schedule.target.type === "agent" ? "Heartbeat" : "Schedule";
+export function scheduleProductName(schedule: ScheduleSummary): "Heartbeat" | "Automation" {
+  return schedule.target.type === "agent" ? "Heartbeat" : "Automation";
 }
 
 export function resolveScheduleTitle(schedule: ScheduleSummary): string {

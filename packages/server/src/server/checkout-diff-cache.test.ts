@@ -1,5 +1,33 @@
 import { expect, test } from "vitest";
 import { CheckoutDiffCache } from "@server/server/checkout-diff-cache.js";
+import type { CheckoutDiffResult } from "@server/utils/checkout-git.js";
+
+test("shares the readable diff before highlighting finishes, including late subscribers", async () => {
+  const cache = new CheckoutDiffCache(() => 0);
+  const highlighted = Promise.withResolvers<CheckoutDiffResult>();
+  const firstUpdates: CheckoutDiffResult[] = [];
+  const secondUpdates: CheckoutDiffResult[] = [];
+  const preview = { diff: "readable patch", structured: [] };
+  let calls = 0;
+  const load = (onProgress: (value: CheckoutDiffResult) => void) => {
+    calls++;
+    onProgress(preview);
+    return highlighted.promise;
+  };
+  const input = { cwd: "repo", compare: { mode: "uncommitted" as const }, load };
+  const first = cache.read({ ...input, onProgress: (value) => firstUpdates.push(value) });
+  await Promise.resolve();
+  expect(firstUpdates).toEqual([preview]);
+  const second = cache.read({ ...input, onProgress: (value) => secondUpdates.push(value) });
+  expect(secondUpdates).toEqual([preview]);
+  expect(calls).toBe(1);
+  const completed = { diff: "highlighted patch", structured: [] };
+  highlighted.resolve(completed);
+  expect(await first).toEqual(completed);
+  expect(await second).toEqual(completed);
+  expect(await cache.read(input)).toEqual(completed);
+  expect(calls).toBe(1);
+});
 
 function createSequencedLoader<T>(first: Promise<T>, second: Promise<T>) {
   let calls = 0;

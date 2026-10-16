@@ -31,7 +31,7 @@ interface CleanupTask {
 }
 
 const cleanupTasks: CleanupTask[] = [];
-const APP_SETTINGS_KEY = "@paseo:app-settings";
+const APP_SETTINGS_KEY = "@gravity:app-settings";
 
 function changesTree(page: Page) {
   return page.getByTestId("changes-file-tree").filter({ visible: true });
@@ -84,7 +84,7 @@ async function failNextDiscardRequest(page: Page): Promise<void> {
   });
 }
 
-const CHANGES_PREFERENCES_KEY = "@paseo:changes-preferences";
+const CHANGES_PREFERENCES_KEY = "@gravity:changes-preferences";
 
 const BEFORE = `import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -262,15 +262,25 @@ test.afterEach(async () => {
   }
 });
 
-test("Changes opens the populated committed comparison for a clean checkout", async ({ page }) => {
+test("Changes opens the populated committed comparison for a clean checkout", async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: "dark" });
   const workspace = await createWorkspaceWithCommittedDiff();
 
   await openWorkspaceChangesSurface(page, workspace, 90_000);
 
   const panel = page.getByTestId("working-diff-panel").filter({ visible: true });
   const tree = page.getByTestId("changes-tree-panel").filter({ visible: true });
-  await expect(tree.getByTestId("changes-diff-status-trigger")).toContainText("Committed");
+  await expect(
+    tree.getByTestId("changes-diff-mode-control").locator('[aria-selected="true"]'),
+  ).toContainText("Committed");
   await expect(panel.getByTestId("diff-file-0")).toHaveAccessibleName("committed-only.ts, +1, -0");
+  const modes = tree.getByTestId("changes-diff-mode-control");
+  await expect(modes.getByRole("button", { name: "Uncommitted", exact: true })).toBeVisible();
+  await expect(modes.getByRole("button", { name: "Committed", exact: true })).toBeVisible();
+  await expect(modes.locator('[aria-selected="true"]')).toHaveCount(1);
+  await page.screenshot({ path: testInfo.outputPath("comparison-buttons.png") });
 });
 
 test("Changes expires a manual comparison when checkout dirtiness changes", async ({ page }) => {
@@ -278,10 +288,9 @@ test("Changes expires a manual comparison when checkout dirtiness changes", asyn
   await openWorkspaceChanges(page, workspace);
 
   const tree = page.getByTestId("changes-tree-panel").filter({ visible: true });
-  const mode = tree.getByTestId("changes-diff-status-trigger");
+  const mode = tree.getByTestId("changes-diff-mode-control").locator('[aria-selected="true"]');
   await expect(mode).toContainText("Uncommitted");
 
-  await mode.click();
   await page.getByTestId("changes-diff-mode-committed").click();
   await expect(mode).toContainText("Committed");
   await expect(tree.getByRole("button", { name: "See uncommitted changes" })).toBeVisible();
@@ -303,12 +312,10 @@ test("an empty Changes comparison links to the populated comparison", async ({ p
 
   const panel = page.getByTestId("working-diff-panel").filter({ visible: true });
   const tree = page.getByTestId("changes-tree-panel").filter({ visible: true });
-  const mode = tree.getByTestId("changes-diff-status-trigger");
-  await mode.click();
+  const mode = tree.getByTestId("changes-diff-mode-control").locator('[aria-selected="true"]');
   await page.getByTestId("changes-diff-mode-committed").click();
   await expect(panel.getByTestId("diff-file-0")).toHaveAccessibleName("committed-only.ts, +1, -0");
 
-  await mode.click();
   await page.getByTestId("changes-diff-mode-uncommitted").click();
 
   await expect(tree.getByText("No changes to display", { exact: true })).toBeVisible();
@@ -770,7 +777,7 @@ test("Changes keeps review navigation and controls inside its workspace tab", as
   await expect(visiblePanel).toBeVisible();
   await expect(visiblePanel.getByTestId("changes-repository-header")).toHaveCount(0);
   await expect(visiblePanel.getByTestId("changes-branch-switcher")).toHaveCount(0);
-  await expect(visiblePanel.getByTestId("changes-diff-status-trigger")).toHaveCount(0);
+  await expect(visiblePanel.getByTestId("changes-diff-mode-control")).toHaveCount(0);
   await expect(visiblePanel.getByTestId("changes-selected-diff-stat")).toHaveCount(0);
   await expect(visiblePanel.getByTestId("changes-header")).toHaveCount(1);
   await expect(diffHeaderForPath(visiblePanel, "src/use-mounted-tab-set.ts")).toHaveAccessibleName(
@@ -898,7 +905,7 @@ test("Jump to file stays out of the desktop diff and of an empty comparison", as
   const explorer = await openCompactChanges(page, committed);
   await expect(explorer.getByRole("button", { name: "Jump to file" })).toBeVisible();
 
-  await selectEmptyUncommittedComparison(page, explorer);
+  await selectEmptyUncommittedComparison(explorer);
   await expect(page.getByRole("button", { name: "Jump to file" })).toHaveCount(0);
 });
 
@@ -1440,7 +1447,7 @@ async function holdBrowserFontLoads(page: Page): Promise<void> {
       },
     });
     Object.assign(window, {
-      __releasePaseoDiffFontLoads() {
+      __releaseGravityDiffFontLoads() {
         for (const release of pending.splice(0)) release();
       },
     });
@@ -1450,8 +1457,8 @@ async function holdBrowserFontLoads(page: Page): Promise<void> {
 async function releaseBrowserFontLoads(page: Page): Promise<void> {
   await page.evaluate(() => {
     (
-      window as typeof window & { __releasePaseoDiffFontLoads: () => void }
-    ).__releasePaseoDiffFontLoads();
+      window as typeof window & { __releaseGravityDiffFontLoads: () => void }
+    ).__releaseGravityDiffFontLoads();
   });
 }
 
@@ -1748,9 +1755,8 @@ async function jumpToOverviewFile(page: Page, explorer: Locator, filePath: strin
   await expect(diffHeaderForPath(explorer, filePath)).toBeInViewport();
 }
 
-async function selectEmptyUncommittedComparison(page: Page, explorer: Locator): Promise<void> {
-  await explorer.getByRole("button", { name: "Diff mode", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Uncommitted", exact: true }).click();
+async function selectEmptyUncommittedComparison(explorer: Locator): Promise<void> {
+  await explorer.getByRole("button", { name: "Uncommitted", exact: true }).click();
   await expect(explorer.getByText("No changes to display", { exact: true })).toBeVisible();
 }
 
@@ -1798,9 +1804,10 @@ async function selectChangesComparison(
   comparison: "Committed" | "Uncommitted",
 ): Promise<void> {
   const tree = page.getByTestId("changes-tree-panel").filter({ visible: true });
-  await tree.getByTestId("changes-diff-status-trigger").click();
   await page.getByTestId(`changes-diff-mode-${comparison.toLowerCase()}`).click();
-  await expect(tree.getByTestId("changes-diff-status-trigger")).toContainText(comparison);
+  await expect(
+    tree.getByTestId("changes-diff-mode-control").locator('[aria-selected="true"]'),
+  ).toContainText(comparison);
 }
 
 async function expectWorkingComparisonFiles(

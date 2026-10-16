@@ -4,6 +4,8 @@ import type { CheckoutDiffCompare, CheckoutDiffResult } from "../utils/checkout-
 interface ActiveRead {
   promise: Promise<CheckoutDiffResult>;
   invalidated: boolean;
+  progress: CheckoutDiffResult | null;
+  listeners: Set<(value: CheckoutDiffResult) => void>;
 }
 
 interface CachedDiff {
@@ -17,7 +19,8 @@ interface CheckoutDiffReadInput {
   compare: CheckoutDiffCompare;
   force?: boolean;
   reason?: string;
-  load: () => Promise<CheckoutDiffResult>;
+  onProgress?: (value: CheckoutDiffResult) => void;
+  load: (onProgress: (value: CheckoutDiffResult) => void) => Promise<CheckoutDiffResult>;
 }
 
 /** Completed payloads are bounded; active work survives invalidation and eviction. */
@@ -30,7 +33,7 @@ export class CheckoutDiffCache {
   constructor(private readonly now: () => number) {}
 
   read(input: CheckoutDiffReadInput): Promise<CheckoutDiffResult> {
-    const { cwd, compare, force, reason, load } = input;
+    const { cwd, compare, force, reason, load, onProgress } = input;
     if (force && !reason) throw new Error("WorkspaceGitService forced read requires a reason");
     const key = JSON.stringify([
       cwd,
@@ -53,7 +56,13 @@ export class CheckoutDiffCache {
         pending.invalidated = true;
         this.values.delete(key);
       }
-      if (!pending.invalidated) return pending.promise;
+      if (!pending.invalidated) {
+        if (onProgress) {
+          pending.listeners.add(onProgress);
+          if (pending.progress) onProgress(pending.progress);
+        }
+        return pending.promise;
+      }
       // A caller arriving after a change needs a fresh read, once the old one
       // finishes. The original caller can still receive its snapshot promptly.
       // The older result cannot enter the cache. Drop force when retrying so
@@ -66,8 +75,15 @@ export class CheckoutDiffCache {
     // Defer load until ownership is installed, including synchronous invalidations.
     const read: ActiveRead = {
       invalidated: false,
+      progress: null,
+      listeners: new Set(onProgress ? [onProgress] : []),
       promise: Promise.resolve()
-        .then(load)
+        .then(() =>
+          load((value) => {
+            read.progress = value;
+            for (const listener of read.listeners) listener(value);
+          }),
+        )
         .then((value) => {
           // Never repopulate the cache with a snapshot invalidated during its build.
           if (!read.invalidated)

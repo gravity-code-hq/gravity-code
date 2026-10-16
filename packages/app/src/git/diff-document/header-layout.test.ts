@@ -3,6 +3,18 @@ import { diffInteractionWindowTop, resolveVisibleFileSections } from "./header-l
 import type { DiffFileSection } from "./types";
 
 describe("diff header viewport", () => {
+  it("does not pin the next header into the gap before its file", () => {
+    const files = [expandedFile(0, 100), collapsedFile(1, 142)];
+    expect(
+      resolveVisibleFileSections({ files, scrollTop: 135, viewportHeight: 100, overscan: 0 })
+        .sticky,
+    ).toEqual({ file: files[1], y: 7 });
+    expect(
+      resolveVisibleFileSections({ files, scrollTop: 142, viewportHeight: 100, overscan: 0 }).sticky
+        ?.file.path,
+    ).toBe(files[1]!.path);
+  });
+
   it("keeps a many-file document bounded by the viewport", () => {
     const files = Array.from({ length: 2_000 }, (_, index) => collapsedFile(index));
 

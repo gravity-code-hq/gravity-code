@@ -1,13 +1,14 @@
 import type pino from "pino";
 import type { SessionDelivery } from "../owned-subscriptions/index.js";
-import type { FileVersion } from "@getpaseo/protocol/messages";
-import { getErrorMessage } from "@getpaseo/protocol/error-utils";
+import type { FileVersion } from "@gravity/protocol/messages";
+import { getErrorMessage } from "@gravity/protocol/error-utils";
 import {
   encodeFileTransferFrame,
   FileTransferOpcode,
   type FileTransferFrame,
-} from "@getpaseo/protocol/binary-frames/index";
+} from "@gravity/protocol/binary-frames/index";
 import type {
+  FileContentSearchRequest,
   FileDownloadTokenRequest,
   FileEntryCreateRequest,
   FileEntryDeleteRequest,
@@ -35,6 +36,7 @@ import {
   writeExplorerFile,
 } from "../../file-explorer/service.js";
 import { workspaceFileObserver, type FileObserver } from "../../file-explorer/observer.js";
+import { searchFileContents } from "../../file-explorer/content-search.js";
 import { getProjectIcon } from "../../../utils/project-icon.js";
 
 /**
@@ -52,7 +54,7 @@ export interface WorkspaceFilesSessionHost {
 export interface WorkspaceFilesSessionOptions {
   host: WorkspaceFilesSessionHost;
   downloadTokenStore: DownloadTokenStore;
-  paseoHome: string;
+  gravityHome: string;
   logger: pino.Logger;
   fileObserver?: FileObserver;
 }
@@ -75,7 +77,7 @@ export class WorkspaceFilesSession {
     this.host = options.host;
     this.downloadTokenStore = options.downloadTokenStore;
     this.logger = options.logger;
-    this.fileUploads = new FileUploadStore({ paseoHome: options.paseoHome });
+    this.fileUploads = new FileUploadStore({ gravityHome: options.gravityHome });
     this.fileObserver = options.fileObserver ?? workspaceFileObserver;
   }
 
@@ -241,6 +243,37 @@ export class WorkspaceFilesSession {
         requestId: request.requestId,
       },
     });
+  }
+
+  async handleFileContentSearchRequest(request: FileContentSearchRequest): Promise<void> {
+    const base = { cwd: request.cwd, requestId: request.requestId };
+    try {
+      const result = await searchFileContents({
+        root: request.cwd,
+        query: request.query,
+        caseSensitive: request.caseSensitive,
+        wholeWord: request.wholeWord,
+        regex: request.regex,
+        include: request.include,
+        exclude: request.exclude,
+        maxResults: request.maxResults,
+      });
+      this.host.emit({
+        type: "fs.content.search.response",
+        payload: { ...base, ...result, error: null },
+      });
+    } catch (error) {
+      this.host.emit({
+        type: "fs.content.search.response",
+        payload: {
+          ...base,
+          files: [],
+          totalMatches: 0,
+          truncated: false,
+          error: getErrorMessage(error),
+        },
+      });
+    }
   }
 
   async handleFileExplorerRequest(request: FileExplorerRequest, source?: object): Promise<void> {

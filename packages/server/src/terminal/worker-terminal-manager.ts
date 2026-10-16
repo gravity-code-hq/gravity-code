@@ -2,9 +2,9 @@ import { fileURLToPath } from "node:url";
 import { fork } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { assertAbsolutePath, isSameOrDescendantPath } from "../server/path-utils.js";
-import type { TerminalState } from "@getpaseo/protocol/messages";
-import type { TerminalActivity, TerminalActivityState } from "@getpaseo/protocol/terminal-activity";
-import { deriveTerminalActivityStatusBucket } from "@getpaseo/protocol/terminal-activity";
+import type { TerminalState } from "@gravity/protocol/messages";
+import type { TerminalActivity, TerminalActivityState } from "@gravity/protocol/terminal-activity";
+import { deriveTerminalActivityStatusBucket } from "@gravity/protocol/terminal-activity";
 import type {
   ClientMessage,
   ServerMessage,

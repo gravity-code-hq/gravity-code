@@ -1,7 +1,7 @@
 import type {
   CheckoutPrStatusResponse,
   PullRequestTimelineResponse,
-} from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/messages";
 import { type Forge, getForgePresentation } from "@/git/forge";
 import type { PresentableCheck } from "@/git/check-presentation";
 import { parseClientForgeFacts } from "@/git/forges";

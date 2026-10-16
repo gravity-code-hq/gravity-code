@@ -1,5 +1,62 @@
-import { describe, expect, it } from "vitest";
-import { reloadActiveBrowserOrWindow } from "./menu.js";
+import { describe, expect, it, vi } from "vitest";
+import { BrowserWindow, MenuItem } from "electron";
+import { buildApplicationMenuTemplate, reloadActiveBrowserOrWindow } from "./menu.js";
+
+vi.mock("electron", () => ({
+  app: { name: "Gravity" },
+  Menu: {},
+  MenuItem: vi.fn(function () {}),
+  ipcMain: {},
+  BrowserWindow: class {
+    webContents = { send: vi.fn(), setZoomLevel: vi.fn(), getZoomLevel: () => 1 };
+  },
+}));
+
+describe("zoom menu", () => {
+  it("routes zoom to the renderer instead of changing the whole window", () => {
+    const template = buildApplicationMenuTemplate({ onNewWindow: vi.fn() }, false);
+    const view = template.find((item) => item.label === "View");
+    if (!Array.isArray(view?.submenu)) throw new Error("Missing View menu");
+    const win = new BrowserWindow();
+    for (const [label, direction] of [
+      ["Zoom In", "in"],
+      ["Zoom Out", "out"],
+      ["Reset Size", "reset"],
+      ["Zoom In (+)", "in"],
+    ]) {
+      const item = view.submenu.find((entry) => entry.label === label);
+      if (!item?.click) throw new Error(`Missing ${label}`);
+      item.click(new MenuItem({}), win, {});
+      expect(win.webContents.send).toHaveBeenLastCalledWith("gravity:event:zoom", direction);
+    }
+    expect(win.webContents.setZoomLevel).not.toHaveBeenCalled();
+  });
+
+  it("disables every zoom accelerator while recording a shortcut", () => {
+    const template = buildApplicationMenuTemplate({ onNewWindow: vi.fn() }, true);
+    const view = template.find((item) => item.label === "View");
+    if (!Array.isArray(view?.submenu)) throw new Error("Missing View menu");
+    const zoomItems = view.submenu.filter(
+      (item) => item.label?.startsWith("Zoom") || item.label === "Reset Size",
+    );
+    expect(zoomItems).toHaveLength(4);
+    expect(zoomItems.every((item) => item.enabled === false)).toBe(true);
+  });
+
+  it("keeps explicit App Zoom independent of focused content", () => {
+    const template = buildApplicationMenuTemplate({ onNewWindow: vi.fn() }, false);
+    const view = template.find((item) => item.label === "View");
+    if (!Array.isArray(view?.submenu)) throw new Error("Missing View menu");
+    const appZoom = view.submenu.find((item) => item.label === "App Zoom");
+    if (!Array.isArray(appZoom?.submenu)) throw new Error("Missing App Zoom menu");
+    const zoomIn = appZoom.submenu.find((item) => item.label === "Zoom In");
+    if (!zoomIn?.click) throw new Error("Missing Zoom In");
+    const win = new BrowserWindow();
+    zoomIn.click(new MenuItem({}), win, {});
+    expect(win.webContents.setZoomLevel).toHaveBeenCalledExactlyOnceWith(1.5);
+    expect(win.webContents.send).not.toHaveBeenCalled();
+  });
+});
 
 class FakeWebContents {
   public readonly reloads: string[] = [];

@@ -20,7 +20,7 @@
 }:
 
 buildNpmPackage rec {
-  pname = "paseo";
+  pname = "gravity";
   version = (builtins.fromJSON (builtins.readFile ../package.json)).version;
 
   src = lib.cleanSourceWith {
@@ -33,8 +33,8 @@ buildNpmPackage rec {
       # Exclude non-daemon workspace contents (keep package.json for workspace resolution)
       !(lib.hasPrefix "/packages/app/android" relPath)
       && !(lib.hasPrefix "/packages/app/ios" relPath)
-      && !(lib.hasPrefix "/packages/website/src" relPath)
-      && !(lib.hasPrefix "/packages/website/public" relPath)
+      && !(lib.hasPrefix "/packages/gravity-website/src" relPath)
+      && !(lib.hasPrefix "/packages/gravity-website/public" relPath)
       && !(lib.hasPrefix "/packages/desktop/src" relPath)
       && !(lib.hasPrefix "/packages/desktop/src-tauri" relPath)
       # Documentation, CI definitions and agent/editor configuration. None of
@@ -57,7 +57,7 @@ buildNpmPackage rec {
       && !(lib.hasSuffix ".e2e.test.ts" baseName)
       && baseName != "node_modules"
       && baseName != ".git"
-      && baseName != ".paseo"
+      && baseName != ".gravity"
       && baseName != ".DS_Store";
   };
 
@@ -111,42 +111,42 @@ buildNpmPackage rec {
     # assets read at runtime. The trace script is the single source of
     # truth for what the daemon needs at $out — auditable in plain JS, no
     # npm hoisting / .bin / workspace-symlink footguns.
-    mkdir -p $out/lib/paseo
+    mkdir -p $out/lib/gravity
     node scripts/trace-daemon.mjs > daemon-files.txt
 
     while IFS= read -r path; do
       [ -z "$path" ] && continue
-      mkdir -p "$out/lib/paseo/$(dirname "$path")"
-      cp -a "$path" "$out/lib/paseo/$path"
+      mkdir -p "$out/lib/gravity/$(dirname "$path")"
+      cp -a "$path" "$out/lib/gravity/$path"
     done < daemon-files.txt
 
     # Root package.json lets node resolve the workspace layout when the
     # CLI/server bin starts from $out.
-    cp package.json $out/lib/paseo/
+    cp package.json $out/lib/gravity/
 
     # Web UI Assets
-    cp -r packages/server/dist/server/web-ui $out/lib/paseo/packages/server/dist/server/
+    cp -r packages/server/dist/server/web-ui $out/lib/gravity/packages/server/dist/server/
 
     # Create wrapper for the server entry point (for systemd / direct use)
     mkdir -p $out/bin
-    # Keep Paseo's runtime mode separate from NODE_ENV, which belongs to spawned agents.
-    makeWrapper ${nodejs}/bin/node $out/bin/paseo-server \
-      --add-flags "$out/lib/paseo/packages/server/dist/scripts/supervisor-entrypoint.js" \
-      --set PASEO_NODE_ENV production
+    # Keep Gravity's runtime mode separate from NODE_ENV, which belongs to spawned agents.
+    makeWrapper ${nodejs}/bin/node $out/bin/gravity-server \
+      --add-flags "$out/lib/gravity/packages/server/dist/scripts/supervisor-entrypoint.js" \
+      --set GRAVITY_NODE_ENV production
 
     # Create wrapper for the CLI
-    makeWrapper ${nodejs}/bin/node $out/bin/paseo \
-      --add-flags "$out/lib/paseo/packages/cli/dist/index.js" \
-      --set NODE_PATH "$out/lib/paseo/node_modules"
+    makeWrapper ${nodejs}/bin/node $out/bin/gravity \
+      --add-flags "$out/lib/gravity/packages/cli/dist/index.js" \
+      --set NODE_PATH "$out/lib/gravity/node_modules"
 
     runHook postInstall
   '';
 
   meta = {
     description = "Self-hosted daemon for Claude Code, Codex, and OpenCode";
-    homepage = "https://github.com/getpaseo/paseo";
+    homepage = "https://github.com/gravity-code-hq/gravity";
     license = lib.licenses.agpl3Plus;
-    mainProgram = "paseo";
+    mainProgram = "gravity";
     platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
 }

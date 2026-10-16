@@ -1,15 +1,17 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import { describe, expect, it } from "vitest";
 import {
   buildDiffDocumentModel,
   captureScrollAnchor,
   FILE_HEADER_HEIGHT,
+  DIFF_FILE_GAP,
   graphemeBoundaries,
   measureFragments,
   resolveScrollAnchor,
   resolveRelayoutScrollTop,
   shouldApplyRelayoutScroll,
 } from "./model";
+import { diffGutterLabels } from "./gutter";
 import type { BuildDiffDocumentModelInput, TextMeasurer } from "./types";
 
 const measurer: TextMeasurer = { measure: (text) => Array.from(text).length * 10 };
@@ -48,6 +50,9 @@ function input(overrides: Partial<BuildDiffDocumentModelInput> = {}): BuildDiffD
     measureText: measurer,
     palette: {
       surface: "#000",
+      hunkBackground: "#123",
+      additionGutterBackground: "#142",
+      deletionGutterBackground: "#412",
       headerSurface: "#111",
       border: "#222",
       foreground: "#fff",
@@ -71,6 +76,33 @@ function input(overrides: Partial<BuildDiffDocumentModelInput> = {}): BuildDiffD
 }
 
 describe("diff document model", () => {
+  it("shows old and new line numbers with a separate change marker", () => {
+    const source = file();
+    source.hunks[0]!.oldStart = 66;
+    source.hunks[0]!.newStart = 70;
+    source.hunks[0]!.lines.push({ type: "context", content: "return result;" });
+    const model = buildDiffDocumentModel(input({ files: [source], wrapLines: false }));
+    const cells = model.rows.flatMap((row) => (row.kind === "line" ? row.cells : []));
+    const labels = cells.map((cell) =>
+      cell ? diffGutterLabels(cell, model.files[0]!.gutterWidth, model.layout) : [],
+    );
+    const labelTexts: string[][] = [];
+    for (const row of labels) labelTexts.push(row.map((label) => label.text));
+    expect(labelTexts).toEqual([[], ["66", "−"], ["70", "+"], ["67", "71"]]);
+    expect(labels[1]![0]!.right).toBeLessThan(labels[2]![0]!.right);
+    expect(labels[2]![0]!.right).toBeLessThan(labels[2]![1]!.right);
+  });
+
+  it("keeps a file gap outside expanded and collapsed bodies", () => {
+    for (const collapsedFilePaths of [new Set<string>(), new Set(["src/a.ts"])]) {
+      const model = buildDiffDocumentModel(
+        input({ files: [file(), file("src/b.ts")], collapsedFilePaths }),
+      );
+      expect(model.files[1]!.top - model.files[0]!.bottom).toBe(DIFF_FILE_GAP);
+      expect(model.files[1]!.bodyTop - model.files[1]!.top).toBe(FILE_HEADER_HEIGHT);
+    }
+  });
+
   it("preserves shaped wrap breaks when joining makes a longer prefix narrower", () => {
     const measure = (text: string) => {
       if (text === "لا") return 30;
@@ -295,6 +327,7 @@ describe("diff document model", () => {
     const model = buildDiffDocumentModel(
       input({
         files: [fileWithChangedLine("中é👨‍👩‍👧‍👦")],
+        viewportWidth: 240,
       }),
     );
     expect(addedCell(model).fragments[0]?.graphemes.map((grapheme) => grapheme.text)).toEqual([
@@ -338,7 +371,7 @@ describe("diff document model", () => {
     expect(measurementCount).toBe(initialMeasurementCount);
     expect(collapsed.files[1]?.bodyHeight).toBe(expanded.files[1]?.bodyHeight);
     expect(collapsed.rows.every((row, index) => row.index === index)).toBe(true);
-    expect(collapsed.rows[0]?.top).toBe(FILE_HEADER_HEIGHT * 2);
+    expect(collapsed.rows[0]?.top).toBe(FILE_HEADER_HEIGHT * 2 + DIFF_FILE_GAP);
 
     const expandedAgain = buildDiffDocumentModel(
       input({
@@ -555,8 +588,8 @@ describe("diff document model", () => {
       input({ files: [fileWithChangedLine("x".repeat(30))], wrapLines: false, viewportWidth: 240 }),
     );
 
-    expect(model.files[0]?.contentWidth).toBe(344);
-    expect(model.files[0]!.contentWidth - model.viewportWidth).toBe(104);
+    expect(model.files[0]?.contentWidth).toBe(392);
+    expect(model.files[0]!.contentWidth - model.viewportWidth).toBe(152);
   });
 
   it("uses the widest split-column overflow once for the shared file offset", () => {
@@ -569,8 +602,8 @@ describe("diff document model", () => {
       }),
     );
 
-    expect(model.files[0]?.contentWidth).toBe(464);
-    expect(model.files[0]!.contentWidth - model.viewportWidth).toBe(224);
+    expect(model.files[0]?.contentWidth).toBe(484);
+    expect(model.files[0]!.contentWidth - model.viewportWidth).toBe(244);
   });
 
   it("builds exact unwrapped scroll geometry without measuring offscreen files", () => {

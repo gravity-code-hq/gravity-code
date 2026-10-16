@@ -1,9 +1,8 @@
-import type { CreateAgentRequestOptions } from "@getpaseo/client/internal/daemon-client";
-import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
+import type { CreateAgentRequestOptions } from "@gravity/client/internal/daemon-client";
+import type { AgentSnapshotPayload } from "@gravity/protocol/messages";
 import { create } from "zustand";
 import type { ComposerAttachment } from "@/attachments/types";
-import type { AgentProvider } from "@getpaseo/protocol/agent-types";
-import type { WorkspaceDraftTabSetup } from "@/workspace-tabs/model";
+import type { AgentProvider } from "@gravity/protocol/agent-types";
 
 export interface PendingWorkspaceDraftSubmission {
   /** Already-running creation. Mounting the draft only observes its result. */
@@ -27,22 +26,11 @@ export interface PendingWorkspaceDraftSubmission {
   allowEmptyText?: boolean;
 }
 
-export interface PendingWorkspaceDraftSetup {
-  setup: WorkspaceDraftTabSetup;
-  sourceDirectory?: string | null;
-}
-
 interface WorkspaceDraftSubmissionState {
   pendingByDraftId: Record<string, PendingWorkspaceDraftSubmission>;
-  setupByDraftId: Record<string, PendingWorkspaceDraftSetup>;
   creationByDraftId: Record<string, NonNullable<PendingWorkspaceDraftSubmission["agentCreation"]>>;
   setPending: (submission: PendingWorkspaceDraftSubmission) => void;
-  setDraftSetup: (input: {
-    draftId: string;
-    setup: WorkspaceDraftTabSetup;
-    sourceDirectory?: string | null;
-  }) => void;
-  clearDraftSetup: (input: { draftId: string }) => void;
+  clearAgentCreation: (input: { draftId: string }) => void;
   consumePending: (input: {
     serverId: string;
     workspaceId: string;
@@ -68,7 +56,6 @@ function normalizeDraftId(draftId: string): string {
 export const useWorkspaceDraftSubmissionStore = create<WorkspaceDraftSubmissionState>(
   (set, get) => ({
     pendingByDraftId: {},
-    setupByDraftId: {},
     creationByDraftId: {},
     setPending: (submission) =>
       set((state) => ({
@@ -80,24 +67,13 @@ export const useWorkspaceDraftSubmissionStore = create<WorkspaceDraftSubmissionS
           [submission.draftId]: submission,
         },
       })),
-    setDraftSetup: ({ draftId, setup, sourceDirectory }) => {
-      const normalizedDraftId = normalizeDraftId(draftId);
-      if (!normalizedDraftId) return;
-      set((state) => ({
-        setupByDraftId: {
-          ...state.setupByDraftId,
-          [normalizedDraftId]: { setup, sourceDirectory: sourceDirectory ?? null },
-        },
-      }));
-    },
-    clearDraftSetup: ({ draftId }) => {
+    clearAgentCreation: ({ draftId }) => {
       const normalizedDraftId = normalizeDraftId(draftId);
       if (!normalizedDraftId) return;
       set((state) => {
         const creationByDraftId = { ...state.creationByDraftId };
         delete creationByDraftId[normalizedDraftId];
-        const { [normalizedDraftId]: _removed, ...setupByDraftId } = state.setupByDraftId;
-        return { setupByDraftId, creationByDraftId };
+        return { creationByDraftId };
       });
     },
     consumePending: (input) => {

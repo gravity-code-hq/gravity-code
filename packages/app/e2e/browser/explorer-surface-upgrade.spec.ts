@@ -39,7 +39,6 @@ async function seedRetiredSidebarState(page: Page): Promise<void> {
           collapsedFilePathsByWorkspace: {},
           sidebarWidth: 340,
           explorerWidth: 400,
-          explorerSortOption: "name",
           explorerShowHiddenFiles: true,
           treeRailWidth: 320,
         },
@@ -96,7 +95,7 @@ test.describe("explorer surface after upgrading from the docked sidebar", () => 
       await gotoWorkspace(page, workspace.workspaceId);
       await waitForWorkspaceTabsVisible(page);
 
-      const agentList = visible(page, "sidebar-sessions");
+      const agentList = visible(page, "sidebar-search");
       const toggle = visible(page, "workspace-explorer-toggle").first();
 
       await test.step("open the explorer so both sides are showing", async () => {

@@ -1,7 +1,7 @@
-import { createPaseoClient, type PaseoClient } from "@getpaseo/client";
+import { createGravityClient, type GravityClient } from "@gravity/client";
 
-export function createClient(url: string): PaseoClient {
-  return createPaseoClient({
+export function createClient(url: string): GravityClient {
+  return createGravityClient({
     url,
   });
 }

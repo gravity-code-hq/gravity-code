@@ -40,3 +40,16 @@ describe("model sheet opening", () => {
     ).toEqual({ kind: "provider", providerId: "codex", providerLabel: "Codex" });
   });
 });
+
+describe("model sheet opening for a switchable live agent", () => {
+  it("lands on the agent's own provider and leaves the others behind the back button", () => {
+    expect(
+      resolveModelSheetOpening({
+        canSwitchProvider: true,
+        startAtSelectedProvider: true,
+        providers: [claude, codex],
+        selectedProvider: "codex",
+      }),
+    ).toEqual({ kind: "provider", providerId: "codex", providerLabel: "Codex" });
+  });
+});

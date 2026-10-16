@@ -1,8 +1,8 @@
 # Architecture
 
-Paseo is a client-server system for monitoring and controlling local AI coding agents. The daemon runs on your machine, manages agent processes, and streams their output in real time over WebSocket. Clients (mobile app, CLI, desktop app) connect to the daemon to observe and interact with agents.
+Gravity is a client-server system for monitoring and controlling local AI coding agents. The daemon runs on your machine, manages agent processes, and streams their output in real time over WebSocket. Clients (mobile app, CLI, desktop app) connect to the daemon to observe and interact with agents.
 
-Your code never leaves your machine. Paseo is local-first.
+Your code never leaves your machine. Gravity is local-first.
 
 ## System overview
 
@@ -43,7 +43,7 @@ Your code never leaves your machine. Paseo is local-first.
 
 ### `packages/server` — The daemon
 
-The heart of Paseo. A Node.js process that:
+The heart of Gravity. A Node.js process that:
 
 - Listens for WebSocket connections from clients
 - Manages agent lifecycle (create, run, stop, resume, archive)
@@ -72,9 +72,9 @@ not retain non-Git directories.
 | `server/directory-sync/`        | Daemon-global latest-state sequences for projects, workspaces, and agents      |
 | `server/workspace-labels/`      | Host-local label catalog, assignment mutations, and explicit subscriptions     |
 | `server/agent/agent-manager.ts` | Agent lifecycle state machine, timeline tracking, subscriber management        |
-| `server/agent/agent-storage.ts` | File-backed JSON persistence at `$PASEO_HOME/agents/`                          |
+| `server/agent/agent-storage.ts` | File-backed JSON persistence at `$GRAVITY_HOME/agents/`                        |
 | `server/agent/tools/`           | Transport-neutral catalog for workspaces, agents, permissions, and automation  |
-| `server/agent/mcp-server.ts`    | Thin MCP adapter that registers the Paseo tool catalog with the MCP SDK        |
+| `server/agent/mcp-server.ts`    | Thin MCP adapter that registers the Gravity tool catalog with the MCP SDK      |
 | `server/agent/providers/`       | Provider adapters (see "Agent providers" below)                                |
 | `server/orchestration-skills/`  | Bundled catalog, host selection, convergence, and skill-directory transactions |
 | `server/relay-transport.ts`     | Outbound relay connection with E2E encryption                                  |
@@ -84,18 +84,18 @@ not retain non-Git directories.
 
 The source of truth for WebSocket messages, binary frame codecs, endpoint parsing,
 agent timeline types, provider config schemas, and other values shared by daemon
-and clients. Server, app, CLI, and `@getpaseo/client` all depend on this package;
+and clients. Server, app, CLI, and `@gravity/client` all depend on this package;
 it does not depend on the server.
 
 ### `packages/client` — Daemon client library and SDK facade
 
-Owns the low-level daemon WebSocket driver plus the higher-level `PaseoClient`
+Owns the low-level daemon WebSocket driver plus the higher-level `GravityClient`
 facade. App and CLI may import the low-level driver from
-`@getpaseo/client/internal/daemon-client` during migration, while new SDK-shaped
-code imports from `@getpaseo/client`.
+`@gravity/client/internal/daemon-client` during migration, while new SDK-shaped
+code imports from `@gravity/client`.
 
-`PaseoApi` is the capability-only boundary over workspaces, agents, terminals, providers, and config.
-`PaseoClient` adds connection lifecycle. App plugin surfaces borrow an API over their selected
+`GravityApi` is the capability-only boundary over workspaces, agents, terminals, providers, and config.
+`GravityClient` adds connection lifecycle. App plugin surfaces borrow an API over their selected
 host's client; plugin subprocesses use the same facade over a host-owned IPC transport. Protocol capability ownership and subscription lifetimes follow
 [the client contract](protocol-compatibility.md#client-capability-ownership).
 
@@ -142,20 +142,20 @@ traffic. Workspace assignments stay on the workspace directory sequence.
 
 ### `packages/cli` — Command-line client
 
-Commander.js CLI with Docker-style commands. Common agent operations are also exposed at the top level (e.g. `paseo ls`, `paseo run`).
+Commander.js CLI with Docker-style commands. Common agent operations are also exposed at the top level (e.g. `gravity ls`, `gravity run`).
 
-- `paseo agent ls/run/import/attach/logs/stop/delete/send/inspect/wait/archive/reload/update/mode`
-- `paseo daemon start/run/stop/restart/status/reload/config/pair/set-password`
-- `paseo terminal ls/create/capture/send-keys/kill`
-- `paseo script ls/start/stop`
-- `paseo schedule create/ls/inspect/update/pause/resume/run-once/logs/delete`
-- `paseo heartbeat create/update/delete`
-- `paseo project create/ls/rename/delete`
-- `paseo workspace create/ls/rename/archive`
-- `paseo permit allow/deny/ls`
-- `paseo provider ls/models`
-- hidden legacy `paseo worktree create/ls/archive` compatibility alias
-- `paseo speech …`
+- `gravity agent ls/run/import/attach/logs/stop/delete/send/inspect/wait/archive/reload/update/mode`
+- `gravity daemon start/run/stop/restart/status/reload/config/pair/set-password`
+- `gravity terminal ls/create/capture/send-keys/kill`
+- `gravity script ls/start/stop`
+- `gravity schedule create/ls/inspect/update/pause/resume/run-once/logs/delete`
+- `gravity heartbeat create/update/delete`
+- `gravity project create/ls/rename/delete`
+- `gravity workspace create/ls/rename/archive`
+- `gravity permit allow/deny/ls`
+- `gravity provider ls/models`
+- hidden legacy `gravity worktree create/ls/archive` compatibility alias
+- `gravity speech …`
 
 Communicates with the daemon via the same WebSocket protocol as the app.
 
@@ -169,13 +169,13 @@ Enables remote access when the daemon is behind a firewall.
 - Pairing via QR code transfers the daemon's public key to the client
 - New homes keep relay disabled until pairing consent. `DaemonConfigStore` persists the desired state, while the relay runtime starts or stops the outbound transport live; pairing reads that current state instead of a startup snapshot.
 - Optional E2EE capability negotiation preserves application frame kind: text plaintext uses base64 ciphertext text frames, while binary plaintext uses raw ciphertext binary frames; mixed-version peers remain base64-only
-- Self-hosted relays opt into TLS with `daemon.relay.useTls` or `PASEO_RELAY_USE_TLS=true`; the public (client-facing) TLS setting can be overridden independently via `daemon.relay.publicUseTls` or `PASEO_RELAY_PUBLIC_USE_TLS`
+- Self-hosted relays opt into TLS with `daemon.relay.useTls` or `GRAVITY_RELAY_USE_TLS=true`; the public (client-facing) TLS setting can be overridden independently via `daemon.relay.publicUseTls` or `GRAVITY_RELAY_PUBLIC_USE_TLS`
 
-The production relay server lives in [getpaseo/paseo-relay](https://github.com/getpaseo/paseo-relay). It is a distributed Elixir service. The Cloudflare relay implementation in this monorepo is retained as legacy code and is not deployed.
+The production relay server lives in [gravity-code-hq/gravity-relay](https://github.com/gravity-code-hq/gravity-relay). It is a distributed Elixir service. The Cloudflare relay implementation in this monorepo is retained as legacy code and is not deployed.
 
 See [SECURITY.md](../SECURITY.md) for the full threat model.
 
-### Paseo Hub
+### Gravity Hub
 
 The optional Hub relationship is daemon-outbound and does not use the relay. Its connection,
 authorization, ownership, persistence, and lifecycle contract is documented in [hub.md](hub.md).
@@ -188,37 +188,59 @@ Electron wrapper for macOS, Linux, and Windows.
 - Native file access for workspace integration
 - Same WebSocket client as mobile app
 
+**Keeping the machine awake.** Two tiers, both owned by the desktop main process,
+which polls the local daemon every 5 seconds independently of renderer/tab lifetime.
+
+- **Idle hold (all desktops, automatic).** While any non-archived local agent is
+  `running` or `initializing` and not waiting on a permission, the desktop holds an
+  Electron `powerSaveBlocker` so the machine does not idle-sleep. No setting, no
+  prompt. The assertion dies with the process, so nothing needs recovery. It does
+  not survive lid close on macOS or Windows; nothing unprivileged does.
+- **Closed-lid work (macOS, explicit).** Settings → General owns the Mac-wide sleep
+  hold; the composer's Caffeine mode holds sleep for one local agent's next run.
+  These are session controls, not preferences restored at launch. Closing Gravity
+  releases them even when its daemon is configured to keep running.
+
+macOS idle-sleep assertions do not cover lid closure. Enabling closed-lid work
+requires administrator authorization for `pmset disablesleep`. A root-owned
+launchd recovery job is installed before changing that setting; it restores sleep
+after lease loss, helper restart, reboot, 12 hours, or battery discharge to 20%.
+The job removes itself only after confirming restoration. Gravity refuses to
+take ownership when another utility has already disabled sleep, and installs no
+sudoers exception. Keep the recovery job independent of Electron: app exit handlers
+cannot recover from a killed process. An unsent draft's hold expires after 15 minutes.
+
 The desktop does not manage agent skills. It retains one compatibility reader for the old
 `skill-selection.json`, imports that preference into its managed local daemon, then deletes the old
 file after the daemon confirms persistence.
 
-**Multi-window (hybrid land-on model).** `createWindow()` in `main.ts` is reusable: `⌘⇧N`/File→New Window, relaunching the app (`second-instance`), and the sidebar "Open in new window" action each open a fresh `BrowserWindow`. Every window shows the full sidebar — there is no per-window project ownership or filtering. "Land on a project" is delivered by a per-`webContents` `PendingOpenProjectStore`: each window pulls its own pending project path on mount (`paseo:get-pending-open-project`) and runs the normal open-project flow, identical to a CLI `paseo <path>` launch.
+**Multi-window (hybrid land-on model).** `createWindow()` in `main.ts` is reusable: `⌘⇧N`/File→New Window, relaunching the app (`second-instance`), and the sidebar "Open in new window" action each open a fresh `BrowserWindow`. Every window shows the full sidebar — there is no per-window project ownership or filtering. "Land on a project" is delivered by a per-`webContents` `PendingOpenProjectStore`: each window pulls its own pending project path on mount (`gravity:get-pending-open-project`) and runs the normal open-project flow, identical to a CLI `gravity <path>` launch.
 
 > **Window-state v1 limitation:** only the _first_ window of a session restores and persists saved geometry (size/position/maximized). Windows opened via ⌘⇧N / second-instance / "Open in new window" open at the default size, OS-cascaded, and do not persist — this avoids every window stacking on the same restored bounds and fighting over the single window-state store. Lifting this needs per-window state keys.
 >
 > **In-app browser profile.** Every browser guest uses one stable persistent Electron session, so cookies, authentication, cache, and site storage are shared across tabs, workspaces, and desktop windows and survive tab or app closure. Browser identity is independent of that storage partition: after every `did-attach`, the renderer explicitly registers its browser id, workspace id, and current guest `WebContents` id, and main accepts the registration only when that guest belongs to the calling renderer and the shared profile. Registration is intentionally repeated because reparenting a retained `<webview>` can replace its guest without replacing the DOM element. Settings > General > Clear browser data is the sole profile-deletion path; it clears the shared session and reloads live guests without deleting saved tabs or URLs.
 >
-> **In-app browser window opens.** Ordinary link opens, including Shift-clicked links, become Paseo workspace tabs. Script-created opens with popup features or a named window target and POST-backed opens remain secured Electron child windows in the shared browser profile, preserving `window.opener`, `postMessage`, named-window reuse, request bodies, and `window.close()` for OAuth, payment, and similar popup protocols. Unsupported URL schemes are denied before either path.
+> **In-app browser window opens.** Ordinary link opens, including Shift-clicked links, become Gravity workspace tabs. Script-created opens with popup features or a named window target and POST-backed opens remain secured Electron child windows in the shared browser profile, preserving `window.opener`, `postMessage`, named-window reuse, request bodies, and `window.close()` for OAuth, payment, and similar popup protocols. Unsupported URL schemes are denied before either path.
 >
 > **In-app browser ownership.** Each registered guest records its owning host window. The active browser is keyed by `(host window, workspace)`, and application-menu Reload / Force Reload resolve only within the window Electron supplies to the menu callback. A non-null active update must name a browser owned by that host; a null update clears only that host/workspace. Browser automation continues to target explicit browser ids returned by `browser_new_tab` or `browser_list_tabs`.
 >
-> **Browser keyboard boundary.** Guest pages receive renderer-published shortcuts first. `Cmd/Ctrl+L` and `Cmd/Ctrl+R` are explicit guest-shell reservations; ordinary Paseo shortcuts run only after the page declines them. The sandboxed guest preload runs in every frame so focused iframes use the same boundary, while Node integration remains disabled. Human guest input disables Electron's menu fallback for plain keys. Agent-generated keys use guest `sendInputEvent` with `skipIfUnhandled`, so an unhandled Enter stops at the guest instead of reaching the host composer. Main selects the preload; it exposes no APIs to guest pages.
+> **Browser keyboard boundary.** Guest pages receive renderer-published shortcuts first. `Cmd/Ctrl+L` and `Cmd/Ctrl+R` are explicit guest-shell reservations; ordinary Gravity shortcuts run only after the page declines them. The sandboxed guest preload runs in every frame so focused iframes use the same boundary, while Node integration remains disabled. Human guest input disables Electron's menu fallback for plain keys. Agent-generated keys use guest `sendInputEvent` with `skipIfUnhandled`, so an unhandled Enter stops at the guest instead of reaching the host composer. Main selects the preload; it exposes no APIs to guest pages.
 
 ```text
 Human key -> guest WebContents
   |-- Cmd/Ctrl+T/L/R ----------> reserved browser-shell action
   `-- page keydown
         |-- page prevents ------> page owns it
-        `-- published shortcut -> guest preload -> IPC(browserId) -> Paseo resolver
+        `-- published shortcut -> guest preload -> IPC(browserId) -> Gravity resolver
 
 Agent browser_keypress -> guest sendInputEvent(skipIfUnhandled)
   |-- guest handles ------------> page owns it
   `-- guest does not handle ----> stop; never redispatch to the host window
 ```
 
-### `packages/website` — Marketing site
+### `packages/gravity-website` — Marketing site
 
-TanStack Router + Cloudflare Workers. Serves paseo.sh.
+Vite + React static site, deployed on Vercel. Also serves the config JSON schema at `/schemas/gravity.config.v1.json`, generated by `npm run generate:config-schema --workspace=@gravity/server`. Download links are covered in [release.md](release.md#website-behavior).
 
 ## WebSocket protocol
 
@@ -287,6 +309,10 @@ searches that workspace and returns relative entries. Clients may prepend their 
 recent-project list for bare queries, but must not parse filesystem query syntax or re-filter a
 correlated daemon response. The legacy `directories` response field remains a projection of the
 typed `entries` list.
+
+`fs.content.search.request` is the other filesystem search capability: workspace-wide content
+search scoped to a `cwd`, backed by ripgrep or `git grep`. See
+[explorer-sidebar.md](explorer-sidebar.md#search-view).
 
 **Binary frames (terminal stream protocol):**
 
@@ -376,7 +402,7 @@ initializing → idle ⇄ running
   client-side dedup; the default fetch page is 200 items.
 - Timeline row `timestamp` values are canonical daemon-owned timestamps. Providers may supply original replay timestamps, but clients must not guess timestamp trust or hide time UI based on local clock heuristics.
 - Events stream to connected clients in real time; correctness is backed by authoritative timeline fetches and paged-to-completion catch-up.
-- Agent state persists to `$PASEO_HOME/agents/{cwd-with-dashes}/{agent-id}.json`. Timeline rows are runtime memory; provider history is the durable transcript authority and resumed agents rebuild from it. That storage path is derived from `cwd`, not from workspace id.
+- Agent state persists to `$GRAVITY_HOME/agents/{cwd-with-dashes}/{agent-id}.json`. Timeline rows are runtime memory; provider history is the durable transcript authority and resumed agents rebuild from it. That storage path is derived from `cwd`, not from workspace id.
 
 ## Right-sidebar boundary: directory-backed vs workspace-owned
 
@@ -428,12 +454,12 @@ The built-in, user-facing providers are Claude Code, Codex, Copilot, OpenCode, P
 
 All providers:
 
-- Handle their own authentication (Paseo does not manage API keys)
+- Handle their own authentication (Gravity does not manage API keys)
 - Support session resume via persistence handles
 - Map tool calls to a normalized `ToolCallDetail` type
 - Expose provider-specific modes (plan, default, full-access)
 
-Providers that can accept native tool definitions should set `supportsNativePaseoTools` and read `launchContext.paseoTools`. The daemon then passes the shared Paseo tool catalog directly and removes the internal Paseo MCP server from that provider launch config. Providers that only support MCP continue to receive the same tools through the MCP fallback at `/mcp/agents`.
+Providers that can accept native tool definitions should set `supportsNativeGravityTools` and read `launchContext.gravityTools`. The daemon then passes the shared Gravity tool catalog directly and removes the internal Gravity MCP server from that provider launch config. Providers that only support MCP continue to receive the same tools through the MCP fallback at `/mcp/agents`.
 
 ## Data flow: running an agent
 
@@ -447,10 +473,10 @@ Providers that can accept native tool definitions should set `supportsNativePase
 
 ## Storage
 
-`$PASEO_HOME` defaults to `~/.paseo`. The most important files:
+`$GRAVITY_HOME` defaults to `~/.gravity`. The most important files:
 
 ```
-$PASEO_HOME/
+$GRAVITY_HOME/
 ├── agents/{cwd-with-dashes}/{agent-id}.json   # Agent record
 ├── projects/projects.json                      # Project registry
 ├── projects/workspaces.json                    # Workspace registry
@@ -459,16 +485,16 @@ $PASEO_HOME/
 ├── config.json                                 # Daemon config (mutable)
 ├── daemon-keypair.json                         # Daemon identity for relay/E2EE
 ├── push-tokens.json                            # Mobile push tokens
-├── paseo.pid                                   # Supervisor identity and published bound endpoint
+├── gravity.pid                                   # Supervisor identity and published bound endpoint
 └── daemon.log                                  # Daemon trace logs (rotated)
 ```
 
-The supervisor alone publishes its ready worker's endpoint in `paseo.pid`, clears it before respawn, and fails if any worker exits before first readiness. CLI home selection trusts only that live record; config expresses desired state, never an endpoint fallback. POSIX home stop signals the captured supervisor without TCP. Windows graceful stop and ordinary RPCs trust the published endpoint. This metadata is not cryptographic listener ownership: edited endpoints, copied identities, PID reuse, and address takeover races remain outside that guarantee. A stale heartbeat never permits reclaiming a live lock.
+The supervisor alone publishes its ready worker's endpoint in `gravity.pid`, clears it before respawn, and fails if any worker exits before first readiness. CLI home selection trusts only that live record; config expresses desired state, never an endpoint fallback. POSIX home stop signals the captured supervisor without TCP. Windows graceful stop and ordinary RPCs trust the published endpoint. This metadata is not cryptographic listener ownership: edited endpoints, copied identities, PID reuse, and address takeover races remain outside that guarantee. A stale heartbeat never permits reclaiming a live lock.
 
 Worker restart retains supervisor arguments/environment and rereads the configuration file. Updating a package and observing its new worker version do not refresh the running supervisor code; the launcher owns full-process replacement. See [CLI lifecycle contracts](../public-docs/cli.md#daemon-management).
 
 ## Deployment models
 
-1. **Local daemon** (default): `paseo daemon start` on `127.0.0.1:6767`
+1. **Local daemon** (default): `gravity daemon start` on `127.0.0.1:6767`
 2. **Managed desktop**: Electron uses the server package’s local-instance lifecycle capability for sanitized launch, published readiness, and captured-PID stop. Only a matching `{pid, startedAt}` from a spawn in the current Desktop session authorizes automatic stop or binary replacement. Preexisting instances, including legacy `desktopManaged` records, are attach-only. Keep-running survivors attach in the next session. Explicit attached Stop requires a confirmation naming the captured home/PID. Ordinary Restart uses the worker RPC on every app platform.
 3. **Remote + relay**: Daemon behind firewall, relay bridges with E2E encryption

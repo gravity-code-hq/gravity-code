@@ -13,6 +13,7 @@ vi.mock("./checkout-git-utils.js", () => ({
 import type pino from "pino";
 import { CheckoutDiffManager } from "./checkout-diff-manager.js";
 import type { WorkspaceGitRuntimeSnapshot, WorkspaceGitService } from "./workspace-git-service.js";
+import type { CheckoutDiffResult } from "../utils/checkout-git.js";
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -38,7 +39,7 @@ function createWorkspaceSnapshot(
       mainRepoRoot: null,
       currentBranch: "feature",
       remoteUrl: "https://github.com/acme/repo.git",
-      isPaseoOwnedWorktree: false,
+      isGravityOwnedWorktree: false,
       isDirty: false,
       baseRef: "main",
       aheadBehind: { ahead: 1, behind: 0 },
@@ -91,7 +92,7 @@ function createPendingManager() {
   const logger = { child: () => logger, warn: () => {} };
   const manager = new CheckoutDiffManager({
     logger: logger as unknown as pino.Logger,
-    paseoHome: "/tmp/paseo-test",
+    gravityHome: "/tmp/gravity-test",
     workspaceGitService,
   });
   return { manager, watches };
@@ -148,7 +149,7 @@ describe("CheckoutDiffManager", () => {
 
     const manager = new CheckoutDiffManager({
       logger: logger as unknown as pino.Logger,
-      paseoHome: "/tmp/paseo-test",
+      gravityHome: "/tmp/gravity-test",
       workspaceGitService: workspaceGitService as unknown as WorkspaceGitService,
     });
 
@@ -194,6 +195,63 @@ describe("CheckoutDiffManager", () => {
     subscription.unsubscribe();
 
     expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  test("opens with readable lines while highlighting is pending, then pushes colors", async () => {
+    const highlighted = Promise.withResolvers<CheckoutDiffResult>();
+    const plain = {
+      path: "a.ts",
+      isNew: true,
+      isDeleted: false,
+      additions: 1,
+      deletions: 0,
+      hunks: [
+        {
+          oldStart: 0,
+          oldCount: 0,
+          newStart: 1,
+          newCount: 1,
+          lines: [{ type: "add" as const, content: "const value = 1;" }],
+        },
+      ],
+    };
+    const getCheckoutDiff = vi.fn<WorkspaceGitService["getCheckoutDiff"]>(
+      async (_cwd, _compare, _options, onProgress) => {
+        onProgress?.({ diff: "patch", structured: [plain] });
+        return highlighted.promise;
+      },
+    );
+    const { manager } = createManager({ getCheckoutDiffImplementation: getCheckoutDiff });
+    const listener = vi.fn();
+    const subscription = await manager.subscribe(
+      { cwd: "/tmp/repo", compare: { mode: "uncommitted" } },
+      listener,
+    );
+    expect(subscription.initial.files).toEqual([plain]);
+    expect(listener).not.toHaveBeenCalled();
+    const colored = {
+      ...plain,
+      hunks: [
+        {
+          ...plain.hunks[0],
+          lines: [
+            {
+              ...plain.hunks[0].lines[0],
+              tokens: [{ text: "const", style: "keyword" as const }],
+            },
+          ],
+        },
+      ],
+    };
+    highlighted.resolve({ diff: "patch", structured: [colored] });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(listener).toHaveBeenCalledExactlyOnceWith({
+      cwd: "/tmp/repo",
+      files: [colored],
+      error: null,
+    });
+    expect(getCheckoutDiff).toHaveBeenCalledTimes(1);
+    subscription.unsubscribe();
   });
 
   test("cancels a subscription while its working tree watch is still opening", async () => {
@@ -259,6 +317,7 @@ describe("CheckoutDiffManager", () => {
       "/tmp/repo",
       expect.objectContaining({ mode: "uncommitted", includeStructured: true }),
       undefined,
+      expect.any(Function),
     );
   });
 
@@ -330,6 +389,7 @@ describe("CheckoutDiffManager", () => {
       "/tmp/repo",
       expect.objectContaining({ mode: "uncommitted" }),
       undefined,
+      expect.any(Function),
     );
 
     const onChange = getOnChange();
@@ -480,6 +540,7 @@ describe("CheckoutDiffManager", () => {
       "/tmp/plain",
       expect.objectContaining({ mode: "uncommitted", includeStructured: true }),
       undefined,
+      expect.any(Function),
     );
   });
 });

@@ -14,7 +14,6 @@ import {
   fillNewWorkspaceDraft,
   openNewWorkspaceComposer,
   openProjectViaDaemon,
-  selectWorkspaceIsolation,
   submitNewWorkspaceEmpty,
   submitNewWorkspacePrompt,
   waitForCreatedWorkspace,
@@ -52,7 +51,6 @@ export async function verifyDelayedWorkspaceCreation(
   page: Page,
   launch: "chat" | "terminal" | "empty",
   destination: "leave" | "stay" | "new-draft",
-  isolation: "local" | "worktree" = "local",
 ): Promise<void> {
   const client = await connectNewWorkspaceDaemonClient();
   const repo = await createTempGitRepo("workspace-focus-");
@@ -73,7 +71,6 @@ export async function verifyDelayedWorkspaceCreation(
 
     await test.step("Submit workspace creation with the requested content", async () => {
       await openNewWorkspaceComposer(page, project);
-      await selectWorkspaceIsolation(page, isolation);
       if (launch === "chat") {
         await dropFileOnComposer(page, CONTEXT);
         await expectAttachmentPill(page, "composer-file-attachment-pill");
@@ -108,7 +105,7 @@ export async function verifyDelayedWorkspaceCreation(
 
     const created = await waitForCreatedWorkspace(client, knownIds);
     createdDirectory = created.workspaceDirectory;
-    expect(created.workspaceKind).toBe(isolation === "worktree" ? "worktree" : "local_checkout");
+    expect(created.workspaceKind).toBe("worktree");
     await test.step("Completion creates exactly the requested resource and preserves focus", async () => {
       await expect
         .poll(() => countWorkspaceAgents(client, created.id))

@@ -7,12 +7,12 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { LigaturesAddon } from "@xterm/addon-ligatures/lib/addon-ligatures.mjs";
 import { Terminal, type ITheme } from "@xterm/xterm";
-import type { TerminalState } from "@getpaseo/protocol/messages";
+import type { TerminalState } from "@gravity/protocol/messages";
 import {
   type TerminalInputModeState,
   TerminalInputModeTracker,
   terminalInputModeStatesEqual,
-} from "@getpaseo/protocol/terminal-input-mode";
+} from "@gravity/protocol/terminal-input-mode";
 import {
   type PendingTerminalModifiers,
   isAppleHandheldPlatform,
@@ -119,7 +119,7 @@ interface TerminalOutputOperation {
 
 declare global {
   interface Window {
-    __paseoTerminal?: Terminal;
+    __gravityTerminal?: Terminal;
   }
 }
 
@@ -156,6 +156,10 @@ function prependTerminalOutput(
   output.set(data, prefix.length);
   return output;
 }
+
+// Leading above xterm's 1.0 default and a gutter so output does not sit on the pane edge.
+const TERMINAL_LINE_HEIGHT = 1.2;
+const TERMINAL_INSET_CSS = "8px 12px";
 
 function withOverviewRulerBorderHidden(theme: ITheme): ITheme {
   return {
@@ -231,10 +235,10 @@ export class TerminalEmulatorRuntime {
       allowProposedApi: true,
       convertEol: false,
       cursorBlink: true,
-      cursorStyle: "bar",
+      cursorStyle: "block",
       fontFamily: resolveTerminalFontFamily(input.fontFamily),
       fontSize: resolveTerminalFontSize(input.fontSize),
-      lineHeight: 1.0,
+      lineHeight: TERMINAL_LINE_HEIGHT,
       macOptionIsMeta: true,
       minimumContrastRatio: 1,
       rescaleOverlappingGlyphs: true,
@@ -275,6 +279,10 @@ export class TerminalEmulatorRuntime {
       // Ligatures require Font Access API or compatible environment
     }
     terminal.open(input.host);
+    if (terminal.element) {
+      // FitAddon subtracts .xterm padding from the host size, so the inset never costs columns twice.
+      terminal.element.style.padding = TERMINAL_INSET_CSS;
+    }
     this.themeBackgroundElements = this.collectThemeBackgroundElements(input);
     this.applyThemeBackground(input.theme);
     try {
@@ -356,7 +364,7 @@ export class TerminalEmulatorRuntime {
 
     this.terminal = terminal;
     this.fitAddon = fitAddon;
-    window.__paseoTerminal = terminal;
+    window.__gravityTerminal = terminal;
 
     const fitAndEmitResize = (resizeInput?: TerminalResizeRequest): void => {
       const forceRefresh = resizeInput?.forceRefresh ?? false;
@@ -792,8 +800,8 @@ export class TerminalEmulatorRuntime {
 
     this.cleanup?.();
     this.cleanup = null;
-    if (window.__paseoTerminal === this.terminal) {
-      window.__paseoTerminal = undefined;
+    if (window.__gravityTerminal === this.terminal) {
+      window.__gravityTerminal = undefined;
     }
     this.terminal = null;
     this.fitAddon = null;

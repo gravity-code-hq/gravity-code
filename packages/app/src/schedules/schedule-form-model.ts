@@ -3,8 +3,8 @@ import type {
   AgentModelDefinition,
   AgentProvider,
   ProviderSnapshotEntry,
-} from "@getpaseo/protocol/agent-types";
-import type { ScheduleCadence, ScheduleSummary } from "@getpaseo/protocol/schedule/types";
+} from "@gravity/protocol/agent-types";
+import type { ScheduleCadence, ScheduleSummary } from "@gravity/protocol/schedule/types";
 import type { FormPreferences } from "@/create-agent-preferences/preferences";
 import { formatThinkingOptionLabel } from "@/agent-controls/labels";
 import {
@@ -27,6 +27,7 @@ import {
 import { buildProviderDefinitions } from "@/utils/provider-definitions";
 import { shortenPath } from "@/utils/shorten-path";
 import { normalizeScheduleFormCadence } from "./schedule-cadence-options";
+import { findScheduleTemplate, type ScheduleTemplate } from "@gravity/protocol/schedule/templates";
 import { PROJECT_OPTION_PREFIX, type ScheduleProjectTarget } from "./schedule-project-targets";
 
 export interface ScheduleFormDisplay {
@@ -49,6 +50,8 @@ export interface ScheduleFormSnapshot {
     projectTargets: readonly ScheduleProjectTarget[];
     preferences?: FormPreferences;
     timezone?: string;
+    // Create mode only: pre-fill name, prompt, and cadence from this template.
+    templateId?: string;
   };
 }
 
@@ -61,7 +64,6 @@ export interface ScheduleDisclosureState {
   showModelField: boolean;
   showThinkingField: boolean;
   showModeField: boolean;
-  showIsolationField: boolean;
   showArchiveOnFinishField: boolean;
 }
 
@@ -86,6 +88,11 @@ export interface ScheduleFormState {
   targetKind: ScheduleFormTargetKind;
   name: string;
   prompt: string;
+  // Empty once the user edits any field a template filled; the picker then
+  // shows no selection rather than claiming the form still matches it.
+  selectedTemplateId: string;
+  // Bumped on every template pick so the sheet can reset uncontrolled inputs.
+  templateApplyCount: number;
   maxRuns: string;
   cadence: ScheduleCadence;
   submitCadence: CronCadence | undefined;
@@ -106,7 +113,8 @@ export interface ScheduleFormState {
   modeOptions: AgentMode[];
   availableThinkingOptions: NonNullable<AgentModelDefinition["thinkingOptions"]>;
   archiveOnFinish: boolean;
-  isolation: "local" | "worktree";
+  // A scheduled run gets a worktree. A project that is not a git checkout
+  // cannot host one, so its runs attach to the directory instead.
   effectiveIsolation: "local" | "worktree";
   submitArchiveOnFinish: boolean | undefined;
   submitIsolation: "local" | "worktree" | undefined;
@@ -133,9 +141,9 @@ export interface ScheduleFormModel {
   setSessionMode: (modeId: string) => void;
   setName: (value: string) => void;
   setPrompt: (value: string) => void;
+  applyTemplate: (templateId: string) => void;
   setMaxRuns: (value: string) => void;
   setCadence: (value: ScheduleCadence) => void;
-  setIsolation: (value: "local" | "worktree") => void;
   setArchiveOnFinish: (value: boolean) => void;
   setSubmitError: (value: string | null) => void;
 }
@@ -441,16 +449,6 @@ function resolveInitialSubmitCadence(
   return schedule ? undefined : initialCadence;
 }
 
-function resolveInitialIsolation(input: {
-  config: ReturnType<typeof newAgentConfig>;
-  preferences: FormPreferences | undefined;
-}): "local" | "worktree" {
-  if (input.config) {
-    return input.config.isolation ?? "local";
-  }
-  return input.preferences?.isolation ?? "local";
-}
-
 function resolveSelectedProjectOptionId(target: ScheduleProjectTarget | null): string {
   return target?.optionId ?? "";
 }
@@ -488,15 +486,13 @@ function selectedHostSupportsWorkspaceMultiplicity(input: {
   );
 }
 
+// Stay on worktree while the host is still resolving so a slow project list
+// does not flip the submitted value; only a proven non-git project falls back.
 function resolveEffectiveIsolation(input: {
-  isolation: "local" | "worktree";
   canUseWorktreeIsolation: boolean;
   selectedServerId: string | null;
   providerResolutionByServerId: Record<string, ProviderResolutionStatus>;
 }): "local" | "worktree" {
-  if (input.isolation !== "worktree") {
-    return "local";
-  }
   if (input.canUseWorktreeIsolation) {
     return "worktree";
   }
@@ -516,7 +512,6 @@ function resolveDisclosure(state: ScheduleFormState): ScheduleDisclosureState {
       showModelField: false,
       showThinkingField: false,
       showModeField: false,
-      showIsolationField: false,
       showArchiveOnFinishField: false,
     };
   }
@@ -532,7 +527,6 @@ function resolveDisclosure(state: ScheduleFormState): ScheduleDisclosureState {
     showThinkingField:
       showModelField && hasSelectedModel && state.availableThinkingOptions.length > 0,
     showModeField: showModelField && hasSelectedProvider && state.modeOptions.length > 0,
-    showIsolationField: hasProject && state.canUseWorktreeIsolation,
     showArchiveOnFinishField:
       hasProject &&
       selectedHostSupportsWorkspaceMultiplicity({
@@ -586,7 +580,6 @@ function updateDerivedState(input: {
     selectedServerId: input.state.selectedServerId,
   });
   const effectiveIsolation = resolveEffectiveIsolation({
-    isolation: input.state.isolation,
     canUseWorktreeIsolation,
     selectedServerId: input.state.selectedServerId,
     providerResolutionByServerId: input.state.providerResolutionByServerId,
@@ -656,6 +649,8 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
     targetKind,
     name: snapshot.schedule?.name ?? "",
     prompt: snapshot.schedule?.prompt ?? "",
+    selectedTemplateId: "",
+    templateApplyCount: 0,
     maxRuns: formatInitialMaxRuns(snapshot.schedule),
     cadence: initialCadence,
     submitCadence: resolveInitialSubmitCadence(snapshot.schedule, initialCadence),
@@ -680,8 +675,7 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
     modeOptions: [],
     availableThinkingOptions: [],
     archiveOnFinish: config?.archiveOnFinish ?? true,
-    isolation: resolveInitialIsolation({ config, preferences: snapshot.defaults.preferences }),
-    effectiveIsolation: "local",
+    effectiveIsolation: "worktree",
     submitArchiveOnFinish: undefined,
     submitIsolation: undefined,
     canUseWorktreeIsolation: false,
@@ -692,7 +686,6 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
       showModelField: false,
       showThinkingField: false,
       showModeField: false,
-      showIsolationField: false,
       showArchiveOnFinishField: false,
     },
     canSubmit: false,
@@ -704,6 +697,25 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
     targets: snapshot.defaults.projectTargets,
     providerEntries: [],
   });
+}
+
+function withTemplate(
+  state: ScheduleFormState,
+  template: ScheduleTemplate,
+  timezone: string,
+): ScheduleFormState {
+  const cadence = normalizeScheduleFormCadence(
+    { type: "cron", expression: template.cronExpression },
+    timezone,
+  );
+  return {
+    ...state,
+    name: template.name,
+    prompt: template.prompt,
+    cadence,
+    submitCadence: cadence,
+    selectedTemplateId: template.id,
+  };
 }
 
 function toFormState(state: ScheduleFormState): FormState {
@@ -858,9 +870,21 @@ export function openScheduleForm(snapshot: ScheduleFormSnapshot): ScheduleFormMo
     );
   }
   let providerEntries: ProviderSnapshotEntry[] = [];
-  let userModified = { ...INITIAL_USER_MODIFIED, isolation: false };
+  let userModified = { ...INITIAL_USER_MODIFIED };
   const timezone = snapshot.defaults.timezone ?? DEFAULT_TIMEZONE;
   let state = buildInitialState(snapshot);
+  const initialTemplate =
+    snapshot.mode === "create" && snapshot.defaults.templateId
+      ? findScheduleTemplate(snapshot.defaults.templateId)
+      : null;
+  if (initialTemplate) {
+    state = updateDerivedState({
+      state: withTemplate(state, initialTemplate, timezone),
+      hosts,
+      targets: snapshot.defaults.projectTargets,
+      providerEntries: [],
+    });
+  }
 
   function publish(nextState: ScheduleFormState): void {
     if (closed) {
@@ -915,19 +939,11 @@ export function openScheduleForm(snapshot: ScheduleFormSnapshot): ScheduleFormMo
   }
 
   function resolvePreferences(nextState: ScheduleFormState): ScheduleFormState {
-    let resolved = nextState;
-    if (
-      snapshot.mode === "create" &&
-      !userModified.isolation &&
-      preferences?.isolation !== undefined
-    ) {
-      resolved = { ...resolved, isolation: preferences.isolation };
-    }
-    if (providerEntries.length === 0 || resolved.targetKind !== "new-agent") {
-      return resolved;
+    if (providerEntries.length === 0 || nextState.targetKind !== "new-agent") {
+      return nextState;
     }
     return resolveSnapshotSelection({
-      state: resolved,
+      state: nextState,
       snapshot,
       initialValues,
       preferences: preferencesForSnapshotResolution(snapshot, preferences),
@@ -1102,21 +1118,27 @@ export function openScheduleForm(snapshot: ScheduleFormSnapshot): ScheduleFormMo
       publish({ ...state, selectedMode: modeId });
     },
     setName(value) {
-      publish({ ...state, name: value });
+      publish({ ...state, name: value, selectedTemplateId: "" });
     },
     setPrompt(value) {
-      publish({ ...state, prompt: value });
+      publish({ ...state, prompt: value, selectedTemplateId: "" });
+    },
+    applyTemplate(templateId) {
+      const template = findScheduleTemplate(templateId);
+      if (!template) {
+        return;
+      }
+      publish({
+        ...withTemplate(state, template, timezone),
+        templateApplyCount: state.templateApplyCount + 1,
+      });
     },
     setMaxRuns(value) {
       publish({ ...state, maxRuns: value });
     },
     setCadence(value) {
       const cadence = normalizeScheduleFormCadence(value, timezone);
-      publish({ ...state, cadence, submitCadence: cadence });
-    },
-    setIsolation(value) {
-      userModified = { ...userModified, isolation: true };
-      publish({ ...state, isolation: value });
+      publish({ ...state, cadence, submitCadence: cadence, selectedTemplateId: "" });
     },
     setArchiveOnFinish(value) {
       publish({ ...state, archiveOnFinish: value });

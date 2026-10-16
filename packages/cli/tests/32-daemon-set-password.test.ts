@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
-import { isBearerTokenValid } from "@getpaseo/server";
+import { isBearerTokenValid } from "@gravity/server";
 import {
   runSetPasswordCommand,
   setDaemonPasswordInConfig,
@@ -14,8 +14,8 @@ import {
 
 console.log("=== Daemon Set Password Command ===\n");
 
-const root = await mkdtemp(join(tmpdir(), "paseo-set-password-"));
-const paseoHome = join(root, ".paseo");
+const root = await mkdtemp(join(tmpdir(), "gravity-set-password-"));
+const gravityHome = join(root, ".gravity");
 
 function promptSequence(values: string[]): PromptPassword {
   return async () => {
@@ -30,9 +30,9 @@ function promptSequence(values: string[]): PromptPassword {
 try {
   {
     console.log("Test 1: setDaemonPasswordInConfig writes hash and preserves config fields");
-    await mkdir(paseoHome, { recursive: true });
+    await mkdir(gravityHome, { recursive: true });
     await writeFile(
-      join(paseoHome, "config.json"),
+      join(gravityHome, "config.json"),
       `${JSON.stringify(
         {
           version: 1,
@@ -40,20 +40,20 @@ try {
             listen: "127.0.0.1:9999",
             relay: { enabled: false },
           },
-          app: { baseUrl: "https://app.paseo.sh" },
+          app: { baseUrl: "https://app.gravity.example" },
         },
         null,
         2,
       )}\n`,
     );
 
-    const result = await setDaemonPasswordInConfig("shared-secret", { home: paseoHome });
-    const config = JSON.parse(await readFile(join(paseoHome, "config.json"), "utf-8"));
+    const result = await setDaemonPasswordInConfig("shared-secret", { home: gravityHome });
+    const config = JSON.parse(await readFile(join(gravityHome, "config.json"), "utf-8"));
 
-    assert.strictEqual(result.configPath, join(paseoHome, "config.json"));
+    assert.strictEqual(result.configPath, join(gravityHome, "config.json"));
     assert.strictEqual(
       result.restartCommand,
-      `paseo daemon restart --home ${JSON.stringify(paseoHome)}`,
+      `gravity daemon restart --home ${JSON.stringify(gravityHome)}`,
     );
     assert.strictEqual(config.daemon.listen, "127.0.0.1:9999");
     assert.strictEqual(config.daemon.relay.enabled, false);
@@ -70,13 +70,13 @@ try {
     console.log("Test 2: command prompts twice and accepts matching confirmation");
     const result = await runSetPasswordCommand(
       {
-        home: paseoHome,
-        daemonTarget: { kind: "instance", home: paseoHome },
+        home: gravityHome,
+        daemonTarget: { kind: "instance", home: gravityHome },
         promptPassword: promptSequence(["new-secret", "new-secret"]),
       },
       {} as Command,
     );
-    const config = JSON.parse(await readFile(join(paseoHome, "config.json"), "utf-8"));
+    const config = JSON.parse(await readFile(join(gravityHome, "config.json"), "utf-8"));
 
     assert.strictEqual(result.data.action, "password_set");
     assert.strictEqual(
@@ -91,8 +91,8 @@ try {
     await assert.rejects(
       runSetPasswordCommand(
         {
-          home: paseoHome,
-          daemonTarget: { kind: "instance", home: paseoHome },
+          home: gravityHome,
+          daemonTarget: { kind: "instance", home: gravityHome },
           promptPassword: promptSequence(["first-secret", "second-secret"]),
         },
         {} as Command,

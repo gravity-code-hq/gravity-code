@@ -39,7 +39,13 @@ function fillToneStyle(tone: ProviderUsageTone) {
   }
 }
 
-export function ProviderUsageBalanceBar({ balance }: { balance: ProviderUsageBalance }) {
+export function ProviderUsageBalanceBar({
+  balance,
+  compact = true,
+}: {
+  balance: ProviderUsageBalance;
+  compact?: boolean;
+}) {
   const { amountText, usedPct } = resolveBalance(balance);
   const tone = balance.tone ?? "default";
   const resetLabel = formatResetLabel(balance.resetsAt);
@@ -50,15 +56,17 @@ export function ProviderUsageBalanceBar({ balance }: { balance: ProviderUsageBal
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.labelRow}>
-        <Text style={styles.label} numberOfLines={1}>
-          {balance.label}
-        </Text>
-        <Text style={styles.value}>
+    <View style={compact ? styles.container : styles.sectionContainer}>
+      <View style={compact ? styles.labelRow : styles.sectionLabelRow}>
+        <Text style={compact ? styles.label : styles.sectionLabel}>{balance.label}</Text>
+        <Text style={compact ? styles.value : styles.sectionValue}>
           {amountText}
-          {resetLabel ? <Text style={styles.reset}>{` · ${resetLabel}`}</Text> : null}
+          {compact && resetLabel ? <Text style={styles.reset}>{` · ${resetLabel}`}</Text> : null}
         </Text>
+        {!compact && resetLabel ? <Text style={styles.resetLabel}>{resetLabel}</Text> : null}
+        {!compact && usedPct != null && usedPct > 100 ? (
+          <Text style={styles.overLimit}>Above plan</Text>
+        ) : null}
       </View>
       {usedPct != null ? (
         <View style={styles.track}>
@@ -72,6 +80,34 @@ export function ProviderUsageBalanceBar({ balance }: { balance: ProviderUsageBal
 const styles = StyleSheet.create((theme) => ({
   container: {
     gap: 3,
+  },
+  sectionContainer: {
+    gap: theme.spacing[2],
+  },
+  sectionLabelRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: theme.spacing[3],
+    rowGap: theme.spacing[1],
+  },
+  sectionLabel: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+  },
+  sectionValue: {
+    color: theme.colors.foreground,
+    fontSize: theme.fontSize.base,
+    fontWeight: theme.fontWeight.medium,
+    fontVariant: ["tabular-nums"],
+  },
+  resetLabel: {
+    color: theme.colors.foregroundMuted,
+    fontSize: theme.fontSize.sm,
+  },
+  overLimit: {
+    color: theme.colors.statusDanger,
+    fontSize: theme.fontSize.sm,
   },
   labelRow: {
     flexDirection: "row",

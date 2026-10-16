@@ -10,14 +10,14 @@ import type { ChatOutlineRailProps } from "./rail";
 
 // Hover tracking lives on the rail and the slots, never on the Pressable inside them:
 // magnifying a slot must not move the box the pointer is resting on. See docs/hover.md.
-const RAIL_WIDTH = 36;
-const SLOT_HEIGHT = 8;
+const RAIL_WIDTH = 44;
+const SLOT_HEIGHT = 12;
 const MIN_PANEL_WIDTH = 918;
-const RESTING_PILL_HEIGHT = 2;
+const RESTING_PILL_HEIGHT = 3;
 const MAGNIFIED_PILL_HEIGHT = 4;
-const RESTING_PILL_WIDTH = 10;
-const ACTIVE_PILL_WIDTH = 18;
-const MAGNIFIED_PILL_WIDTH = 26;
+const RESTING_PILL_WIDTH = 16;
+const ACTIVE_PILL_WIDTH = 28;
+const MAGNIFIED_PILL_WIDTH = 32;
 const PREVIEW_WIDTH = 260;
 const PREVIEW_HEIGHT = 48;
 const PREVIEW_GAP = 4;
@@ -191,7 +191,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   rail: {
     position: "absolute",
-    left: theme.spacing[2],
+    right: theme.spacing[2],
     top: "10%",
     bottom: "10%",
     width: RAIL_WIDTH,
@@ -208,14 +208,14 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Pills share one left rail and grow rightward, so magnification reads as a bulge moving
+  // Pills share one right rail and grow leftward, so magnification reads as a bulge moving
   // with the pointer instead of every tick breathing about its own centre.
   target: {
     width: "100%",
     height: "100%",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
     justifyContent: "center",
-    paddingLeft: theme.spacing[1],
+    paddingRight: theme.spacing[1],
     borderRadius: theme.borderRadius.base,
   },
   // At rest the pills use low-emphasis chrome so the column stays readable peripherally
@@ -235,7 +235,7 @@ const styles = StyleSheet.create((theme) => ({
   },
   preview: {
     position: "absolute",
-    left: RAIL_WIDTH + PREVIEW_GAP,
+    right: RAIL_WIDTH + PREVIEW_GAP,
     top: "50%",
     marginTop: -PREVIEW_HEIGHT / 2,
     width: PREVIEW_WIDTH,

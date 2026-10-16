@@ -1,5 +1,5 @@
-import type { FileReadResult } from "@getpaseo/client/internal/daemon-client";
-import type { FileVersion } from "@getpaseo/protocol/messages";
+import type { FileReadResult } from "@gravity/client/internal/daemon-client";
+import type { FileVersion } from "@gravity/protocol/messages";
 
 export interface LiveFileTarget {
   cwd: string;

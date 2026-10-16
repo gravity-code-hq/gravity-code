@@ -1,3 +1,4 @@
+import { workspaceDisplayName } from "@/workspace/display-name";
 import type { ProjectDescriptor, WorkspaceDescriptor } from "@/stores/session-store";
 import type { HostProjectListItem } from "@/projects/host-project-model";
 import { buildWorkspaceStructureProjects } from "@/projects/workspace-structure";
@@ -154,8 +155,13 @@ function toWorkspaceSummary(workspace: WorkspaceDescriptor): WorkspaceSummary {
   const currentBranch = workspace.gitRuntime?.currentBranch?.trim();
   return {
     id: workspace.id,
-    name: workspace.name,
-    ...(workspace.title ? { title: workspace.title } : {}),
+    name: workspaceDisplayName({
+      projectName: workspace.projectCustomName ?? workspace.projectDisplayName,
+      projectKind: workspace.projectKind,
+      workspaceDirectory: workspace.workspaceDirectory,
+      worktreeSlug: workspace.worktreeSlug,
+      currentBranch: currentBranch ?? null,
+    }),
     workspaceKind: workspace.workspaceKind,
     status: workspace.status,
     currentBranch: currentBranch && currentBranch !== "HEAD" ? currentBranch : null,

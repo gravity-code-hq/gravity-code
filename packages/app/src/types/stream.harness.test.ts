@@ -6,8 +6,8 @@ import {
   type AgentToolCallItem,
   isAgentToolCallItem,
 } from "./stream";
-import type { AgentStreamEventPayload } from "@getpaseo/protocol/messages";
-import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
+import type { AgentStreamEventPayload } from "@gravity/protocol/messages";
+import type { ToolCallDetail } from "@gravity/protocol/agent-types";
 
 interface HarnessUpdate {
   event: AgentStreamEventPayload;

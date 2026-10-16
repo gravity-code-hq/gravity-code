@@ -48,7 +48,7 @@ jobs:
           release_args=(
             release create "$RELEASE_TAG"
             --repo "${{ github.repository }}"
-            --title "Paseo $RELEASE_TAG"
+            --title "Gravity $RELEASE_TAG"
             --notes ""
             --draft
           )
@@ -85,7 +85,7 @@ jobs:
           node-version: "22"
           cache: "npm"
           registry-url: "https://npm.pkg.github.com"
-          scope: "@boudra"
+          scope: "@gravity-code-hq"
 
       - name: Install JS dependencies
         run: node scripts/npm-retry.mjs ci
@@ -134,7 +134,7 @@ jobs:
             exit 1
           fi
 
-          asset_name="paseo-${RELEASE_TAG}-android.apk"
+          asset_name="gravity-${RELEASE_TAG}-android.apk"
           asset_path="$RUNNER_TEMP/$asset_name"
 
           curl --fail --location --output "$asset_path" "$artifact_url"

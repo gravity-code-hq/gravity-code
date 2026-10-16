@@ -16,10 +16,10 @@ import {
   upsertUserMessage,
   upsertUserMessageAcrossStream,
 } from "./stream";
-import type { AgentProvider, ToolCallDetail } from "@getpaseo/protocol/agent-types";
-import type { AgentStreamEventPayload } from "@getpaseo/protocol/messages";
-import { buildToolCallDisplayModel } from "@getpaseo/protocol/tool-call-display";
-import { timelineItemIdentity } from "@getpaseo/protocol/timeline-identity";
+import type { AgentProvider, ToolCallDetail } from "@gravity/protocol/agent-types";
+import type { AgentStreamEventPayload } from "@gravity/protocol/messages";
+import { buildToolCallDisplayModel } from "@gravity/protocol/tool-call-display";
+import { timelineItemIdentity } from "@gravity/protocol/timeline-identity";
 
 type CanonicalToolStatus = "running" | "completed" | "failed" | "canceled";
 
@@ -2214,6 +2214,43 @@ describe("turn lifecycle events", () => {
 });
 
 describe("notification timeline items", () => {
+  it("retains the fork boundary and marks inherited prompts read-only after hydration", () => {
+    const timestamp = new Date("2026-07-26T10:00:00.000Z");
+    const state = hydrateStreamState(
+      [
+        {
+          event: {
+            type: "timeline",
+            provider: "claude",
+            item: {
+              type: "user_message",
+              text: "Original prompt",
+              inherited: true,
+            },
+          },
+          timestamp,
+        },
+        {
+          event: {
+            type: "timeline",
+            provider: "claude",
+            item: {
+              type: "notification",
+              level: "info",
+              message: "Forked from Original chat",
+              forkSourceTitle: "Original chat",
+            },
+          },
+          timestamp,
+        },
+      ],
+      { source: "canonical" },
+    );
+    expect(state).toMatchObject([
+      { kind: "user_message", text: "Original prompt", inherited: true },
+      { kind: "notification", forkSourceTitle: "Original chat" },
+    ]);
+  });
   it("maps notification items to activity log entries with the matching level", () => {
     const timestamp = new Date("2026-07-26T10:00:00.000Z");
     const state = hydrateStreamState(

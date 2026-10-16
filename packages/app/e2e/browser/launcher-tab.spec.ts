@@ -77,7 +77,7 @@ test.afterAll(async () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test.describe("Tab creation", () => {
-  test("Cmd+T keeps creating a New tab after workspace switches", async ({ page }) => {
+  test("New tab shortcut keeps creating a New tab after workspace switches", async ({ page }) => {
     if (!secondWorkspaceId) {
       throw new Error("Secondary workspace was not created");
     }
@@ -119,14 +119,14 @@ test.describe("Tab creation", () => {
     await page.keyboard.press(`${modifier}+Comma`);
     await expect(page.getByRole("navigation", { name: "Settings" })).toBeVisible();
 
-    await page.keyboard.press(`${modifier}+t`);
+    await pressNewTabShortcut(page);
 
     await page.goto(workspaceUrl);
     await assertNewTabMenuTriggerVisible(page);
     await expect.poll(() => countTabsOfKind(page, "new_tab")).toBe(newTabCountBefore);
   });
 
-  test("Cmd+T creates a New tab without creating an agent", async ({ page }) => {
+  test("New tab shortcut creates a New tab without creating an agent", async ({ page }) => {
     await gotoWorkspace(page, workspace.workspaceId);
     const countBefore = await countTabsOfKind(page, "draft");
 

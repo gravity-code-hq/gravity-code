@@ -1,3 +1,5 @@
+import { scorePathMatch } from "@gravity/protocol/search/text-match";
+
 export interface FileMentionRange {
   start: number;
   end: number;
@@ -49,4 +51,28 @@ export function applyFileMentionReplacement(input: ApplyFileMentionReplacementIn
   const before = input.text.slice(0, input.mention.start);
   const after = input.text.slice(input.mention.end);
   return `${before}${formatQuotedFileMentionPath(input.relativePath)}${after}`;
+}
+interface FileMentionSuggestion {
+  path: string;
+  kind: "file" | "directory";
+}
+
+export function rankFileMentionSuggestions<T extends FileMentionSuggestion>(
+  entries: readonly T[],
+  query: string,
+): T[] {
+  if (!query || query.includes("/")) return [...entries];
+  const ranked = entries.map((entry) => {
+    const fileName = entry.path.split("/").at(-1) ?? entry.path;
+    const score = entry.kind === "file" ? scorePathMatch(query, fileName) : null;
+    return { entry, score, fileName };
+  });
+  ranked.sort((left, right) => {
+    const leftTier = left.score?.tier ?? Number.MAX_SAFE_INTEGER;
+    const rightTier = right.score?.tier ?? Number.MAX_SAFE_INTEGER;
+    if (leftTier !== rightTier) return leftTier - rightTier;
+    if (!left.score || !right.score) return 0;
+    return left.fileName.length - right.fileName.length;
+  });
+  return ranked.map(({ entry }) => entry);
 }

@@ -1,5 +1,5 @@
 import { Buffer } from "buffer";
-import { buildAgentDeepLinkRoute } from "@getpaseo/protocol/agent-deep-link";
+import { buildAgentDeepLinkRoute } from "@gravity/protocol/agent-deep-link";
 
 type NullableString = string | null | undefined;
 const BASE64_WORKSPACE_ID_PREFIX = "b64_";
@@ -428,20 +428,27 @@ export function buildSchedulesRoute() {
   return "/schedules" as const;
 }
 
+export function buildLinearRoute() {
+  return "/linear" as const;
+}
+
 export function buildOpenProjectRoute() {
   return "/open-project" as const;
 }
 
 interface NewWorkspaceRouteOptions {
+  draftKey?: string;
+  provider?: "codex" | "claude";
   serverId?: string;
   sourceDirectory?: string;
   displayName?: string;
   projectId?: string;
-  draftId?: string;
 }
 
 function buildNewWorkspaceSearch(options: NewWorkspaceRouteOptions): string {
   const params = new URLSearchParams();
+  if (options.draftKey) params.set("draftKey", options.draftKey);
+  if (options.provider) params.set("provider", options.provider);
   const serverId = trimNonEmpty(options.serverId);
   if (serverId) {
     params.set("serverId", serverId);
@@ -454,9 +461,6 @@ function buildNewWorkspaceSearch(options: NewWorkspaceRouteOptions): string {
   }
   if (options.projectId) {
     params.set("projectId", options.projectId);
-  }
-  if (options.draftId) {
-    params.set("draftId", options.draftId);
   }
   return params.toString();
 }
@@ -492,13 +496,9 @@ export function resolveKnownHostRoute(input: {
 export const SETTINGS_SECTION_SLUGS = [
   "general",
   "appearance",
-  "layout",
   "editor",
   "shortcuts",
   "integrations",
-  "notifications",
-  "permissions",
-  "diagnostics",
   "about",
 ] as const;
 
@@ -509,6 +509,8 @@ export function isSettingsSectionSlug(value: string): value is SettingsSectionSl
 }
 
 export const HOST_SECTION_SLUGS = [
+  "codex",
+  "claude",
   "projects",
   "connections",
   "pair-device",

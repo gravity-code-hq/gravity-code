@@ -16,8 +16,8 @@ import {
   decodeTerminalStreamFrame,
   encodeTerminalStreamFrame,
   TerminalStreamOpcode,
-} from "@getpaseo/protocol/terminal-stream-protocol";
-import { CLIENT_CAPS } from "@getpaseo/protocol/client-capabilities";
+} from "@gravity/protocol/terminal-stream-protocol";
+import { CLIENT_CAPS } from "@gravity/protocol/client-capabilities";
 
 type SocketListener = (...args: unknown[]) => void;
 
@@ -266,7 +266,7 @@ function createServer(options?: {
     }),
     createStub<AgentStorage>({}),
     createStub<DownloadTokenStore>({}),
-    "/tmp/paseo-test",
+    "/tmp/gravity-test",
     createStub<DaemonConfigStore>(daemonConfigStore),
     null,
     { allowedOrigins: new Set(), startPaused: options?.startPaused },

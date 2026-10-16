@@ -2,6 +2,50 @@ import { describe, expect, it } from "vitest";
 import { createAssistantMarkdownParser } from "./assistant-markdown-parser";
 
 describe("createAssistantMarkdownParser", () => {
+  it("hides every partial visualization reference during streaming", () => {
+    const marker = '\uE200visualize\uE202{"path":"/tmp/effort.html"}\uE201';
+    const parser = createAssistantMarkdownParser({ streaming: true });
+    for (let length = 1; length < marker.length; length++) {
+      expect(parser.parse(marker.slice(0, length), {}).map((token) => token.type)).toEqual([
+        "visualization_pending",
+      ]);
+    }
+    expect(parser.parse(marker, {}).map((token) => token.type)).toEqual(["visualization"]);
+  });
+
+  it("preserves visualization examples inside code and invalid references as text", () => {
+    const marker = '\uE200visualize\uE202{"path":"/tmp/effort.html"}\uE201';
+    const parser = createAssistantMarkdownParser();
+    for (const text of [
+      `\`${marker}\``,
+      `\`\`\`text\n${marker}\n\`\`\``,
+      `    ${marker}`,
+      `Example: ${marker}`,
+      marker.replace("/tmp/effort.html", "https://example.com/a.html"),
+      marker.replace("/tmp/effort.html", "/tmp/secret.txt"),
+      marker.replace('"path"', '"unknown"'),
+      marker.slice(0, -1),
+    ]) {
+      expect(parser.parse(text, {}).some((token) => token.type === "visualization")).toBe(false);
+    }
+  });
+
+  it("recognizes standalone visualization references between paragraphs", () => {
+    const marker =
+      '\uE200visualize\uE202{"path":"/tmp/effort.html","title":"Effort","mode":"wide"}\uE201';
+    const tokens = createAssistantMarkdownParser().parse(`Before\n${marker}\nAfter`, {});
+    expect(tokens.map((token) => token.type)).toEqual([
+      "paragraph_open",
+      "inline",
+      "paragraph_close",
+      "visualization",
+      "paragraph_open",
+      "inline",
+      "paragraph_close",
+    ]);
+    expect(tokens[3]?.content).toBe('{"path":"/tmp/effort.html","title":"Effort","mode":"wide"}');
+  });
+
   it("keeps bold text bold through every partial closing marker", () => {
     const parser = createAssistantMarkdownParser({ streaming: true });
 

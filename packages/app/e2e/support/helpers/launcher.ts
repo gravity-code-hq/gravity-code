@@ -62,9 +62,9 @@ export async function getActiveTabTestId(page: Page): Promise<string | null> {
 
 // ─── Tab actions ───────────────────────────────────────────────────────────
 
-/** Press Cmd+T (macOS) or Ctrl+T (Linux/Windows) to create a New tab in the focused pane. */
+/** Press Cmd+Shift+T (macOS) or Ctrl+T (Linux/Windows) to create a New tab in the focused pane. */
 export async function pressNewTabShortcut(page: Page): Promise<void> {
-  const modifier = process.platform === "darwin" ? "Meta" : "Control";
+  const modifier = process.platform === "darwin" ? "Meta+Shift" : "Control";
   await page.keyboard.press(`${modifier}+t`);
 }
 
@@ -75,7 +75,9 @@ export async function openNewTabMenuWithShortcut(page: Page): Promise<void> {
 
 export async function pressDirectNewTabShortcut(page: Page, key: string): Promise<void> {
   const modifier = process.platform === "darwin" ? "Meta" : "Control";
-  await page.keyboard.press(`${modifier}+Shift+${key}`);
+  const usesShift = process.platform !== "darwin" || !["a", "t"].includes(key.toLowerCase());
+  const shift = usesShift ? "+Shift" : "";
+  await page.keyboard.press(`${modifier}${shift}+${key}`);
 }
 
 // ─── Tab bar assertions ───────────────────────────────────────────────────
@@ -168,9 +170,9 @@ export async function sampleTabsDuringTransition(
 ): Promise<Array<Array<{ id: string; width: number }>>> {
   await page.evaluate((duration) => {
     const scope = globalThis as typeof globalThis & {
-      __paseoTabTrackFrames?: Array<Array<{ id: string; width: number }>>;
+      __gravityTabTrackFrames?: Array<Array<{ id: string; width: number }>>;
     };
-    scope.__paseoTabTrackFrames = [];
+    scope.__gravityTabTrackFrames = [];
     const startedAt = performance.now();
     function sample() {
       const tabs = Array.from(
@@ -178,7 +180,7 @@ export async function sampleTabsDuringTransition(
           '[data-testid^="workspace-tab-"][role="button"][aria-selected]',
         ),
       ).filter((element) => element.getClientRects().length > 0);
-      scope.__paseoTabTrackFrames?.push(
+      scope.__gravityTabTrackFrames?.push(
         tabs.map((element) => ({
           id: element.getAttribute("data-testid") ?? "",
           width: Math.round(element.getBoundingClientRect().width),
@@ -197,9 +199,9 @@ export async function sampleTabsDuringTransition(
   await page.waitForTimeout(durationMs + 100);
   return page.evaluate(() => {
     const scope = globalThis as typeof globalThis & {
-      __paseoTabTrackFrames?: Array<Array<{ id: string; width: number }>>;
+      __gravityTabTrackFrames?: Array<Array<{ id: string; width: number }>>;
     };
-    return scope.__paseoTabTrackFrames ?? [];
+    return scope.__gravityTabTrackFrames ?? [];
   });
 }
 

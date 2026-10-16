@@ -4,10 +4,10 @@ import { isCancel, password as passwordPrompt } from "@clack/prompts";
 import {
   hashDaemonPassword,
   readPersistedConfig,
-  resolvePaseoHome,
+  resolveGravityHome,
   savePersistedConfig,
   type PersistedConfig,
-} from "@getpaseo/server";
+} from "@gravity/server";
 import type {
   CommandError,
   CommandOptions,
@@ -81,9 +81,9 @@ export async function setDaemonPasswordInConfig(
   newPassword: string,
   options: SetPasswordOptions = {},
 ): Promise<SetPasswordResult> {
-  const paseoHome = resolvePaseoHome({ PASEO_HOME: options.home });
-  const configPath = path.join(paseoHome, CONFIG_FILENAME);
-  const persisted = readPersistedConfig(paseoHome);
+  const gravityHome = resolveGravityHome({ GRAVITY_HOME: options.home });
+  const configPath = path.join(gravityHome, CONFIG_FILENAME);
+  const persisted = readPersistedConfig(gravityHome);
   const nextConfig: PersistedConfig = {
     ...persisted,
     daemon: {
@@ -95,13 +95,13 @@ export async function setDaemonPasswordInConfig(
     },
   };
 
-  savePersistedConfig(paseoHome, nextConfig);
+  savePersistedConfig(gravityHome, nextConfig);
 
   return {
     action: "password_set",
     configPath,
-    restartCommand: `paseo daemon restart --home ${JSON.stringify(paseoHome)}`,
-    message: `Password written to ${configPath}\nRestart the daemon for the change to take effect.\nRun: paseo daemon restart --home ${JSON.stringify(paseoHome)}`,
+    restartCommand: `gravity daemon restart --home ${JSON.stringify(gravityHome)}`,
+    message: `Password written to ${configPath}\nRestart the daemon for the change to take effect.\nRun: gravity daemon restart --home ${JSON.stringify(gravityHome)}`,
   };
 }
 

@@ -37,6 +37,6 @@ zod-aot is exact-pinned and young enough that compiler patches are treated as pa
 
 Message schemas are structural declarations. Do not put `.transform()`, `.catch()`, or `.preprocess()` on WebSocket message schemas. If parsed data needs normalization, put it in an explicit consumer or post-validation pass.
 
-Use `z.discriminatedUnion()` when every branch has a shared literal tag. Plain `z.union()` is acceptable only when there is no shared literal discriminator or when a generated-code regression test proves that specific shape is miscompiled.
+Use `z.discriminatedUnion()` when every branch has a shared literal tag. The tag must be a string literal: the generated validator compares discriminators as strings, so `z.literal(true)` / `z.literal(false)` branches are rejected at runtime with "Invalid discriminator value". Plain `z.union()` is acceptable only when there is no shared literal discriminator or when a generated-code regression test proves that specific shape is miscompiled.
 
 Defaults are allowed only on primitive leaves. Do not place `.default()` on large arrays, item schemas, or big containers in inbound message schemas.

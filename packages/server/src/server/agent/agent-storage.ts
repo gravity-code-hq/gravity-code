@@ -9,6 +9,7 @@ import { toStoredAgentRecord } from "./agent-projections.js";
 import type { ManagedAgent } from "./agent-manager.js";
 import type { AgentSessionConfig } from "./agent-sdk-types.js";
 import { AgentOwnerSchema, daemonExecutionKey, type DaemonAgentOwner } from "./agent-owner.js";
+import { StoredForkHistorySchema } from "./fork-history.js";
 
 const SERIALIZABLE_CONFIG_SCHEMA = z
   .object({
@@ -42,7 +43,21 @@ const PERSISTENCE_HANDLE_SCHEMA = z
   .nullable()
   .optional();
 
+// Context usage lives only on the live agent record. Persisting it lets a
+// daemon restart hand the last known meter back to clients until the next turn.
+const STORED_USAGE_SCHEMA = z
+  .object({
+    inputTokens: z.number().optional(),
+    cachedInputTokens: z.number().optional(),
+    outputTokens: z.number().optional(),
+    totalCostUsd: z.number().optional(),
+    contextWindowMaxTokens: z.number().optional(),
+    contextWindowUsedTokens: z.number().optional(),
+  })
+  .optional();
+
 const STORED_AGENT_SCHEMA = z.object({
+  forkHistory: z.array(StoredForkHistorySchema).optional(),
   id: z.string(),
   provider: z.string(),
   cwd: z.string(),
@@ -69,6 +84,7 @@ const STORED_AGENT_SCHEMA = z.object({
   features: z.array(AgentFeatureSchema).optional(),
   persistence: PERSISTENCE_HANDLE_SCHEMA,
   lastError: z.string().nullable().optional(),
+  lastUsage: STORED_USAGE_SCHEMA,
   requiresAttention: z.boolean().optional(),
   attentionReason: z.enum(["finished", "error", "permission"]).nullable().optional(),
   attentionTimestamp: z.string().nullable().optional(),

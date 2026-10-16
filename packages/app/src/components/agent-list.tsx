@@ -17,14 +17,13 @@ import { useIsCompactFormFactor } from "@/constants/layout";
 import { formatTimeAgo } from "@/utils/time";
 import { type AggregatedAgent } from "@/hooks/use-aggregated-agents";
 import { useSessionStore } from "@/stores/session-store";
-import { Archive, ChevronRight } from "lucide-react-native";
+import { Archive } from "lucide-react-native";
 import { getProviderIcon } from "@/components/provider-icons";
 import { navigateToAgent } from "@/utils/navigate-to-agent";
 import { useArchiveAgent } from "@/hooks/use-archive-agent";
 import { HighlightedText } from "@/components/ui/highlighted-text";
 import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/status-badge";
-import type { AgentSearchMatch } from "@getpaseo/protocol/messages";
-import type { MatchRange } from "@getpaseo/protocol/search/text-match";
+import type { AgentSearchMatch } from "@gravity/protocol/messages";
 
 interface AgentListProps {
   agents: AggregatedAgent[];
@@ -120,39 +119,6 @@ function SessionBadge({
   if (tone === "warning") variant = "warning";
   else if (tone === "danger") variant = "error";
   return <StatusBadge label={label} variant={variant} leading={icon} />;
-}
-
-function WorkspaceTitlePrefix({
-  visible,
-  workspaceName,
-  ranges,
-  testID,
-  iconSize,
-  color,
-}: {
-  visible: boolean;
-  workspaceName: string;
-  ranges?: readonly MatchRange[];
-  testID: string;
-  iconSize: number;
-  color: string;
-}) {
-  if (!visible) {
-    return null;
-  }
-
-  return (
-    <>
-      <HighlightedText
-        text={workspaceName}
-        ranges={ranges}
-        style={styles.workspaceTitleText}
-        numberOfLines={1}
-        testID={testID}
-      />
-      <ChevronRight size={iconSize} color={color} />
-    </>
-  );
 }
 
 function SessionRowBadges({
@@ -274,14 +240,6 @@ function SessionRow({
     >
       <View style={styles.rowContent}>
         <View style={styles.rowTitleRow}>
-          <WorkspaceTitlePrefix
-            visible={!isMobile && Boolean(workspaceName)}
-            workspaceName={workspaceName}
-            ranges={rangesFor("workspace")}
-            testID={`agent-row-workspace-${agent.serverId}-${agent.id}`}
-            iconSize={theme.iconSize.xs}
-            color={theme.colors.foregroundMuted}
-          />
           <View style={styles.providerIconWrap}>
             <ProviderIcon size={theme.iconSize.sm} color={theme.colors.foregroundMuted} />
           </View>
@@ -624,6 +582,7 @@ const styles = StyleSheet.create((theme) => ({
   row: {
     flexDirection: "row",
     alignItems: "center",
+    gap: theme.spacing[4],
     paddingVertical: theme.spacing[2],
     paddingHorizontal: theme.spacing[3],
     borderRadius: {
@@ -651,12 +610,6 @@ const styles = StyleSheet.create((theme) => ({
     width: theme.iconSize.md,
     alignItems: "center",
     justifyContent: "center",
-  },
-  workspaceTitleText: {
-    flexShrink: 0,
-    maxWidth: 220,
-    fontSize: theme.fontSize.base,
-    color: theme.colors.foregroundMuted,
   },
   rowMetaRow: {
     flexDirection: "row",

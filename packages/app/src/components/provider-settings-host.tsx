@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { ProviderDiagnosticSheet } from "@/components/provider-diagnostic-sheet";
+import { ProviderSettings } from "@/components/provider-settings";
 import { OverlayLayerProvider } from "@/lib/overlay-root";
 import { useProviderSettingsStore } from "@/stores/provider-settings-store";
 
@@ -20,7 +20,8 @@ export function ProviderSettingsHost() {
 
   return (
     <OverlayLayerProvider layer={overlayParentLayer}>
-      <ProviderDiagnosticSheet
+      <ProviderSettings
+        presentation="sheet"
         key={`${serverId}:${provider}`}
         provider={provider}
         serverId={serverId}

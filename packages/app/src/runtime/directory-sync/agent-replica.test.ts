@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { DaemonClient, FetchAgentsEntry } from "@getpaseo/client/internal/daemon-client";
-import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
+import type { DaemonClient, FetchAgentsEntry } from "@gravity/client/internal/daemon-client";
+import type { AgentSnapshotPayload } from "@gravity/protocol/messages";
 import {
   selectAgentTimelineState,
   selectAgentTurnPresentation,
@@ -49,7 +49,7 @@ function entry(agent: AgentSnapshotPayload): FetchAgentsEntry {
         currentBranch: null,
         remoteUrl: null,
         worktreeRoot: null,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         mainRepoRoot: null,
       },
     },

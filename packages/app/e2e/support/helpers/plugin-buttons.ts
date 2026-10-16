@@ -18,7 +18,7 @@ const COMPACT = { width: 390, height: 844 };
 function clientSource(workspaceId: string, agentId: string): string {
   return `import React from "react";
 import { Text, View, Pressable } from "react-native";
-import { useWorkspace, useRpc, usePaseo } from "@getpaseo/plugin/client";
+import { useWorkspace, useRpc, useGravity } from "@gravity/plugin/client";
 import { useQuery } from "@tanstack/react-query";
 import { summary } from "./shared/rpc";
 
@@ -28,15 +28,15 @@ function StatusIcon({ size, theme }) {
 
 function Details({ workspaceId, theme, layout, close }) {
   const workspace = useWorkspace(workspaceId, (workspace) => workspace.name);
-  const paseo = usePaseo();
+  const gravity = useGravity();
   const [ownerId, setOwnerId] = React.useState("");
   const [updates, setUpdates] = React.useState(0);
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => {
-    const owner = paseo.observeEvents(["project.update"]);
+    const owner = gravity.observeEvents(["project.update"]);
     owner.subscribe({ snapshot(value) { setOwnerId(value.subscriptionId); }, update() { setUpdates((n) => n + 1); } });
     // Deliberately leave this observation to the mounted host scope.
-  }, [paseo]);
+  }, [gravity]);
   const rpc = useRpc(summary);
   const query = useQuery({ queryKey: ["summary"], queryFn: () => rpc({}) });
   if (failed) throw new Error("Button content failed");
@@ -102,7 +102,7 @@ export default function contribute(client) {
     deploy.update({ visible: workspace.name !== "Compact checks" });
     pillMenu.update({ visible: workspace.name !== "Hide composer menu" });
   };
-  void client.paseo.workspaces.list({ subscribe: {}, signal: lifetime.signal }).then(({ subscription }) => {
+  void client.gravity.workspaces.list({ subscribe: {}, signal: lifetime.signal }).then(({ subscription }) => {
     subscription.subscribe({
       snapshot({ entries }) { for (const workspace of entries) applyWorkspace(workspace); },
       update(message) { if (message.type === "workspace_update" && message.payload.kind === "upsert") applyWorkspace(message.payload.workspace); },
@@ -115,16 +115,16 @@ export default function contribute(client) {
 async function installShowcase(workspaceId: string, agentId: string) {
   const client = await connectNewWorkspaceDaemonClient({ ownProjects: false });
   const config = await client.getDaemonConfig();
-  const directory = await mkdtemp(path.join(tmpdir(), "paseo-buttons-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "gravity-buttons-"));
   await mkdir(path.join(directory, "shared"));
   await writeFile(
-    path.join(directory, "paseo-plugin.json"),
+    path.join(directory, "gravity-plugin.json"),
     JSON.stringify({ id: PLUGIN_ID, requirements: pluginRequirements }),
   );
   await writeFile(path.join(directory, "index.client.tsx"), clientSource(workspaceId, agentId));
   await writeFile(
     path.join(directory, "shared/rpc.ts"),
-    `import { defineRpc } from "@getpaseo/plugin"; import { z } from "zod"; export const summary = defineRpc({ name: "summary", input: z.object({}), output: z.object({ message: z.string() }) });`,
+    `import { defineRpc } from "@gravity/plugin"; import { z } from "zod"; export const summary = defineRpc({ name: "summary", input: z.object({}), output: z.object({ message: z.string() }) });`,
   );
   await writeFile(
     path.join(directory, "index.server.ts"),

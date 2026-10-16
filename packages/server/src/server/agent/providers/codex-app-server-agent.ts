@@ -74,6 +74,7 @@ import { createPathEquivalenceMatcher } from "../../../utils/path.js";
 import { spawnProcess } from "../../../utils/spawn.js";
 import { extractCodexTerminalSessionId, nonEmptyString } from "./tool-call-mapper-utils.js";
 import { buildCodexFeatures, codexModelSupportsFastMode } from "./codex-feature-definitions.js";
+import { CONTEXT_BUDGET_FEATURE_ID, contextBudgetTokens } from "./context-budget.js";
 import {
   CodexAppServerClient,
   CodexAppServerRpcError,
@@ -141,7 +142,7 @@ const INTERRUPT_TIMEOUT_MS = 2_000;
 const CODEX_PROVIDER = "codex" as const;
 // Codex treats most app-server client names as the model-request originator.
 // This reserved Codex name is non-originating, so requests keep Codex's default
-// CLI identity instead of showing up as Paseo in provider usage logs.
+// CLI identity instead of showing up as Gravity in provider usage logs.
 const CODEX_NON_ORIGINATING_APP_SERVER_CLIENT_INFO = {
   name: "codex_app_server_daemon",
   title: "Codex App Server Daemon",
@@ -151,7 +152,7 @@ const ASSISTANT_MESSAGE_BOUNDARY_MARKDOWN = "\n\n---\n\n";
 const MAX_PENDING_SUB_AGENT_THREADS = 32;
 const MAX_PENDING_SUB_AGENT_NOTIFICATIONS_PER_THREAD = 128;
 // COMPAT(codexLegacyCollabAgentToolCall): Codex <0.143 emits this shape. Added in
-// Paseo v0.1.105; remove after 2027-01-09 once the supported Codex floor is >=0.143.
+// Gravity v0.1.105; remove after 2027-01-09 once the supported Codex floor is >=0.143.
 const CODEX_TOOL_THREAD_ITEM_TYPES = new Set([
   "commandExecution",
   "fileChange",
@@ -3327,6 +3328,7 @@ export class CodexAppServerAgentSession implements AgentSession {
   private cachedRuntimeInfo: AgentRuntimeInfo | null = null;
   private serviceTier: "fast" | null = null;
   private planModeEnabled = false;
+  private appliedContextBudget: number | null;
   private historyPending = false;
   private persistedHistory: PersistedTimelineEntry[] = [];
   private loadingPersistedHistory = false;
@@ -3412,6 +3414,9 @@ export class CodexAppServerAgentSession implements AgentSession {
     this.currentMode = config.modeId ?? DEFAULT_CODEX_MODE_ID;
     this.providerOptions = CodexProviderOptionsSchema.parse(config.providerOptions ?? {});
     this.config = config;
+    this.appliedContextBudget = contextBudgetTokens(
+      config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
+    );
     this.asyncQuestions = new CodexAsyncQuestions(resumeHandle?.metadata?.asyncQuestions);
     this.config.thinkingOptionId = normalizeCodexThinkingOptionId(this.config.thinkingOptionId);
     if (this.config.featureValues?.fast_mode && codexModelSupportsFastMode(this.config.model)) {
@@ -3437,6 +3442,7 @@ export class CodexAppServerAgentSession implements AgentSession {
       fastModeEnabled: this.serviceTier === "fast",
       planModeEnabled: this.planModeEnabled,
       planModeAvailable: this.hasPlanCollaborationMode(),
+      contextBudget: this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
     });
   }
 
@@ -3927,7 +3933,7 @@ export class CodexAppServerAgentSession implements AgentSession {
         }
         const response = await this.client.request("thread/resume", params);
         this.rememberResolvedSandboxPolicy(response);
-        this.logger.info({ threadId }, "Unarchived Codex thread to restore active Paseo agent");
+        this.logger.info({ threadId }, "Unarchived Codex thread to restore active Gravity agent");
         return;
       }
       this.logger.warn({ error, threadId }, "Failed to resume persisted Codex thread");
@@ -4204,7 +4210,34 @@ export class CodexAppServerAgentSession implements AgentSession {
     this.dismissPendingPlanApprovals("Dismissed by a new prompt");
 
     try {
+      const contextBudget = contextBudgetTokens(
+        this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
+      );
+      if (this.currentThreadId && contextBudget !== this.appliedContextBudget && this.client) {
+        const hasActiveSubagents = Array.from(this.subAgentCallsByCallId.values()).some(
+          (state) => !isTerminalSubAgentStatus(state.toolCall.status),
+        );
+        const background = z.object({ data: z.array(z.unknown()) }).parse(
+          await this.client.request(
+            "thread/backgroundTerminals/list",
+            {
+              threadId: this.currentThreadId,
+              limit: 1,
+            },
+            30_000,
+          ),
+        );
+        if (hasActiveSubagents || background.data.length > 0) {
+          throw new Error(
+            "Finish Codex background work or restore the previous context budget before sending another message",
+          );
+        }
+        // Codex ignores config overrides on turn/start and on already-loaded threads.
+        // Resume in a fresh app-server process so the native compaction policy changes.
+        await this.disposeClient();
+      }
       await this.connect();
+      this.appliedContextBudget = contextBudget;
       if (!this.client) {
         throw new Error("Codex client not initialized");
       }
@@ -4473,6 +4506,19 @@ export class CodexAppServerAgentSession implements AgentSession {
   }
 
   async setFeature(featureId: string, value: unknown): Promise<void> {
+    if (featureId === CONTEXT_BUDGET_FEATURE_ID) {
+      contextBudgetTokens(value);
+      if (this.pendingForegroundStart) {
+        throw new Error("Wait for Codex to finish starting before changing the context budget");
+      }
+      if (this.ephemeral && this.currentThreadId) {
+        throw new Error("Set the context budget before starting an ephemeral Codex session");
+      }
+      const previous = this.config.featureValues?.[featureId] ?? "auto";
+      if (previous === value) return;
+      this.config.featureValues = { ...this.config.featureValues, [featureId]: value };
+      return;
+    }
     if (featureId === "fast_mode") {
       if (Boolean(value) && !codexModelSupportsFastMode(this.config.model)) {
         throw new Error(
@@ -5161,6 +5207,12 @@ export class CodexAppServerAgentSession implements AgentSession {
     Object.assign(innerConfig, this.providerOptions);
     if (this.deps.customCodexConfig) {
       Object.assign(innerConfig, this.deps.customCodexConfig);
+    }
+    const contextBudget = contextBudgetTokens(
+      this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
+    );
+    if (contextBudget !== null) {
+      innerConfig.model_auto_compact_token_limit = contextBudget;
     }
     if (this.config.mcpServers) {
       const mcpServers: Record<string, CodexMcpServerConfig> = {};

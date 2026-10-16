@@ -3,9 +3,9 @@ import {
   AgentStatusSchema,
   AgentTimelineItemPayloadSchema,
   WorkspaceGitHubRuntimePayloadSchema,
-} from "@getpaseo/protocol/messages";
-import { AgentProviderSchema } from "@getpaseo/protocol/provider-manifest";
-import type { PluginTimelineData } from "@getpaseo/plugin";
+} from "@gravity/protocol/messages";
+import { AgentProviderSchema } from "@gravity/protocol/provider-manifest";
+import type { PluginTimelineData } from "@gravity/plugin";
 import {
   normalizeProjectDescriptor,
   normalizeWorkspaceDescriptor,
@@ -190,7 +190,7 @@ const StoredProjectCheckoutSchema = z.union([
     currentBranch: z.null(),
     remoteUrl: z.null(),
     worktreeRoot: z.null(),
-    isPaseoOwnedWorktree: z.literal(false),
+    isGravityOwnedWorktree: z.literal(false),
     mainRepoRoot: z.null(),
   }),
   z.strictObject({
@@ -199,7 +199,7 @@ const StoredProjectCheckoutSchema = z.union([
     currentBranch: z.string().nullable(),
     remoteUrl: z.string().nullable(),
     worktreeRoot: z.string(),
-    isPaseoOwnedWorktree: z.literal(false),
+    isGravityOwnedWorktree: z.literal(false),
     mainRepoRoot: z.string().nullable(),
   }),
   z.strictObject({
@@ -208,7 +208,7 @@ const StoredProjectCheckoutSchema = z.union([
     currentBranch: z.string().nullable(),
     remoteUrl: z.string().nullable(),
     worktreeRoot: z.string(),
-    isPaseoOwnedWorktree: z.literal(true),
+    isGravityOwnedWorktree: z.literal(true),
     mainRepoRoot: z.string(),
   }),
 ]);
@@ -286,7 +286,7 @@ const WorkspaceGitRuntimeSchema = z
   .strictObject({
     currentBranch: z.string().nullable().optional(),
     remoteUrl: z.string().nullable().optional(),
-    isPaseoOwnedWorktree: z.boolean().optional(),
+    isGravityOwnedWorktree: z.boolean().optional(),
     isDirty: z.boolean().nullable().optional(),
     aheadBehind: z.strictObject({ ahead: z.number(), behind: z.number() }).nullable().optional(),
     aheadOfOrigin: z.number().nullable().optional(),

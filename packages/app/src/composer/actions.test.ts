@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AgentAttachment, ForgeSearchItem } from "@getpaseo/protocol/messages";
+import type { AgentAttachment, ForgeSearchItem } from "@gravity/protocol/messages";
 import type {
   AttachmentMetadata,
   ComposerAttachment,
@@ -28,6 +28,7 @@ import {
   queueComposerMessage,
   removeComposerAttachmentAtIndex,
   sendQueuedComposerMessageNow,
+  sendAllQueuedComposerMessagesNow,
   toggleForgeAttachment,
   toggleForgeAttachmentFromPicker,
   type MessageSubmissionWriter,
@@ -52,7 +53,7 @@ const issueItem: ForgeSearchItem = {
   kind: "issue",
   number: 101,
   title: "Fix composer attachments",
-  url: "https://github.com/acme/paseo/issues/101",
+  url: "https://github.com/acme/gravity/issues/101",
   state: "open",
   body: "Issue body",
   labels: ["composer"],
@@ -64,7 +65,7 @@ const prItem: ForgeSearchItem = {
   kind: "change_request",
   number: 202,
   title: "Refactor composer attachments",
-  url: "https://github.com/acme/paseo/pull/202",
+  url: "https://github.com/acme/gravity/pull/202",
   state: "open",
   body: "PR body",
   labels: ["composer"],
@@ -81,7 +82,7 @@ function reviewWorkspaceAttachment(
 ): Extract<WorkspaceComposerAttachment, { kind: "review" }> {
   const attachment: Extract<AgentAttachment, { type: "review" }> = {
     type: "review",
-    mimeType: "application/paseo-review",
+    mimeType: "application/gravity-review",
     cwd: "/repo",
     mode: "uncommitted",
     baseRef: null,
@@ -569,11 +570,11 @@ describe("dispatchComposerAgentMessage", () => {
     expect(call.options.attachments).toEqual([
       {
         type: "forge_change_request",
-        mimeType: "application/paseo-forge-change-request",
+        mimeType: "application/gravity-forge-change-request",
         forge: "github",
         number: 202,
         title: "Refactor composer attachments",
-        url: "https://github.com/acme/paseo/pull/202",
+        url: "https://github.com/acme/gravity/pull/202",
         body: "PR body",
         baseRefName: "main",
         headRefName: "composer-attachments",
@@ -613,7 +614,7 @@ describe("dispatchComposerAgentMessage", () => {
         mimeType: "application/github-pr",
         number: 202,
         title: "Refactor composer attachments",
-        url: "https://github.com/acme/paseo/pull/202",
+        url: "https://github.com/acme/gravity/pull/202",
         body: "PR body",
         baseRefName: "main",
         headRefName: "composer-attachments",
@@ -847,6 +848,67 @@ describe("sendQueuedComposerMessageNow", () => {
     expect(result).toEqual({ status: "failed", errorMessage: "network down" });
     const state = queue.state.get("agent");
     expect(state?.map((m) => m.id)).toEqual(["msg-1", "msg-2"]);
+  });
+});
+
+describe("sendAllQueuedComposerMessagesNow", () => {
+  it("sends the queue in order as one message with every attachment", async () => {
+    const review = reviewWorkspaceAttachment("Check this line.");
+    const queue = createFakeQueue(
+      new Map([
+        [
+          "agent",
+          [
+            { id: "one", text: "First question", attachments: [review] },
+            { id: "two", text: "Second question", attachments: [] },
+          ],
+        ],
+      ]),
+    );
+    const submitted: Array<{ text: string; attachments: ComposerAttachment[] }> = [];
+    const result = await sendAllQueuedComposerMessagesNow({
+      agentId: "agent",
+      queue,
+      submitMessage: async (message) => {
+        submitted.push(message);
+      },
+    });
+    expect(result).toEqual({ status: "submitted" });
+    expect(submitted).toEqual([
+      { text: "First question\n\nSecond question", attachments: [review] },
+    ]);
+    expect(queue.read("agent")).toEqual([]);
+  });
+  it("restores the entire batch ahead of messages queued during a failed send", async () => {
+    const first = { id: "one", text: "First", attachments: [] };
+    const second = { id: "two", text: "Second", attachments: [] };
+    const queue = createFakeQueue(new Map([["agent", [first, second]]]));
+    const result = await sendAllQueuedComposerMessagesNow({
+      agentId: "agent",
+      queue,
+      submitMessage: async () => {
+        queueComposerMessage({ agentId: "agent", text: "Third", attachments: [], queue });
+        throw new Error("Connection lost");
+      },
+    });
+    expect(result).toEqual({ status: "failed", errorMessage: "Connection lost" });
+    expect(queue.read("agent").map((item) => item.text)).toEqual(["First", "Second", "Third"]);
+    expect(queue.read("agent").slice(0, 2)).toEqual([first, second]);
+  });
+
+  it("does not submit an empty queue or duplicate an in-flight batch", async () => {
+    const queue = createFakeQueue(
+      new Map([["agent", [{ id: "one", text: "First", attachments: [] }]]]),
+    );
+    const submitted: string[] = [];
+    const submitMessage = async ({ text }: { text: string }) => {
+      submitted.push(text);
+    };
+    const input = { agentId: "agent", queue, submitMessage };
+    const first = sendAllQueuedComposerMessagesNow(input);
+    expect(await sendAllQueuedComposerMessagesNow(input)).toEqual({ status: "missing" });
+    expect(await first).toEqual({ status: "submitted" });
+    expect(submitted).toEqual(["First"]);
   });
 });
 

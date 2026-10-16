@@ -1,4 +1,4 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import type { InlineReviewActions } from "@/review";
 import type { ReviewableDiffTarget } from "@/utils/diff-layout";
 
@@ -54,6 +54,9 @@ export interface DiffTypography {
 export interface DiffPalette {
   surface: string;
   headerSurface: string;
+  hunkBackground: string;
+  additionGutterBackground: string;
+  deletionGutterBackground: string;
   border: string;
   foreground: string;
   foregroundMuted: string;

@@ -4,6 +4,18 @@ import { parseToolArgs, parseToolResult } from "./tool-call-detail.js";
 import { mapOmpToolDetail } from "./tool-call-mapper.js";
 
 describe("OMP tool call mapper", () => {
+  test("preserves a supplied Bash description", () => {
+    const toolCall = parseToolArgs("bash", {
+      command: "npm run dev",
+      description: "Start frontend server",
+    });
+    expect(mapOmpToolDetail(toolCall)).toMatchObject({
+      type: "shell",
+      command: "npm run dev",
+      description: "Start frontend server",
+    });
+  });
+
   test("maps OMP bash, read, hashline edit, and write calls", () => {
     expect(
       mapOmpToolDetail(

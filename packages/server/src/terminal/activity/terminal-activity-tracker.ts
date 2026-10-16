@@ -1,7 +1,7 @@
 import type {
   TerminalActivityAttentionReason,
   TerminalActivityState,
-} from "@getpaseo/protocol/terminal-activity";
+} from "@gravity/protocol/terminal-activity";
 
 export interface TerminalActivitySnapshot {
   state: TerminalActivityState | null;

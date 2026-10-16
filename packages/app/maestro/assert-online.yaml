@@ -1,8 +1,8 @@
-appId: sh.paseo
+appId: sh.gravity
 ---
 - runFlow:
     when:
-      visible: "Open in.*Paseo.*\\?"
+      visible: "Open in.*Gravity.*\\?"
     commands:
       - tapOn: "Open"
 

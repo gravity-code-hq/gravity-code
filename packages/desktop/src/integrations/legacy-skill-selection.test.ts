@@ -9,7 +9,7 @@ vi.mock("electron", () => ({ app: { getPath: () => userDataPath } }));
 import { deleteLegacySkillSelection, readLegacySkillSelection } from "./legacy-skill-selection";
 
 beforeEach(async () => {
-  userDataPath = await mkdtemp(path.join(os.tmpdir(), "paseo-legacy-skills-"));
+  userDataPath = await mkdtemp(path.join(os.tmpdir(), "gravity-legacy-skills-"));
 });
 
 describe("legacy desktop skill selection", () => {
@@ -18,12 +18,12 @@ describe("legacy desktop skill selection", () => {
       path.join(userDataPath, "skill-selection.json"),
       JSON.stringify({
         version: 1,
-        selection: { mode: "custom", skills: ["paseo-loop", "paseo", "paseo"] },
+        selection: { mode: "custom", skills: ["gravity-loop", "gravity", "gravity"] },
       }),
     );
     expect(await readLegacySkillSelection()).toEqual({
       mode: "custom",
-      skills: ["paseo", "paseo-loop"],
+      skills: ["gravity", "gravity-loop"],
     });
   });
 

@@ -1,0 +1,488 @@
+<div id="gravity-composer-options">
+  <div class="viz-carousel viz-dotted-background" aria-label="Unified composer options">
+    <section data-variant="Focused toolbar" aria-label="Focused toolbar">
+      <div class="gc-stage" data-layout="focused"></div>
+    </section>
+    <section data-variant="One settings panel" aria-label="One settings panel" hidden>
+      <div class="gc-stage" data-layout="panel"></div>
+    </section>
+    <section data-variant="Settings strip" aria-label="Settings strip" hidden>
+      <div class="gc-stage" data-layout="strip"></div>
+    </section>
+  </div>
+</div>
+<style>
+  #gravity-composer-options .gc-stage {
+    --g-bg: light-dark(#fafafa, #191919);
+    --g-surface: light-dark(#fff, #222);
+    --g-raised: light-dark(#fff, #282828);
+    --g-text: light-dark(#222, #e8e8e8);
+    --g-muted: light-dark(#626262, #aaa);
+    --g-border: light-dark(#dedede, #3b3b3b);
+    --g-hover: light-dark(#ededed, #343434);
+    --g-accent: light-dark(#0873ba, #188ddb);
+    font:
+      14px/1.45 -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+    color: var(--g-text);
+    height: 720px;
+    padding: 24px 16px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    container-type: inline-size;
+  }
+  #gravity-composer-options * {
+    box-sizing: border-box;
+  }
+  #gravity-composer-options .gc-product {
+    background: var(--g-bg);
+    border: 1px solid var(--g-border);
+    border-radius: 14px;
+    width: 100%;
+    padding: 18px;
+    position: relative;
+  }
+  #gravity-composer-options .gc-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 18px;
+    font-size: 13px;
+    color: var(--g-muted);
+  }
+  #gravity-composer-options .gc-head span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  #gravity-composer-options button,
+  #gravity-composer-options select,
+  #gravity-composer-options textarea {
+    font: inherit;
+    color: inherit;
+  }
+  #gravity-composer-options button {
+    border: 0;
+    background: transparent;
+    border-radius: 7px;
+    min-height: 32px;
+    padding: 5px 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: normal;
+    text-align: left;
+  }
+  #gravity-composer-options button:hover,
+  #gravity-composer-options button[aria-expanded="true"] {
+    background: var(--g-hover);
+  }
+  #gravity-composer-options .gc-muted {
+    color: var(--g-muted);
+  }
+  #gravity-composer-options .gc-panel {
+    background: var(--g-raised);
+    border: 1px solid var(--g-border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 14px;
+    max-width: 380px;
+    margin-left: auto;
+    box-shadow: 0 8px 24px light-dark(#0000000d, #00000026);
+  }
+  #gravity-composer-options .gc-panel[hidden] {
+    display: none;
+  }
+  #gravity-composer-options .gc-panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  #gravity-composer-options .gc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    min-height: 40px;
+  }
+  #gravity-composer-options .gc-row select {
+    max-width: 64%;
+    min-width: 0;
+    padding: 5px 7px;
+    border: 1px solid var(--g-border);
+    background: var(--g-surface);
+    border-radius: 6px;
+    text-overflow: ellipsis;
+  }
+  #gravity-composer-options .gc-divider {
+    border: 0;
+    border-top: 1px solid var(--g-border);
+    margin: 8px -14px;
+  }
+  #gravity-composer-options .gc-small {
+    font-size: 12px;
+    color: var(--g-muted);
+  }
+  #gravity-composer-options .gc-meter {
+    height: 5px;
+    background: var(--g-hover);
+    border-radius: 5px;
+    margin: 9px 0 7px;
+    overflow: hidden;
+  }
+  #gravity-composer-options .gc-meter-fill {
+    height: 100%;
+    background: var(--g-muted);
+    border-radius: 5px;
+    width: 32%;
+  }
+  #gravity-composer-options .gc-compose {
+    border: 1px solid var(--g-border);
+    background: var(--g-surface);
+    border-radius: 15px;
+    padding: 12px;
+  }
+  #gravity-composer-options textarea {
+    display: block;
+    width: 100%;
+    height: 87px;
+    resize: none;
+    border: 0;
+    background: transparent;
+    padding: 4px 3px;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  #gravity-composer-options textarea::placeholder {
+    color: var(--g-muted);
+  }
+  #gravity-composer-options .gc-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: wrap;
+    margin-top: 9px;
+  }
+  #gravity-composer-options .gc-send {
+    background: var(--g-accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 32px;
+    flex-shrink: 0;
+  }
+  #gravity-composer-options .gc-send:hover {
+    background: var(--g-accent);
+    filter: brightness(1.1);
+  }
+  #gravity-composer-options .gc-spacer {
+    flex: 1;
+  }
+  #gravity-composer-options .gc-context-trigger {
+    font-variant-numeric: tabular-nums;
+  }
+  #gravity-composer-options .gc-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: conic-gradient(var(--g-muted) 32%, var(--g-hover) 0);
+    display: inline-block;
+  }
+  #gravity-composer-options .gc-summary {
+    font-size: 12px;
+    color: var(--g-muted);
+    margin: 10px 2px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  #gravity-composer-options .gc-strip {
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr 1.1fr 0.9fr;
+    border-bottom: 1px solid var(--g-border);
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    gap: 4px;
+  }
+  #gravity-composer-options .gc-strip[hidden] {
+    display: none;
+  }
+  #gravity-composer-options .gc-strip button {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  #gravity-composer-options .gc-strip .gc-label {
+    font-size: 11px;
+    color: var(--g-muted);
+  }
+  #gravity-composer-options .gc-strip .gc-value {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 13px;
+  }
+  #gravity-composer-options .gc-status {
+    font-size: 12px;
+    color: var(--g-muted);
+    min-height: 18px;
+    margin-top: 8px;
+  }
+  #gravity-composer-options .gc-toggle {
+    accent-color: var(--g-accent);
+    width: 16px;
+    height: 16px;
+  }
+  @container (max-width:530px) {
+    #gravity-composer-options .gc-product {
+      padding: 12px;
+    }
+    #gravity-composer-options .gc-toolbar {
+      gap: 2px;
+    }
+    #gravity-composer-options .gc-toolbar button {
+      font-size: 12px;
+    }
+    #gravity-composer-options .gc-strip {
+      grid-template-columns: 1fr 1fr;
+    }
+    #gravity-composer-options .gc-strip button {
+      min-height: 44px;
+    }
+    #gravity-composer-options .gc-panel {
+      max-width: none;
+    }
+    #gravity-composer-options .gc-head {
+      font-size: 12px;
+    }
+  }
+  @media (max-width: 480px) {
+    #gravity-composer-options .gc-stage {
+      height: 860px;
+      padding: 12px 0;
+    }
+    #gravity-composer-options button {
+      min-height: 40px;
+    }
+    #gravity-composer-options textarea {
+      font-size: 16px;
+    }
+    #gravity-composer-options .gc-row select {
+      font-size: 14px;
+    }
+  }
+  @media (pointer: coarse) {
+    #gravity-composer-options button {
+      min-height: 44px;
+    }
+    #gravity-composer-options select {
+      min-height: 44px;
+    }
+  }
+</style>
+<script>
+  (() => {
+    const root = document.getElementById("gravity-composer-options");
+    const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
+    const button = (text, action, extra = "") =>
+      `<button type="button" class="cursor-interaction ${extra}" data-action="${action}">${text}</button>`;
+    const chevron = () => icon("chevron-down");
+    root.querySelectorAll(".gc-stage").forEach((stage, index) => {
+      const layout = stage.dataset.layout;
+      const state = {
+        agent: "Codex",
+        model: "GPT-6-Astra",
+        effort: "High",
+        access: "Full access",
+        capacity: "200k",
+        used: 64,
+        panel: layout === "focused" ? "model" : layout === "panel" ? "settings" : "context",
+        fast: false,
+        awake: true,
+        plan: false,
+      };
+      const modelNames = () =>
+        state.agent === "Codex" ? ["GPT-6-Astra", "GPT-6-Sol"] : ["Opus 5.5", "Sonnet 5.5"];
+      const accessNames = () =>
+        state.agent === "Codex"
+          ? ["Full access", "On request"]
+          : ["Auto mode", "Default", "Accept edits"];
+      const select = (key, values) =>
+        `<select aria-label="${key === "capacity" ? "Context window" : key}" data-field="${key}">${values.map((v) => `<option${v === state[key] ? " selected" : ""}>${v}</option>`).join("")}</select>`;
+      const row = (label, control) =>
+        `<label class="gc-row"><span>${label}</span>${control}</label>`;
+      const toggle = (label, key) =>
+        row(
+          label,
+          `<input class="gc-toggle" type="checkbox" data-field="${key}" ${state[key] ? "checked" : ""}>`,
+        );
+      const usage = () => `${state.used}k / ${state.capacity}`;
+      const pct = () => Math.round((state.used / (state.capacity === "1M" ? 1000 : 200)) * 100);
+      stage.innerHTML = `<div class="gc-product" aria-label="${stage.parentElement.dataset.variant} composer"><div class="gc-head"><span>${icon("message-square")} New agent</span><span>${icon("folder")} gravity</span></div><div class="gc-panel"></div><div class="gc-strip" hidden></div><div class="gc-compose"><textarea aria-label="Message the agent" placeholder="Message the agent, @files, or /commands">Review the changes and fix the failing tests.</textarea><div class="gc-toolbar"></div></div><div class="gc-summary"></div><div class="gc-status" aria-live="polite"></div></div>`;
+      const panel = stage.querySelector(".gc-panel"),
+        toolbar = stage.querySelector(".gc-toolbar"),
+        strip = stage.querySelector(".gc-strip"),
+        summary = stage.querySelector(".gc-summary"),
+        status = stage.querySelector(".gc-status");
+      function render() {
+        const titles = {
+          model: "Model settings",
+          settings: "Agent settings",
+          context: "Context",
+          access: "Permissions",
+          more: "More settings",
+          effort: "Reasoning",
+        };
+        let body = "";
+        if (["model", "settings"].includes(state.panel))
+          body +=
+            row("Agent", select("agent", ["Codex", "Claude Code"])) +
+            row("Model", select("model", modelNames())) +
+            row("Reasoning", select("effort", ["Low", "Medium", "High"]));
+        if (["settings", "access"].includes(state.panel))
+          body += row("Permissions", select("access", accessNames()));
+        if (state.panel === "effort")
+          body += row("Reasoning", select("effort", ["Low", "Medium", "High"]));
+        if (["model", "settings", "context"].includes(state.panel)) {
+          if (state.panel !== "context") body += '<hr class="gc-divider">';
+          body += row("Context window", select("capacity", ["200k", "1M"]));
+          body += `<div class="gc-row gc-small"><span>Used in this conversation</span><span>${usage()} · ${pct()}%</span></div><div class="gc-meter" role="meter" aria-label="Context used" aria-valuenow="${pct()}" aria-valuemin="0" aria-valuemax="100"><div class="gc-meter-fill" style="width:${pct()}%"></div></div>`;
+          if (state.panel === "context")
+            body +=
+              button(icon("list-collapse") + " Compact conversation", "compact") +
+              '<div class="gc-small">Summarize earlier messages to free up space.</div>';
+        }
+        if (state.panel === "settings")
+          body +=
+            '<hr class="gc-divider">' + button("More settings" + icon("chevron-right"), "more");
+        if (state.panel === "more")
+          body +=
+            toggle("Fast mode", "fast") +
+            toggle("Plan mode", "plan") +
+            toggle("Keep awake", "awake");
+        panel.hidden = !state.panel;
+        panel.innerHTML = state.panel
+          ? `<div class="gc-panel-title">${titles[state.panel]}<button type="button" class="cursor-interaction" data-action="close" aria-label="Close settings">${icon("x")}</button></div>${body}`
+          : "";
+        strip.hidden = layout !== "strip";
+        if (layout === "strip")
+          strip.innerHTML = [
+            ["Model", state.model, "model"],
+            ["Reasoning", state.effort, "effort"],
+            ["Permissions", state.access, "access"],
+            ["Context", state.capacity + " · " + pct() + "%", "context"],
+          ]
+            .map(([label, value, action]) =>
+              button(
+                `<span class="gc-label">${label}</span><span class="gc-value">${value}${chevron()}</span>`,
+                action,
+              ),
+            )
+            .join("");
+        const add = `<button type="button" class="cursor-interaction" data-action="attach" aria-label="Attach files">${icon("plus")}</button>`;
+        const send = `<button type="button" class="cursor-interaction gc-send" data-action="send" aria-label="Send message">${icon("arrow-up")}</button>`;
+        const mic = `<button type="button" class="cursor-interaction" data-action="voice" aria-label="Voice input">${icon("mic")}</button>`;
+        const context = button(
+          `<span class="gc-dot" aria-hidden="true"></span>${pct()}%`,
+          "context",
+          "gc-context-trigger",
+        );
+        const more = `<button type="button" class="cursor-interaction" data-action="more" aria-label="More settings">${icon("ellipsis")}</button>`;
+        if (layout === "focused")
+          toolbar.innerHTML =
+            add +
+            button(state.model + chevron(), "model") +
+            button(icon("shield") + state.access, "access") +
+            more +
+            '<span class="gc-spacer"></span>' +
+            context +
+            mic +
+            send;
+        if (layout === "panel")
+          toolbar.innerHTML =
+            add +
+            button(icon("sliders-horizontal") + "Agent settings", "settings") +
+            '<span class="gc-spacer"></span>' +
+            context +
+            mic +
+            send;
+        if (layout === "strip")
+          toolbar.innerHTML =
+            add +
+            button(state.agent + chevron(), "model") +
+            more +
+            '<span class="gc-spacer"></span>' +
+            mic +
+            send;
+        summary.innerHTML =
+          layout === "panel"
+            ? `<span>${state.agent} · ${state.model} · ${state.effort}</span><span>${state.access}</span>`
+            : layout === "focused"
+              ? `<span>${state.agent} · ${state.effort} reasoning${state.fast ? " · Fast" : ""}</span><span>${state.capacity} context window</span>`
+              : `<span>${state.plan ? "Plan mode" : "Agent mode"}</span><span>${state.awake ? "Keep awake on" : "Keep awake off"}</span>`;
+        stage.querySelectorAll("[data-action]").forEach((el) => {
+          const a = el.dataset.action;
+          if (Object.hasOwn(titles, a)) el.setAttribute("aria-expanded", String(state.panel === a));
+        });
+        if (globalThis.lucide) lucide.createIcons({ attrs: { width: 16, height: 16 } });
+      }
+      stage.addEventListener("change", (event) => {
+        const field = event.target.dataset.field;
+        if (!field) return;
+        state[field] = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+        if (field === "agent") {
+          state.model = modelNames()[0];
+          state.access = accessNames()[0];
+        }
+        render();
+      });
+      stage.addEventListener("click", (event) => {
+        const el = event.target.closest("[data-action]");
+        if (!el) return;
+        const action = el.dataset.action;
+        if (action === "close") state.panel = "";
+        else if (action === "compact") {
+          state.used = 24;
+          status.textContent = "Preview: earlier messages summarized. Context usage is now 24k.";
+        } else if (action === "send") {
+          status.textContent = "Preview only — no message sent.";
+          return;
+        } else if (action === "attach") {
+          status.textContent = "Preview: files and attachment sources open here.";
+          return;
+        } else if (action === "voice") {
+          status.textContent = "Preview: voice input starts here.";
+          return;
+        } else state.panel = state.panel === action ? "" : action;
+        render();
+      });
+      render();
+      if (globalThis.Tweak) {
+        const design = { usage: 64 };
+        const tweak = new Tweak({
+          container: stage.querySelector(".gc-product"),
+          onChange: () => {
+            state.used = design.usage;
+            render();
+          },
+        });
+        tweak.addSlider(design, "usage", {
+          label: "Context used",
+          min: 0,
+          max: 190,
+          step: 1,
+          unit: "k tokens",
+        });
+      }
+    });
+  })();
+</script>

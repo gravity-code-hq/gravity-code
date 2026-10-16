@@ -15,7 +15,6 @@ import {
   hasSidebarWorkspaceTrailing,
   type SidebarWorkspaceTrailing,
 } from "@/components/sidebar/workspace-trailing";
-import { useAppSettings } from "@/hooks/use-settings";
 import type { Theme } from "@/styles/theme";
 import type { SidebarStateBucket } from "@/utils/sidebar-agent-state";
 import { getStatusDotColor } from "@/utils/status-dot-color";
@@ -29,6 +28,9 @@ import { StatusRing } from "@/components/status-ring";
 import { resolveSidebarWorkspacePrimaryLabel } from "@/components/sidebar/sidebar-workspace-title";
 import { TrailingActionScrim } from "@/components/ui/trailing-action-scrim";
 import { useWorkspaceLabelDefinitions } from "@/workspace-labels";
+
+// Wide enough that the solid part of the gradient sits under both trailing actions.
+const WIDE_SCRIM_WIDTH = 88;
 
 const foregroundMutedColorMapping = (theme: Theme) => ({ color: theme.colors.foregroundMuted });
 const needsInputColorMapping = (theme: Theme) => ({
@@ -119,10 +121,7 @@ export const SidebarWorkspaceRowContent = memo(function SidebarWorkspaceRowConte
   reserveIdleStatusIndicatorSpace?: boolean;
   children?: ReactNode;
 }) {
-  const {
-    settings: { workspaceTitleSource },
-  } = useAppSettings();
-  const workspaceLabel = resolveSidebarWorkspacePrimaryLabel({ workspace, workspaceTitleSource });
+  const workspaceLabel = resolveSidebarWorkspacePrimaryLabel({ workspace });
   // The workspace carries label names; their colors live in its host's catalog, so the row is
   // where the two meet — the meta line is handed finished definitions.
   const labels = useWorkspaceLabelDefinitions(workspace.serverId, workspace.labels);
@@ -328,10 +327,17 @@ export const sidebarWorkspaceRowStyles = StyleSheet.create((theme) => ({
     alignItems: "flex-end",
     justifyContent: "flex-start",
   },
+  // Touch keeps New agent and the kebab on screen together, so the slot holds both.
+  trailingActionSlotReservedWide: {
+    minWidth: 38,
+  },
   trailingActionOverlay: {
     position: "absolute",
     top: 0,
     right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[1],
   },
 }));
 
@@ -401,16 +407,22 @@ export function resolveTrailingActionVisibility({
 
 export function SidebarWorkspaceTrailingActionSlot({
   reserveWidth,
+  wide = false,
   children,
 }: {
   reserveWidth: boolean;
+  /** The overlay holds two actions (New agent and the kebab) instead of one. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
     <View
       style={
         reserveWidth
-          ? sidebarWorkspaceRowStyles.trailingActionSlotReserved
+          ? [
+              sidebarWorkspaceRowStyles.trailingActionSlotReserved,
+              wide && sidebarWorkspaceRowStyles.trailingActionSlotReservedWide,
+            ]
           : sidebarWorkspaceRowStyles.trailingActionSlot
       }
     >
@@ -437,18 +449,25 @@ export function SidebarWorkspaceTrailingActionBase({
 export function SidebarWorkspaceTrailingActionOverlay({
   visible,
   scrimBackdrop,
+  wide = false,
   children,
 }: {
   visible: boolean;
   /** Fade the row into the kebab when something (the diff stat) is still rendered behind it. */
   scrimBackdrop?: SidebarSurfaceBackdrop;
+  /** The overlay holds two actions, so the scrim has to fade further left. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   if (!visible || !children) return null;
   return (
     <>
       {scrimBackdrop ? (
-        <TrailingActionScrim backdrop={scrimBackdrop} testID="sidebar-workspace-trailing-scrim" />
+        <TrailingActionScrim
+          backdrop={scrimBackdrop}
+          width={wide ? WIDE_SCRIM_WIDTH : undefined}
+          testID="sidebar-workspace-trailing-scrim"
+        />
       ) : null}
       <View style={sidebarWorkspaceRowStyles.trailingActionOverlay}>{children}</View>
     </>

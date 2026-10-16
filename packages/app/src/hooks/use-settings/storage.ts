@@ -1,5 +1,5 @@
-import { isSyntaxThemeId, type SyntaxThemeId } from "@getpaseo/highlight";
-import type { ActiveTurnBehavior } from "@getpaseo/protocol/messages";
+import { isSyntaxThemeId, type SyntaxThemeId } from "@gravity/highlight";
+import type { ActiveTurnBehavior } from "@gravity/protocol/messages";
 import type { QueryClient } from "@tanstack/react-query";
 import type { DesktopSettings } from "@/desktop/settings/desktop-settings";
 import type { AppLanguage } from "@/i18n/locales";
@@ -30,7 +30,6 @@ export const APP_SETTINGS_QUERY_KEY = ["app-settings"];
 export type SendBehavior = ActiveTurnBehavior | "queue";
 export type ReleaseChannel = "stable" | "beta";
 export type ServiceUrlBehavior = "ask" | "in-app" | "external";
-export type WorkspaceTitleSource = "title" | "branch";
 export type PullRequestOpenLocation = "main" | "side" | "explorer";
 /** What a sidebar workspace row shows in the space to the right of its title. */
 export type SidebarWorkspaceTrailing = "diff" | "timestamp" | "none";
@@ -46,7 +45,7 @@ export const DEFAULT_TERMINAL_SCROLLBACK_LINES = 10_000;
 export const MIN_TERMINAL_SCROLLBACK_LINES = 0;
 export const MAX_TERMINAL_SCROLLBACK_LINES = 1_000_000;
 export function defaultUiBaseFontSize(native: boolean): number {
-  return native ? 15 : FONT_SIZE.base;
+  return native ? 15 : 13;
 }
 
 export const DEFAULT_UI_BASE_FONT_SIZE = defaultUiBaseFontSize(isNative);
@@ -62,6 +61,10 @@ export const MAX_CONTENT_FONT_SIZE = 21;
 export const DEFAULT_CODE_FONT_SIZE = 12; // == FONT_SIZE.code
 export const MIN_CODE_FONT_SIZE = 9;
 export const MAX_CODE_FONT_SIZE = 22; // line-height 1.5×22=33 stays safe
+// Terminal text runs larger than diff text at the same comfort level, so it has its own size.
+export const DEFAULT_TERMINAL_FONT_SIZE = 15;
+export const MIN_TERMINAL_FONT_SIZE = 9;
+export const MAX_TERMINAL_FONT_SIZE = 32; // == MAX_TEXT_SIZE zoom ceiling
 export const MAX_FONT_FAMILY_LENGTH = 200;
 
 export interface AppSettings {
@@ -75,11 +78,11 @@ export interface AppSettings {
   useLegacyTerminalRenderer: boolean;
   uiFontFamily: string; // "" = platform default UI stack
   monoFontFamily: string; // "" = platform default mono stack
-  uiBaseFontSize: number; // clamped px, platform default 14 or 15
+  uiBaseFontSize: number; // clamped px, platform default 13 or 15
   contentFontSize: number; // clamped px, platform default 15 or 16
   codeFontSize: number; // clamped px, default 12
+  terminalFontSize: number; // clamped px, default 15
   syntaxTheme: SyntaxThemeId; // default "one"
-  workspaceTitleSource: WorkspaceTitleSource;
   sidebarWorkspaceTrailing: SidebarWorkspaceTrailing;
   sidebarRowItems: SidebarRowItems;
   sidebarChecksDisplay: SidebarChecksDisplay;
@@ -123,7 +126,7 @@ export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   theme: DEFAULT_THEME_PREFERENCE,
   pluginThemeId: null,
   language: "system",
-  sendBehavior: "steer",
+  sendBehavior: "queue",
   serviceUrlBehavior: "ask",
   terminalScrollbackLines: DEFAULT_TERMINAL_SCROLLBACK_LINES,
   useLegacyTerminalRenderer: false,
@@ -132,8 +135,8 @@ export const DEFAULT_CLIENT_SETTINGS: AppSettings = {
   uiBaseFontSize: DEFAULT_UI_BASE_FONT_SIZE,
   contentFontSize: DEFAULT_CONTENT_FONT_SIZE,
   codeFontSize: DEFAULT_CODE_FONT_SIZE,
+  terminalFontSize: DEFAULT_TERMINAL_FONT_SIZE,
   syntaxTheme: "one",
-  workspaceTitleSource: "title",
   sidebarWorkspaceTrailing: "diff",
   sidebarRowItems: DEFAULT_SIDEBAR_ROW_ITEMS,
   sidebarChecksDisplay: DEFAULT_SIDEBAR_CHECKS_DISPLAY,
@@ -198,7 +201,7 @@ const StoredAppSettingsSchema = z
     language: z
       .enum(["system", "ar", "en", "es", "fr", "ja", "ko", "pt-BR", "ru", "zh-CN"])
       .catch("system"),
-    sendBehavior: z.enum(["interrupt", "steer", "queue"]).catch("steer"),
+    sendBehavior: z.enum(["interrupt", "steer", "queue"]).catch("queue"),
     serviceUrlBehavior: z.enum(["ask", "in-app", "external"]).catch("ask"),
     terminalScrollbackLines: clampedNumber(
       MIN_TERMINAL_SCROLLBACK_LINES,
@@ -218,8 +221,10 @@ const StoredAppSettingsSchema = z
     codeFontSize: clampedNumber(MIN_CODE_FONT_SIZE, MAX_CODE_FONT_SIZE).catch(
       DEFAULT_CODE_FONT_SIZE,
     ),
+    terminalFontSize: clampedNumber(MIN_TERMINAL_FONT_SIZE, MAX_TERMINAL_FONT_SIZE).catch(
+      DEFAULT_TERMINAL_FONT_SIZE,
+    ),
     syntaxTheme: z.string().refine(isSyntaxThemeId).catch("one"),
-    workspaceTitleSource: z.enum(["title", "branch"]).catch("title"),
     sidebarWorkspaceTrailing: z.enum(["diff", "timestamp", "none"]).catch("diff"),
     sidebarRowItems: SidebarRowItemsSchema,
     sidebarChecksDisplay: z

@@ -1,8 +1,6 @@
-import { execFile } from "node:child_process";
 import { existsSync, promises as fs } from "node:fs";
-import { homedir, userInfo } from "node:os";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import type { Logger } from "pino";
 import { z } from "zod";
 import type {
@@ -10,6 +8,10 @@ import type {
   ProviderUsageDetail,
   ProviderUsageWindow,
 } from "../../../server/messages.js";
+import {
+  ClaudeKeychain,
+  readClaudeKeychainCredentials,
+} from "../../provider-accounts/claude/keychain.js";
 import type { ProviderApiFetch, ProviderUsageFetcher } from "../provider.js";
 import {
   ApiNumberSchema,
@@ -19,10 +21,7 @@ import {
   windowFromUsedPct,
 } from "../usage.js";
 
-const execFileAsync = promisify(execFile);
-const CLAUDE_KEYCHAIN_TIMEOUT_MS = 2_000;
 const CLAUDE_OAUTH_BETA = "oauth-2025-04-20";
-const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 
 const ClaudeCredentialsSchema = z.object({
   claudeAiOauth: z
@@ -70,6 +69,13 @@ const ClaudeUsageResponseSchema = z.object({
     .nullish(),
 });
 
+const ClaudeProfileResponseSchema = z.object({
+  organization: z.object({
+    organization_type: z.string().min(1),
+    rate_limit_tier: z.string().nullish(),
+  }),
+});
+
 type ClaudeCredentials = z.infer<typeof ClaudeCredentialsSchema>;
 type ClaudeUsageResponse = z.infer<typeof ClaudeUsageResponseSchema>;
 type ClaudeLimit = z.infer<typeof ClaudeLimitSchema>;
@@ -80,15 +86,23 @@ interface ClaudeCredentialRecord {
   oauth: { accessToken: string } & NonNullable<ClaudeCredentials["claudeAiOauth"]>;
 }
 
+/** The parts of a Claude OAuth credential that usage lookup needs. */
+export interface ClaudeUsageOauth {
+  accessToken: string;
+  subscriptionType?: string | null;
+  rateLimitTier?: string | null;
+}
+
 interface ClaudeQuotaProviderOptions {
   logger: Logger;
   claudeHome?: string;
-  claudeKeychainReader?: () => Promise<unknown | null>;
+  /** The raw Keychain secret, or null when Claude Code has no login stored there. */
+  claudeKeychainReader?: () => Promise<string | null>;
   platform?: typeof process.platform;
   fetch?: ProviderApiFetch;
 }
 
-function buildClaudePlan(
+export function buildClaudePlan(
   subscriptionType: string | undefined,
   rateLimitTier: string | undefined,
 ): string | null {
@@ -289,61 +303,13 @@ function scopedWindows(limits: ScopedLimit[]): ProviderUsageWindow[] {
   });
 }
 
-type ClaudeKeychainCommandRunner = (args: string[]) => Promise<string | null>;
-
-// Keep this in sync with Claude Code's Keychain account derivation.
-const CLAUDE_KEYCHAIN_ACCOUNT_PATTERN = /^[a-zA-Z0-9._-]+$/;
-const CLAUDE_KEYCHAIN_FALLBACK_ACCOUNT = "claude-code-user";
-
-export function claudeKeychainAccount(
-  user: string = process.env["USER"] || userInfo().username,
-): string {
-  return CLAUDE_KEYCHAIN_ACCOUNT_PATTERN.test(user) ? user : CLAUDE_KEYCHAIN_FALLBACK_ACCOUNT;
-}
-
-async function runSecurityCommand(args: string[]): Promise<string | null> {
-  try {
-    const { stdout } = await execFileAsync("security", args, {
-      timeout: CLAUDE_KEYCHAIN_TIMEOUT_MS,
-    });
-    return stdout.trim() || null;
-  } catch {
-    return null;
-  }
-}
-
-/** Read Claude Code's account-specific Keychain item, then try the legacy lookup. */
-export async function readClaudeKeychainCredentials(
-  run: ClaudeKeychainCommandRunner = runSecurityCommand,
-  account: string = claudeKeychainAccount(),
-): Promise<unknown | null> {
-  const lookups = [
-    ["find-generic-password", "-a", account, "-w", "-s", CLAUDE_KEYCHAIN_SERVICE],
-    ["find-generic-password", "-w", "-s", CLAUDE_KEYCHAIN_SERVICE],
-  ];
-
-  for (const args of lookups) {
-    const raw = await run(args);
-    if (!raw) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      continue;
-    }
-    const creds = ClaudeCredentialsSchema.safeParse(parsed);
-    if (creds.success && creds.data.claudeAiOauth?.accessToken) return parsed;
-  }
-  return null;
-}
-
 export class ClaudeQuotaProvider implements ProviderUsageFetcher {
   readonly providerId = "claude";
   readonly displayName = "Claude";
 
   private readonly logger: Logger;
   private readonly claudeHome: string;
-  private readonly readKeychainCredentials: () => Promise<unknown | null>;
+  private readonly readKeychainCredentials: () => Promise<string | null>;
   private readonly platform: typeof process.platform;
   private readonly fetchApi: ProviderApiFetch;
 
@@ -351,7 +317,8 @@ export class ClaudeQuotaProvider implements ProviderUsageFetcher {
     this.logger = options.logger.child({ module: "claude-quota-provider" });
     this.claudeHome =
       options.claudeHome || process.env["CLAUDE_HOME"] || join(homedir(), ".claude");
-    this.readKeychainCredentials = options.claudeKeychainReader ?? readClaudeKeychainCredentials;
+    this.readKeychainCredentials =
+      options.claudeKeychainReader ?? (() => readClaudeKeychainCredentials(new ClaudeKeychain()));
     this.platform = options.platform ?? process.platform;
     this.fetchApi = options.fetch ?? fetch;
   }
@@ -362,14 +329,32 @@ export class ClaudeQuotaProvider implements ProviderUsageFetcher {
       return unavailableUsage(this);
     }
 
-    const { oauth } = credentials;
-    const plan = buildClaudePlan(oauth.subscriptionType, oauth.rateLimitTier);
-    const resp = await this.callClaudeApi(oauth.accessToken);
-
-    if (resp === "NEEDS_AUTH") {
+    const usage = await this.fetchUsageForOauth(credentials.oauth);
+    if (usage === "NEEDS_AUTH") {
       // Read-only on credentials; the Claude CLI owns refresh. See docs/providers.md.
       return unavailableUsage(this);
     }
+    return usage;
+  }
+
+  /**
+   * Usage for one access token. Shared with saved-account listing, which holds tokens
+   * for logins other than the one Claude Code is currently using.
+   */
+  async fetchUsageForOauth(oauth: ClaudeUsageOauth): Promise<ProviderUsage | "NEEDS_AUTH"> {
+    const resp = await this.callClaudeApi(oauth.accessToken);
+
+    if (resp === "NEEDS_AUTH") {
+      return "NEEDS_AUTH";
+    }
+
+    // Credential metadata can retain the old tier after a subscription change.
+    const profile = await this.fetchProfile(oauth.accessToken);
+    if (profile === "NEEDS_AUTH") return "NEEDS_AUTH";
+    const plan = buildClaudePlan(
+      profile.organization.organization_type.replace(/^claude_/, ""),
+      profile.organization.rate_limit_tier ?? undefined,
+    );
 
     const scoped = reconcileScopedLimits(
       legacyScopedLimits(resp),
@@ -454,8 +439,16 @@ export class ClaudeQuotaProvider implements ProviderUsageFetcher {
   }
 
   private async readKeychainCredential(): Promise<ClaudeCredentialRecord | null> {
-    const parsed = ClaudeCredentialsSchema.safeParse(await this.readKeychainCredentials());
-    return parsed.success ? this.toCredentialRecord(parsed.data) : null;
+    const raw = await this.readKeychainCredentials();
+    if (!raw) return null;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    const credentials = ClaudeCredentialsSchema.safeParse(parsed);
+    return credentials.success ? this.toCredentialRecord(credentials.data) : null;
   }
 
   private toCredentialRecord(
@@ -476,5 +469,25 @@ export class ClaudeQuotaProvider implements ProviderUsageFetcher {
     if (res.status === 401 || res.status === 403) return "NEEDS_AUTH";
     if (!res.ok) throw new Error(`Claude usage API returned ${res.status}`);
     return ClaudeUsageResponseSchema.parse(await res.json());
+  }
+
+  private async fetchProfile(
+    token: string,
+  ): Promise<z.infer<typeof ClaudeProfileResponseSchema> | "NEEDS_AUTH"> {
+    const res = await fetchProviderApi(
+      this.fetchApi,
+      "https://api.anthropic.com/api/oauth/profile",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "anthropic-beta": CLAUDE_OAUTH_BETA,
+          "Cache-Control": "no-cache",
+        },
+      },
+    );
+    if (res.status === 401 || res.status === 403) return "NEEDS_AUTH";
+    if (!res.ok) throw new Error(`Claude profile API returned ${res.status}`);
+    return ClaudeProfileResponseSchema.parse(await res.json());
   }
 }

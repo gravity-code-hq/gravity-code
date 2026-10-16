@@ -1,7 +1,9 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useTextZoom } from "@/zoom/use-text-zoom";
+import { useZoomTarget } from "@/zoom/target.web";
 import { Annotation, Compartment, EditorState, Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { getLanguageForFile } from "@getpaseo/highlight";
+import { getLanguageForFile } from "@gravity/highlight";
 import { getCM, vim } from "@replit/codemirror-vim";
 import { isRenderedMarkdownFile } from "@/components/file-pane-render-mode";
 import type { WorkspaceFileLocation } from "@/workspace/file-open";
@@ -39,6 +41,15 @@ export function FileEditorView({
   onVimModeChange,
 }: FileEditorViewProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const { fontSize, zoom } = useTextZoom(theme.codeFontSize, "editor");
+  const zoomRef = useZoomTarget(".cm-editor", zoom);
+  const setHostRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      hostRef.current = node;
+      zoomRef(node);
+    },
+    [zoomRef],
+  );
   const viewRef = useRef<EditorView | null>(null);
   const snapshot = useSyncExternalStore(model.subscribe, model.getSnapshot, model.getSnapshot);
   const initial = useRef({ filename, model, theme, vimEnabled, content: snapshot.content });
@@ -119,8 +130,10 @@ export function FileEditorView({
   }, [filename]);
 
   useEffect(() => {
-    viewRef.current?.dispatch({ effects: themeCompartment.reconfigure(editorTheme(theme)) });
-  }, [theme]);
+    viewRef.current?.dispatch({
+      effects: themeCompartment.reconfigure(editorTheme({ ...theme, codeFontSize: fontSize })),
+    });
+  }, [theme, fontSize]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -142,7 +155,7 @@ export function FileEditorView({
 
   return (
     <div
-      ref={hostRef}
+      ref={setHostRef}
       data-pmono=""
       data-testid="file-source-editor"
       aria-label={`Source editor for ${filename}`}

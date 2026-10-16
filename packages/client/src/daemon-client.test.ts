@@ -6,18 +6,18 @@ import {
   type DaemonTransport,
   type Logger,
 } from "./daemon-client";
-import { CLIENT_CAPS } from "@getpaseo/protocol/client-capabilities";
-import { BROWSER_AUTOMATION_COMMAND_NAMES } from "@getpaseo/protocol/browser-automation/rpc-schemas";
+import { CLIENT_CAPS } from "@gravity/protocol/client-capabilities";
+import { BROWSER_AUTOMATION_COMMAND_NAMES } from "@gravity/protocol/browser-automation/rpc-schemas";
 import {
   decodeFileTransferFrame,
   encodeFileTransferFrame,
   FileTransferOpcode,
-} from "@getpaseo/protocol/binary-frames/index";
+} from "@gravity/protocol/binary-frames/index";
 import {
   encodeTerminalSnapshotPayload,
   encodeTerminalStreamFrame,
   TerminalStreamOpcode,
-} from "@getpaseo/protocol/terminal-stream-protocol";
+} from "@gravity/protocol/terminal-stream-protocol";
 
 expectTypeOf<"getGitDiff" extends keyof DaemonClient ? true : false>().toEqualTypeOf<false>();
 expectTypeOf<
@@ -200,30 +200,30 @@ test("traces WebSocket frames, message types, and JSON parse duration", async ()
   expect(recorder.records).toEqual([
     {
       phase: "begin",
-      name: "paseo.ws.message.outbound",
+      name: "gravity.ws.message.outbound",
       args: { envelopeType: "hello", messageType: "hello" },
     },
     { phase: "end" },
     {
       phase: "begin",
-      name: "paseo.ws.frame.outbound",
+      name: "gravity.ws.frame.outbound",
       args: { kind: "text", size: expect.any(String) },
     },
     { phase: "end" },
     {
       phase: "begin",
-      name: "paseo.ws.frame.inbound",
+      name: "gravity.ws.frame.inbound",
       args: { kind: "text", size: expect.any(String) },
     },
     {
       phase: "begin",
-      name: "paseo.ws.json.parse",
+      name: "gravity.ws.json.parse",
       args: { size: expect.any(String) },
     },
     { phase: "end" },
     {
       phase: "begin",
-      name: "paseo.ws.message.inbound",
+      name: "gravity.ws.message.inbound",
       args: { envelopeType: "session", messageType: "status" },
     },
     { phase: "end" },
@@ -234,7 +234,7 @@ test("traces WebSocket frames, message types, and JSON parse duration", async ()
 test("does not infer browser automation capabilities from Electron runtime", async () => {
   vi.stubGlobal("navigator", {
     userAgent:
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Paseo/0.1.89 Chrome/146 Electron/41.2.0 Safari/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Gravity/0.1.89 Chrome/146 Electron/41.2.0 Safari/537.36",
   });
   const mock = createMockTransport();
   const client = new DaemonClient({
@@ -624,7 +624,7 @@ test("dedupes in-flight checkout status requests per agentId", async () => {
         error: null,
         requestId: request.requestId,
         isGit: false,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         repoRoot: null,
         currentBranch: null,
         isDirty: null,
@@ -696,7 +696,7 @@ test("passes password as HTTP bearer header and WebSocket subprotocol", async ()
   expect(transportFactory).toHaveBeenCalledWith({
     url: "ws://test",
     headers: { Authorization: "Bearer shared-secret" },
-    protocols: ["paseo.bearer.shared-secret"],
+    protocols: ["gravity.bearer.shared-secret"],
   });
 });
 
@@ -2477,7 +2477,7 @@ test("uploadFile sends metadata request and file bytes as binary chunks", async 
           fileName: "notes.txt",
           mimeType: "text/plain",
           size: 11,
-          path: "/tmp/paseo-uploads/upload_req-upload/notes.txt",
+          path: "/tmp/gravity-uploads/upload_req-upload/notes.txt",
         },
         error: null,
       },
@@ -2492,7 +2492,7 @@ test("uploadFile sends metadata request and file bytes as binary chunks", async 
       fileName: "notes.txt",
       mimeType: "text/plain",
       size: 11,
-      path: "/tmp/paseo-uploads/upload_req-upload/notes.txt",
+      path: "/tmp/gravity-uploads/upload_req-upload/notes.txt",
     },
     error: null,
   });
@@ -2528,14 +2528,14 @@ test("normalizes workspace_setup_progress into a workspace-scoped daemon event",
         status: "running",
         detail: {
           type: "worktree_setup",
-          worktreePath: "/tmp/project/.paseo/worktrees/feature-a",
+          worktreePath: "/tmp/project/.gravity/worktrees/feature-a",
           branchName: "feature-a",
           log: "phase-one\n",
           commands: [
             {
               index: 1,
               command: "npm install",
-              cwd: "/tmp/project/.paseo/worktrees/feature-a",
+              cwd: "/tmp/project/.gravity/worktrees/feature-a",
               log: "phase-one\n",
               status: "running",
               exitCode: null,
@@ -2555,14 +2555,14 @@ test("normalizes workspace_setup_progress into a workspace-scoped daemon event",
       status: "running",
       detail: {
         type: "worktree_setup",
-        worktreePath: "/tmp/project/.paseo/worktrees/feature-a",
+        worktreePath: "/tmp/project/.gravity/worktrees/feature-a",
         branchName: "feature-a",
         log: "phase-one\n",
         commands: [
           {
             index: 1,
             command: "npm install",
-            cwd: "/tmp/project/.paseo/worktrees/feature-a",
+            cwd: "/tmp/project/.gravity/worktrees/feature-a",
             log: "phase-one\n",
             status: "running",
             exitCode: null,
@@ -2594,7 +2594,7 @@ test("sends create_agent_request with workspace and caller identity", async () =
   const createPromise = client.createAgent({
     idempotencyKey: "one-creation",
     provider: "codex",
-    cwd: "/tmp/project/.paseo/worktrees/feature-a",
+    cwd: "/tmp/project/.gravity/worktrees/feature-a",
     workspaceId: "ws-feature-a",
     callerAgentId: "parent-agent",
     title: "Compat agent",
@@ -2709,7 +2709,7 @@ test("sends structured attachments with create_agent_request", async () => {
         mimeType: "application/github-pr",
         number: 123,
         title: "Fix race in worktree setup",
-        url: "https://github.com/getpaseo/paseo/pull/123",
+        url: "https://github.com/gravity-code-hq/gravity/pull/123",
         baseRefName: "main",
         headRefName: "fix/worktree-race",
       },
@@ -2724,7 +2724,7 @@ test("sends structured attachments with create_agent_request", async () => {
       mimeType: "application/github-pr",
       number: 123,
       title: "Fix race in worktree setup",
-      url: "https://github.com/getpaseo/paseo/pull/123",
+      url: "https://github.com/gravity-code-hq/gravity/pull/123",
       baseRefName: "main",
       headRefName: "fix/worktree-race",
     },
@@ -2858,7 +2858,7 @@ test("omitting create_agent_request worktree base-ref fields preserves legacy wi
   await expect(createPromise).rejects.toThrow("legacy git shape sentinel");
 });
 
-test("sends structured first-agent context attachments with create_paseo_worktree_request", async () => {
+test("sends structured first-agent context attachments with create_gravity_worktree_request", async () => {
   const logger = createMockLogger();
   const mock = createMockTransport();
 
@@ -2875,7 +2875,7 @@ test("sends structured first-agent context attachments with create_paseo_worktre
   mock.triggerOpen();
   await connectPromise;
 
-  const createPromise = client.createPaseoWorktree({
+  const createPromise = client.createGravityWorktree({
     cwd: "/tmp/project",
     worktreeSlug: "review-pr-123",
     firstAgentContext: {
@@ -2885,7 +2885,7 @@ test("sends structured first-agent context attachments with create_paseo_worktre
           mimeType: "application/github-pr",
           number: 123,
           title: "Fix race in worktree setup",
-          url: "https://github.com/getpaseo/paseo/pull/123",
+          url: "https://github.com/gravity-code-hq/gravity/pull/123",
         },
       ],
     },
@@ -2902,13 +2902,13 @@ test("sends structured first-agent context attachments with create_paseo_worktre
       mimeType: "application/github-pr",
       number: 123,
       title: "Fix race in worktree setup",
-      url: "https://github.com/getpaseo/paseo/pull/123",
+      url: "https://github.com/gravity-code-hq/gravity/pull/123",
     },
   ]);
 
   mock.triggerMessage(
     wrapSessionMessage({
-      type: "create_paseo_worktree_response",
+      type: "create_gravity_worktree_response",
       payload: {
         requestId: request.requestId,
         workspace: null,
@@ -3038,12 +3038,12 @@ test("searches GitHub repositories through the dotted RPC", async () => {
   await connectPromise;
 
   const searchPromise = client.searchGithubRepositories(
-    { query: "paseo", limit: 10 },
+    { query: "gravity", limit: 10 },
     "req-repositories",
   );
   expect(parseSentFrame(mock.sent[0])).toEqual({
     type: "workspace.github.search_repositories.request",
-    query: "paseo",
+    query: "gravity",
     limit: 10,
     requestId: "req-repositories",
   });
@@ -3056,13 +3056,13 @@ test("searches GitHub repositories through the dotted RPC", async () => {
         requestId: "req-repositories",
         repositories: [
           {
-            id: "R_paseo",
-            name: "paseo",
-            nameWithOwner: "getpaseo/paseo",
+            id: "R_gravity",
+            name: "gravity",
+            nameWithOwner: "gravity-code-hq/gravity",
             description: "Development environment in your pocket",
             visibility: "public",
             updatedAt: "2026-07-15T10:00:00Z",
-            cloneUrl: "git@github.com:getpaseo/paseo.git",
+            cloneUrl: "git@github.com:gravity-code-hq/gravity.git",
           },
         ],
         available: true,
@@ -3076,13 +3076,13 @@ test("searches GitHub repositories through the dotted RPC", async () => {
     requestId: "req-repositories",
     repositories: [
       {
-        id: "R_paseo",
-        name: "paseo",
-        nameWithOwner: "getpaseo/paseo",
+        id: "R_gravity",
+        name: "gravity",
+        nameWithOwner: "gravity-code-hq/gravity",
         description: "Development environment in your pocket",
         visibility: "public",
         updatedAt: "2026-07-15T10:00:00Z",
-        cloneUrl: "git@github.com:getpaseo/paseo.git",
+        cloneUrl: "git@github.com:gravity-code-hq/gravity.git",
       },
     ],
     available: true,
@@ -3259,7 +3259,7 @@ test("sends project.remove.request", async () => {
   await expect(removePromise).resolves.toEqual({ removedWorkspaceIds: ["ws-main"] });
 });
 
-test("sends worktree base-ref fields in create_paseo_worktree_request", async () => {
+test("sends worktree base-ref fields in create_gravity_worktree_request", async () => {
   const logger = createMockLogger();
   const mock = createMockTransport();
 
@@ -3276,7 +3276,7 @@ test("sends worktree base-ref fields in create_paseo_worktree_request", async ()
   mock.triggerOpen();
   await connectPromise;
 
-  const createPromise = client.createPaseoWorktree(
+  const createPromise = client.createGravityWorktree(
     {
       cwd: "/tmp/project",
       projectId: "remote:github.com/acme/project",
@@ -3291,7 +3291,7 @@ test("sends worktree base-ref fields in create_paseo_worktree_request", async ()
   expect(mock.sent).toHaveLength(1);
   const request = parseSentFrame(mock.sent[0]);
   expect(request).toEqual({
-    type: "create_paseo_worktree_request",
+    type: "create_gravity_worktree_request",
     cwd: "/tmp/project",
     projectId: "remote:github.com/acme/project",
     worktreeSlug: "review-pr-123",
@@ -3303,7 +3303,7 @@ test("sends worktree base-ref fields in create_paseo_worktree_request", async ()
 
   mock.triggerMessage(
     wrapSessionMessage({
-      type: "create_paseo_worktree_response",
+      type: "create_gravity_worktree_response",
       payload: {
         requestId: request.requestId,
         workspace: null,
@@ -3321,7 +3321,7 @@ test("sends worktree base-ref fields in create_paseo_worktree_request", async ()
   });
 });
 
-test("omitting create_paseo_worktree_request worktree base-ref fields preserves legacy wire shape", async () => {
+test("omitting create_gravity_worktree_request worktree base-ref fields preserves legacy wire shape", async () => {
   const logger = createMockLogger();
   const mock = createMockTransport();
 
@@ -3338,7 +3338,7 @@ test("omitting create_paseo_worktree_request worktree base-ref fields preserves 
   mock.triggerOpen();
   await connectPromise;
 
-  const createPromise = client.createPaseoWorktree(
+  const createPromise = client.createGravityWorktree(
     {
       cwd: "/tmp/project",
       worktreeSlug: "feature-a",
@@ -3350,7 +3350,7 @@ test("omitting create_paseo_worktree_request worktree base-ref fields preserves 
     JSON.stringify({
       type: "session",
       message: {
-        type: "create_paseo_worktree_request",
+        type: "create_gravity_worktree_request",
         cwd: "/tmp/project",
         worktreeSlug: "feature-a",
         requestId: "req-worktree-legacy",
@@ -3360,7 +3360,7 @@ test("omitting create_paseo_worktree_request worktree base-ref fields preserves 
 
   mock.triggerMessage(
     wrapSessionMessage({
-      type: "create_paseo_worktree_response",
+      type: "create_gravity_worktree_response",
       payload: {
         requestId: "req-worktree-legacy",
         workspace: null,
@@ -3912,7 +3912,7 @@ test("requests directory suggestions via RPC", async () => {
       message: {
         type: "directory_suggestions_response",
         payload: {
-          directories: ["/Users/test/projects/paseo"],
+          directories: ["/Users/test/projects/gravity"],
           entries: [{ path: "README.md", kind: "file" }],
           error: null,
           requestId: "req-directories",
@@ -3922,7 +3922,7 @@ test("requests directory suggestions via RPC", async () => {
   );
 
   await expect(promise).resolves.toEqual({
-    directories: ["/Users/test/projects/paseo"],
+    directories: ["/Users/test/projects/gravity"],
     entries: [{ path: "README.md", kind: "file" }],
     error: null,
     requestId: "req-directories",
@@ -4115,8 +4115,8 @@ test("requests GitHub check details via namespaced RPC", async () => {
   const promise = client.checkoutGithubGetCheckDetails(
     {
       cwd: "/tmp/project",
-      repoOwner: "getpaseo",
-      repoName: "paseo",
+      repoOwner: "gravity-code-hq",
+      repoName: "gravity",
       checkRunId: 12345,
       workflowRunId: 456,
     },
@@ -4128,8 +4128,8 @@ test("requests GitHub check details via namespaced RPC", async () => {
   expect(request).toMatchObject({
     type: "checkout.github.get_check_details.request",
     cwd: "/tmp/project",
-    repoOwner: "getpaseo",
-    repoName: "paseo",
+    repoOwner: "gravity-code-hq",
+    repoName: "gravity",
     checkRunId: 12345,
     workflowRunId: 456,
     requestId: "req-check-details",
@@ -6153,6 +6153,107 @@ test("sends provider.usage.list.request and resolves provider.usage.list.respons
         ],
       },
     ],
+  });
+});
+
+test("sends provider.accounts requests and resolves their responses", async () => {
+  const logger = createMockLogger();
+  const mock = createMockTransport();
+
+  const client = new DaemonClient({
+    url: "ws://test",
+    clientId: "clsk_unit_test",
+    logger,
+    reconnect: { enabled: false },
+    transportFactory: () => mock.transport,
+  });
+  clients.push(client);
+
+  const connectPromise = client.connect();
+  mock.triggerOpen();
+  await connectPromise;
+
+  const listPromise = client.listProviderAccounts({ refresh: true, requestId: "accounts-1" });
+
+  expect(JSON.parse(assertStr(mock.sent[0]))).toEqual({
+    type: "session",
+    message: {
+      type: "provider.accounts.list.request",
+      requestId: "accounts-1",
+      refresh: true,
+    },
+  });
+
+  const account = {
+    id: "acc_0011223344556677",
+    email: "a@example.com",
+    organizationName: "Org",
+    displayName: null,
+    planLabel: "Max 5x",
+    isActive: true,
+    reloginRequired: false,
+    addedAt: "2026-06-19T00:00:00.000Z",
+    usage: null,
+  };
+  mock.triggerMessage(
+    wrapSessionMessage({
+      type: "provider.accounts.list.response",
+      payload: {
+        requestId: "accounts-1",
+        fetchedAt: "2026-06-19T00:00:00.000Z",
+        providers: [
+          {
+            providerId: "claude",
+            displayName: "Claude Code",
+            liveLogin: {
+              email: "a@example.com",
+              organizationName: "Org",
+              accountId: account.id,
+              isUsable: true,
+            },
+            accounts: [account],
+            error: null,
+          },
+        ],
+      },
+    }),
+  );
+
+  await expect(listPromise).resolves.toMatchObject({
+    requestId: "accounts-1",
+    providers: [{ providerId: "claude", accounts: [account] }],
+  });
+
+  const activatePromise = client.activateProviderAccount({
+    providerId: "claude",
+    accountId: account.id,
+    requestId: "accounts-2",
+  });
+
+  expect(JSON.parse(assertStr(mock.sent[1]))).toEqual({
+    type: "session",
+    message: {
+      type: "provider.accounts.activate.request",
+      requestId: "accounts-2",
+      providerId: "claude",
+      accountId: account.id,
+    },
+  });
+
+  mock.triggerMessage(
+    wrapSessionMessage({
+      type: "rpc_error",
+      payload: {
+        requestId: "accounts-2",
+        requestType: "provider.accounts.activate.request",
+        error: "a@example.com needs a new login",
+        code: "provider_account_relogin_required",
+      },
+    }),
+  );
+
+  await expect(activatePromise).rejects.toMatchObject({
+    code: "provider_account_relogin_required",
   });
 });
 

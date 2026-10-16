@@ -507,25 +507,28 @@ export async function getProjectIcon(projectDir: string): Promise<ProjectIcon | 
       return null;
     }
 
-    const fileBuffer = await readFile(iconPath);
-    let mimeType = sniffMimeType(fileBuffer) ?? getMimeType(iconPath);
-    let buffer: Buffer = fileBuffer;
-    if (mimeType === "image/x-icon") {
-      const pngFrame = extractIcoPngFrame(fileBuffer);
-      if (pngFrame) {
-        buffer = pngFrame;
-        mimeType = "image/png";
-      }
-    }
-
-    // Only return square images
-    if (!isSquareImage(buffer, mimeType)) {
-      return null;
-    }
-
-    const data = buffer.toString("base64");
-    return { data, mimeType };
+    return decodeSquareIcon(await readFile(iconPath), getMimeType(iconPath));
   } catch {
     return null;
   }
+}
+
+/**
+ * Turns raw image bytes into a servable icon, or null when they are not a
+ * square image. `fallbackMimeType` only applies when the magic bytes are unknown.
+ */
+export function decodeSquareIcon(bytes: Buffer, fallbackMimeType: string): ProjectIcon | null {
+  let mimeType = sniffMimeType(bytes) ?? fallbackMimeType;
+  let buffer = bytes;
+  if (mimeType === "image/x-icon") {
+    const pngFrame = extractIcoPngFrame(bytes);
+    if (pngFrame) {
+      buffer = pngFrame;
+      mimeType = "image/png";
+    }
+  }
+  if (!isSquareImage(buffer, mimeType)) {
+    return null;
+  }
+  return { data: buffer.toString("base64"), mimeType };
 }

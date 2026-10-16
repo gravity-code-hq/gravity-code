@@ -8,7 +8,9 @@ Agent chat delivery has two paths:
 The daemon retains projected items in memory. Each source event advances the stream sequence,
 then replaces the previous tool state or merges into the current text item. Intermediate payloads
 are never retained for history or catch-up. Provider history is the durable transcript authority
-and rebuilds the projection when an agent resumes.
+and rebuilds the projection when an agent resumes. Forks also retain a snapshot of their
+inherited timeline in the agent record: provider transcripts contain the context sent to the
+model, not the original message and tool structure.
 
 The invariants are:
 
@@ -65,7 +67,7 @@ is exhausted.
 
 ## Durable item anchors
 
-Provider message IDs are not guaranteed for every displayed item. Paseo-generated system errors are one example. Rendered item indices are not durable either because pagination and projection can merge source rows.
+Provider message IDs are not guaranteed for every displayed item. Gravity-generated system errors are one example. Rendered item indices are not durable either because pagination and projection can merge source rows.
 
 Actions that address a point in chat history, such as Fork, use the daemon timeline `epoch` plus the projected item's `seqEnd`. The app carries that position on the rendered assistant item for both live and fetched history. When adjacent projected chunks merge, the merged item retains the newer chunk's position.
 
@@ -218,7 +220,7 @@ with that record rather than in a React component, so an old request cannot clea
 remain a separate pre-turn registry and retire on canonical acknowledgement.
 
 Canonical turns and visible responses are different boundaries. System-injected prompts are absent from
-the Paseo timeline, so one visible response can span several canonical turns without a user message
+the Gravity timeline, so one visible response can span several canonical turns without a user message
 between them. Layout and copy group that response together; lifecycle, timing, tool sequences, and exact
 fork positions retain the canonical `turnId` boundaries.
 

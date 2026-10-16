@@ -6,17 +6,17 @@ import { monitorEventLoopDelay, performance } from "node:perf_hooks";
 import { promisify } from "node:util";
 import { createFileObserver, type FileChange } from "../src/server/file-observer/index.js";
 
-const DIRECTORY_COUNT = readPositiveInteger("PASEO_WATCH_BENCH_DIRS", 500);
-const ROOT_COUNT = readPositiveInteger("PASEO_WATCH_BENCH_ROOTS", 1);
-const IGNORED_FILE_COUNT = readPositiveInteger("PASEO_WATCH_BENCH_IGNORED_FILES", 2_000);
-const PREEXISTING_FILE_COUNT = readPositiveInteger("PASEO_WATCH_BENCH_PREEXISTING_FILES", 1_000);
-const EDIT_COUNT = readPositiveInteger("PASEO_WATCH_BENCH_EDITS", 100);
-const SUSTAINED_EDIT_COUNT = readPositiveInteger("PASEO_WATCH_BENCH_SUSTAINED_EDITS", 20);
+const DIRECTORY_COUNT = readPositiveInteger("GRAVITY_WATCH_BENCH_DIRS", 500);
+const ROOT_COUNT = readPositiveInteger("GRAVITY_WATCH_BENCH_ROOTS", 1);
+const IGNORED_FILE_COUNT = readPositiveInteger("GRAVITY_WATCH_BENCH_IGNORED_FILES", 2_000);
+const PREEXISTING_FILE_COUNT = readPositiveInteger("GRAVITY_WATCH_BENCH_PREEXISTING_FILES", 1_000);
+const EDIT_COUNT = readPositiveInteger("GRAVITY_WATCH_BENCH_EDITS", 100);
+const SUSTAINED_EDIT_COUNT = readPositiveInteger("GRAVITY_WATCH_BENCH_SUSTAINED_EDITS", 20);
 const SUSTAINED_EDIT_INTERVAL_MS = readPositiveInteger(
-  "PASEO_WATCH_BENCH_SUSTAINED_INTERVAL_MS",
+  "GRAVITY_WATCH_BENCH_SUSTAINED_INTERVAL_MS",
   500,
 );
-const REPETITIONS = readPositiveInteger("PASEO_WATCH_BENCH_REPETITIONS", 1);
+const REPETITIONS = readPositiveInteger("GRAVITY_WATCH_BENCH_REPETITIONS", 1);
 const execFileAsync = promisify(execFile);
 
 interface Measurement {
@@ -90,7 +90,7 @@ async function measureInChild(run: number): Promise<Measurement> {
 }
 
 async function measure(run: number): Promise<Measurement> {
-  const base = await mkdtemp(join(tmpdir(), "paseo-watch-"));
+  const base = await mkdtemp(join(tmpdir(), "gravity-watch-"));
   const observer = createFileObserver();
   const roots: FixtureRoot[] = [];
   for (let rootIndex = 0; rootIndex < ROOT_COUNT; rootIndex += 1) {

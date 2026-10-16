@@ -24,7 +24,6 @@ import {
   Server,
   Settings2,
   Tag,
-  Type,
 } from "lucide-react-native";
 import {
   MenuItem,
@@ -50,8 +49,7 @@ import {
   SIDEBAR_UNLABELLED_LABEL_KEY,
   type SidebarGroupMode,
 } from "@/stores/sidebar-view-store";
-import { workspaceLabelKey, type WorkspaceLabelColor } from "@getpaseo/protocol/workspace-labels";
-import type { WorkspaceTitleSource } from "@/hooks/use-settings";
+import { workspaceLabelKey, type WorkspaceLabelColor } from "@gravity/protocol/workspace-labels";
 import { SIDEBAR_CHECKS_DISPLAYS, type SidebarChecksDisplay } from "./checks-display";
 import { useSidebarDisplayPreferences, type SidebarTrailingChoice } from "./model";
 import { SIDEBAR_ROW_ITEMS, type SidebarRowItem } from "./row-items";
@@ -91,11 +89,6 @@ const GROUPING_ICONS: Record<SidebarGroupMode, OptionIcon> = {
   status: withUnistyles(CircleDashed),
 };
 
-const TITLE_SOURCE_ICONS: Record<WorkspaceTitleSource, OptionIcon> = {
-  title: withUnistyles(Type),
-  branch: withUnistyles(GitBranch),
-};
-
 // The same marks these things carry on the workspace row itself, so the menu and the row it
 // configures name each item the same way twice.
 const ROW_ITEM_ICONS: Record<SidebarRowItem, OptionIcon> = {
@@ -121,17 +114,11 @@ const TRAILING_ICONS: Record<SidebarTrailingChoice, OptionIcon> = {
 };
 
 const GROUPING_MODES: readonly SidebarGroupMode[] = ["project", "status"];
-const TITLE_SOURCES: readonly WorkspaceTitleSource[] = ["title", "branch"];
 const TRAILING_CHOICES: readonly SidebarTrailingChoice[] = ["diff", "timestamp"];
 
 const GROUPING_LABEL_KEYS: Record<SidebarGroupMode, string> = {
   project: "sidebar.display.grouping.project",
   status: "sidebar.display.grouping.status",
-};
-
-const TITLE_SOURCE_LABEL_KEYS: Record<WorkspaceTitleSource, string> = {
-  title: "sidebar.display.titleSource.title",
-  branch: "sidebar.display.titleSource.branch",
 };
 
 const ROW_ITEM_LABEL_KEYS: Record<SidebarRowItem, string> = {
@@ -202,20 +189,6 @@ export function SidebarDisplayPreferencesMenu(): ReactElement {
             selectedValue={preferences.grouping}
             onSelect={preferences.setGrouping}
             testIDPrefix="sidebar-grouping"
-          />
-        ),
-      },
-      {
-        id: "titleSource",
-        title: t("sidebar.display.titleSource.label"),
-        content: (
-          <OptionList
-            values={TITLE_SOURCES}
-            icons={TITLE_SOURCE_ICONS}
-            labelKeys={TITLE_SOURCE_LABEL_KEYS}
-            selectedValue={preferences.titleSource}
-            onSelect={preferences.setTitleSource}
-            testIDPrefix="sidebar-workspace-title-source"
           />
         ),
       },
@@ -307,13 +280,6 @@ export function SidebarDisplayPreferencesMenu(): ReactElement {
             testID="sidebar-display-grouping"
           >
             {t("sidebar.display.grouping.label")}
-          </MenuSubTrigger>
-          <MenuSubTrigger
-            id="titleSource"
-            value={t(TITLE_SOURCE_LABEL_KEYS[preferences.titleSource])}
-            testID="sidebar-display-title-source"
-          >
-            {t("sidebar.display.titleSource.label")}
           </MenuSubTrigger>
           <MenuSubTrigger id="show" testID="sidebar-display-show">
             {t("sidebar.display.show.label")}

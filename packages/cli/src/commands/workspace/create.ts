@@ -120,10 +120,11 @@ function buildWorktreeWorkspaceSource(options: WorkspaceCreateOptions, path: str
 }
 
 export function buildWorkspaceSource(options: WorkspaceCreateOptions) {
+  // COMPAT(workspaceIsolationFlag): see the hidden --isolation option.
   if (options.isolation === "local") {
     return buildLocalWorkspaceSource(options, options.path ?? process.cwd());
   }
-  if (options.isolation === "worktree") {
+  if (options.isolation === undefined || options.isolation === "worktree") {
     const sourcePath = options.path ?? (options.project ? undefined : process.cwd());
     return buildWorktreeWorkspaceSource(options, sourcePath);
   }

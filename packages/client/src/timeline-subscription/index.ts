@@ -1,4 +1,4 @@
-import type { SessionOutboundMessage } from "@getpaseo/protocol/messages";
+import type { SessionOutboundMessage } from "@gravity/protocol/messages";
 import type { OwnedSubscription, TimelineSubscription } from "../connection/index.js";
 
 type TimelineUpdate = Extract<

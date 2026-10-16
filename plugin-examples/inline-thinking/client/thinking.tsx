@@ -1,5 +1,5 @@
-import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
-import { useRevealedText } from "@getpaseo/plugin/client/react-native";
+import type { PluginTimelineItemProps } from "@gravity/plugin/client";
+import { useRevealedText } from "@gravity/plugin/client/react-native";
 import { useMemo } from "react";
 import { Text } from "react-native";
 import { z } from "zod";

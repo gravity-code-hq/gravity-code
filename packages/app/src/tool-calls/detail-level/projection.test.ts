@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
+import type { ToolCallDetail } from "@gravity/protocol/agent-types";
 import type { StreamItem, ToolCallItem } from "@/types/stream";
 import {
   prepareToolCallHistory,
@@ -85,7 +85,7 @@ describe("tool call detail-level projection", () => {
     },
   );
 
-  it("passes detailed timelines through without grouping work", () => {
+  it("passes short detailed timelines through without collapsing calls", () => {
     const tail = [toolCall("1", { type: "shell", command: "one" })];
     const head = [toolCall("2", { type: "shell", command: "two" })];
 
@@ -96,6 +96,72 @@ describe("tool call detail-level projection", () => {
     expect(result.tail).toBe(tail);
     expect(result.head).toBe(head);
     expect(result.groupsByHostId.size).toBe(0);
+  });
+
+  it("collapses earlier detailed calls while keeping the latest five visible", () => {
+    const calls = Array.from({ length: 20 }, (_, index) =>
+      toolCall(String(index + 1), { type: "shell", command: `command-${index}` }),
+    );
+    const boundary = assistant("answer");
+    const tail = [...calls, boundary];
+    const result = project({ level: "detailed", tail });
+
+    expect(result.tail.map((item) => item.id)).toEqual([
+      "1",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "answer",
+    ]);
+    expect(result.groupsByHostId.get("1")?.run.calls).toEqual(calls.slice(0, 15));
+    expect(tail).toEqual([...calls, boundary]);
+  });
+
+  it("keeps a detailed collapse host stable as a live run crosses the history boundary", () => {
+    const calls = Array.from({ length: 12 }, (_, index) =>
+      toolCall(String(index + 1), { type: "shell", command: `command-${index}` }),
+    );
+    const tail = calls.slice(0, 2);
+    const first = project({ level: "detailed", tail, head: calls.slice(2, 6) });
+    expect(first.tail.map((item) => item.id)).toEqual(["1", "2"]);
+    expect(first.head).toEqual(calls.slice(2, 6));
+    expect(first.groupsByHostId.get("1")?.run.calls).toEqual(calls.slice(0, 1));
+
+    const grown = project({ level: "detailed", tail, head: calls.slice(2) });
+    expect(grown.tail.map((item) => item.id)).toEqual(["1"]);
+    expect(grown.head).toEqual(calls.slice(-5));
+    expect(grown.historyGroupUpdatesByHostId.get("1")?.run.calls).toEqual(calls.slice(0, 7));
+
+    const promoted = project({ level: "detailed", tail: calls });
+    expect(promoted.tail).toEqual([...grown.tail, ...grown.head]);
+    expect(promoted.head).toEqual([]);
+  });
+
+  it("keeps messages and plan tools between detailed runs visible", () => {
+    const calls = Array.from({ length: 12 }, (_, index) =>
+      toolCall(String(index + 1), { type: "shell", command: `command-${index}` }),
+    );
+    const message = assistant("progress");
+    const plan = toolCall("plan", { type: "plan", text: "Review this plan" });
+    const tail = [...calls.slice(0, 6), message, plan, ...calls.slice(6)];
+    const result = project({ level: "detailed", tail });
+    expect(result.groupsByHostId.size).toBe(2);
+    expect(result.tail).toEqual(tail);
+    expect(result.groupsByHostId.get("1")?.run.calls).toEqual([calls[0]]);
+    expect(result.groupsByHostId.get("7")?.run.calls).toEqual([calls[6]]);
+  });
+
+  it("retains detailed history identities while assistant text streams", () => {
+    const tail = Array.from({ length: 20 }, (_, index) =>
+      toolCall(String(index + 1), { type: "shell", command: `command-${index}` }),
+    );
+    const first = project({ level: "detailed", tail, head: [assistant("first")] });
+    const next = project({ level: "detailed", tail, head: [assistant("next")] });
+    expect(next.tail).toBe(first.tail);
+    expect(next.groupsByHostId.get("1")).toBe(first.groupsByHostId.get("1"));
+    expect(next.historyGroupUpdatesByHostId.size).toBe(0);
   });
 
   it("keeps one stable overview host as a run grows", () => {
@@ -260,7 +326,7 @@ describe("tool call detail-level projection", () => {
         readFileCount: 2,
         searchCount: 0,
         otherToolCount: 0,
-        paseoCallCount: 0,
+        gravityCallCount: 0,
       },
     });
   });
@@ -272,7 +338,7 @@ describe("tool call detail-level projection", () => {
       toolCall("3", { type: "fetch", url: "https://github.com/org/repo" }),
       toolCall(
         "4",
-        { type: "search", query: "paseo", toolName: "web_search" },
+        { type: "search", query: "gravity", toolName: "web_search" },
         { status: "failed" },
       ),
       toolCall("5", { type: "fetch", url: "not a url" }),
@@ -313,40 +379,44 @@ describe("tool call detail-level projection", () => {
     });
   });
 
-  it("counts Paseo calls separately from other tools", () => {
+  it("counts Gravity calls separately from other tools", () => {
     const calls = [
-      toolCall("1", { type: "unknown", input: null, output: null }, { name: "paseo.list_agents" }),
+      toolCall(
+        "1",
+        { type: "unknown", input: null, output: null },
+        { name: "gravity.list_agents" },
+      ),
       toolCall(
         "2",
         { type: "unknown", input: null, output: null },
-        { name: "mcp__paseo__list_worktrees" },
+        { name: "mcp__gravity__list_worktrees" },
       ),
-      toolCall("3", { type: "fetch", url: "https://paseo.sh" }),
-      toolCall("4", { type: "fetch", url: "https://github.com/getpaseo" }),
+      toolCall("3", { type: "fetch", url: "https://github.com/gravity-code-hq/gravity" }),
+      toolCall("4", { type: "fetch", url: "https://github.com/gravity-code-hq" }),
     ];
 
     const result = project({ level: "overview", head: calls });
 
     expect(result.groupsByHostId.get("1")).toMatchObject({
-      summary: { otherToolCount: 2, paseoCallCount: 2 },
+      summary: { otherToolCount: 2, gravityCallCount: 2 },
     });
   });
 
-  it("classifies direct Brave search and Paseo runtime tool names", () => {
+  it("classifies direct Brave search and Gravity runtime tool names", () => {
     const unknownDetail = { type: "unknown" as const, input: null, output: null };
     const calls = [
       toolCall("1", unknownDetail, { name: "brave-search_brave_web_search" }),
       toolCall("2", unknownDetail, { name: "brave-search_brave_llm_context" }),
-      toolCall("3", unknownDetail, { name: "paseo_list_providers" }),
-      toolCall("4", unknownDetail, { name: "paseo_list_worktrees" }),
-      toolCall("5", unknownDetail, { name: "paseo_list_worktrees" }),
+      toolCall("3", unknownDetail, { name: "gravity_list_providers" }),
+      toolCall("4", unknownDetail, { name: "gravity_list_worktrees" }),
+      toolCall("5", unknownDetail, { name: "gravity_list_worktrees" }),
       toolCall("6", unknownDetail, { name: "mcp__exa__web_search" }),
     ];
 
     const result = project({ level: "overview", head: calls });
 
     expect(result.groupsByHostId.get("1")).toMatchObject({
-      summary: { searchCount: 3, otherToolCount: 0, paseoCallCount: 3 },
+      summary: { searchCount: 3, otherToolCount: 0, gravityCallCount: 3 },
     });
   });
 

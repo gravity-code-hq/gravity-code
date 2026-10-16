@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import type { AutocompleteOption } from "@/components/ui/autocomplete";
+import type { InputCommand } from "@/components/ui/text-input/command-ranges";
 import {
   useAgentCommandsQuery,
   type AgentSlashCommand,
@@ -20,18 +21,21 @@ import {
   filterAndRankCommandAutocompleteEntries,
   filterInlineSkillCommandEntries,
   findActiveSlashCommand,
+  getSlashCommandKind,
   type SlashCommandRange,
 } from "@/utils/agent-command-autocomplete";
 import {
   applyFileMentionReplacement,
   findActiveFileMention,
+  rankFileMentionSuggestions,
   type FileMentionRange,
 } from "@/utils/file-mention-autocomplete";
 
 interface UseAgentAutocompleteInput {
   userInput: string;
   cursorIndex: number;
-  setUserInput: (nextValue: string) => void;
+  setUserInput: (nextValue: string, selection?: { start: number; end: number }) => void;
+  onFileSelect: (path: string) => void;
   serverId: string;
   agentId: string;
   draftConfig?: DraftCommandConfig;
@@ -66,6 +70,9 @@ type AgentAutocompleteOption =
     });
 
 interface AgentAutocompleteResult {
+  onHighlight: (index: number) => void;
+  mode: AutocompleteMode;
+  commands: readonly InputCommand[];
   isVisible: boolean;
   options: AutocompleteOption[];
   selectedIndex: number;
@@ -168,6 +175,8 @@ function mapDirectorySuggestionsToEntries(payload: {
 
 function mapCommandToOption(entry: AvailableCommand, t: TFunction): AgentAutocompleteOption {
   const command = entry.command;
+  const commandKind =
+    entry.source === "provider" ? getSlashCommandKind(entry.command.kind) : "command";
   const base = {
     id: command.name,
     label: `/${command.name}`,
@@ -175,6 +184,7 @@ function mapCommandToOption(entry: AvailableCommand, t: TFunction): AgentAutocom
     description:
       entry.source === "client" ? t(entry.command.descriptionKey) : entry.command.description,
     kind: "command" as const,
+    commandKind,
   };
   if (entry.source === "client") {
     return {
@@ -246,15 +256,23 @@ function buildCommandAutocompleteOptions(input: BuildAutocompleteOptionsInput) {
 
   const activeFileMention = input.activeFileMention;
   if (input.mode === "file" && activeFileMention) {
-    const orderedEntries = orderAutocompleteOptions(input.fileSuggestions);
-    return orderedEntries.map((entry) => ({
-      type: "workspace_entry" as const,
-      id: `${entry.kind}:${entry.path}`,
-      label: entry.path,
-      kind: entry.kind,
-      entryPath: entry.path,
-      mention: activeFileMention,
-    }));
+    const rankedEntries = rankFileMentionSuggestions(
+      input.fileSuggestions,
+      activeFileMention.query,
+    );
+    return rankedEntries.map((entry) => {
+      const path = entry.path.replace(/\/$/, "");
+      const separator = path.lastIndexOf("/");
+      return {
+        type: "workspace_entry" as const,
+        id: `${entry.kind}:${entry.path}`,
+        label: path.slice(separator + 1),
+        detail: separator >= 0 ? path.slice(0, separator) : undefined,
+        kind: entry.kind,
+        entryPath: entry.path,
+        mention: activeFileMention,
+      };
+    });
   }
 
   return [];
@@ -343,6 +361,7 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
     userInput,
     cursorIndex,
     setUserInput,
+    onFileSelect,
     serverId,
     agentId,
     draftConfig,
@@ -488,6 +507,15 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
     ],
   );
 
+  const inputCommands = useMemo(
+    () => [
+      ...CLIENT_SLASH_COMMANDS.map((command) => ({ name: command.name, kind: "command" })),
+      ...pluginClientSlashCommands.map((command) => ({ name: command.name, kind: "command" })),
+      ...commands,
+    ],
+    [commands, pluginClientSlashCommands],
+  );
+
   const onSelectOption = useCallback(
     (option: AutocompleteOption, snapshot?: AgentAutocompleteInputSnapshot) => {
       const selected = option as AgentAutocompleteOption;
@@ -531,6 +559,14 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
       }
 
       if (!current.fileMention) return;
+      if (selected.kind === "file") {
+        onFileSelect(selected.entryPath);
+        const { start, end } = current.fileMention;
+        const nextInput = current.text.slice(0, start) + current.text.slice(end);
+        setUserInput(nextInput, { start, end: start });
+        onAutocompleteApplied?.();
+        return;
+      }
       const nextInput = applyFileMentionReplacement({
         text: current.text,
         mention: current.fileMention,
@@ -543,6 +579,7 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
       canExecuteClientSlashCommand,
       onAutocompleteApplied,
       onClientSlashCommand,
+      onFileSelect,
       setUserInput,
       userInput,
       cursorIndex,
@@ -557,7 +594,8 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
     [onSelectOption],
   );
 
-  const { selectedIndex, onKeyPress } = useAutocomplete({
+  const { selectedIndex, onKeyPress, onHighlight } = useAutocomplete({
+    optionsPosition: mode === "file" ? "below-input" : "above-input",
     isVisible,
     options,
     query: mode === "command" ? commandFilterQuery : fileFilterQuery,
@@ -591,6 +629,8 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
     mode === "file" ? t("agentAutocomplete.noFiles") : t("agentAutocomplete.noCommands");
 
   return {
+    mode,
+    commands: inputCommands,
     isVisible,
     options,
     selectedIndex,
@@ -600,5 +640,6 @@ export function useAgentAutocomplete(input: UseAgentAutocompleteInput): AgentAut
     emptyText,
     onSelectOption,
     onKeyPress,
+    onHighlight,
   };
 }

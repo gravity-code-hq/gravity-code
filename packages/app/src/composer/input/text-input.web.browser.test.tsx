@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { EditingTextInput as ComposerTextInput } from "@/components/ui/text-input/text-input.web";
 import type { EditingTextInputHandle as ComposerTextInputHandle } from "@/components/ui/text-input";
+import type { InputCommand } from "@/components/ui/text-input/command-ranges";
 
 interface MountedInput {
   root: Root;
@@ -21,6 +22,7 @@ const mountedInputs: MountedInput[] = [];
 function mountInput(
   onChangeText: (text: string) => void,
   inputRef: React.MutableRefObject<ComposerTextInputHandle | null> = React.createRef(),
+  commands?: readonly InputCommand[],
 ): MountedInput {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -31,6 +33,8 @@ function mountInput(
       <ComposerTextInput
         ref={inputRef}
         initialValue=""
+        commands={commands}
+        commandHighlightColor="#b45309"
         multiline={true}
         onChangeText={onChangeText}
         testID="composer-input"
@@ -82,6 +86,45 @@ afterEach(() => {
 });
 
 describe("ComposerTextInput web IME composition", () => {
+  it("paints known commands without changing submitted text, selection, or clear behavior", () => {
+    const ref = React.createRef<ComposerTextInputHandle>();
+    const mounted = mountInput(ignoreTextChange, ref, [{ name: "review", kind: "command" }]);
+    act(() => {
+      ref.current?.focus();
+      ref.current?.replaceText("/review changes", { start: 15, end: 15 });
+    });
+
+    expect(mounted.container.querySelector("[data-command-token]")?.textContent).toBe("/review");
+    expect(ref.current?.getText()).toBe("/review changes");
+    expect(mounted.textarea.selectionStart).toBe(15);
+    expect(mounted.textarea.style.webkitTextFillColor).toBe("transparent");
+
+    act(() => typeFromIme(mounted.textarea, "/review-more changes"));
+    expect(mounted.container.querySelector("[data-command-token]")).toBeNull();
+    expect(mounted.textarea.style.webkitTextFillColor).toBe("");
+
+    act(() => ref.current?.replaceText("/review "));
+    expect(mounted.container.querySelector("[data-command-token]")?.textContent).toBe("/review");
+    act(() => ref.current?.reset());
+    expect(mounted.container.querySelector("[data-command-token]")).toBeNull();
+    expect(ref.current?.getText()).toBe("");
+    expect(document.activeElement).toBe(mounted.textarea);
+  });
+
+  it("keeps IME candidates visible while command decoration is suspended", () => {
+    const ref = React.createRef<ComposerTextInputHandle>();
+    const mounted = mountInput(ignoreTextChange, ref, [{ name: "review", kind: "command" }]);
+    act(() => ref.current?.replaceText("/review "));
+    act(() => {
+      dispatchComposition(mounted.textarea, "compositionstart");
+      typeFromIme(mounted.textarea, "/review 你好");
+    });
+    expect(mounted.textarea.style.webkitTextFillColor).toBe("");
+    expect(mounted.container.querySelector("[data-command-token]")).toBeNull();
+    act(() => dispatchComposition(mounted.textarea, "compositionend"));
+    expect(mounted.container.querySelector("[data-command-token]")?.textContent).toBe("/review");
+    expect(ref.current?.getText()).toBe("/review 你好");
+  });
   it("resets the composer text while preserving focus", () => {
     const mounted = mountInput(ignoreTextChange);
     act(() => {

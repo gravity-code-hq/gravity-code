@@ -1,4 +1,4 @@
-import type { JsonValue } from "@getpaseo/protocol/agent-types";
+import type { JsonValue } from "@gravity/protocol/agent-types";
 import type { PluginRpcContract } from "./rpc.js";
 
 export interface PluginTheme {

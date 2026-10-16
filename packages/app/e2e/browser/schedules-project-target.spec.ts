@@ -5,7 +5,6 @@ import { seedWorkspace, type SeededWorkspace } from "../support/helpers/seed-cli
 import { getServerId } from "../support/helpers/server-id";
 import { projectEquivalenceViewKey } from "../support/helpers/project-view-key";
 import { escapeRegex } from "../support/helpers/regex";
-import { expectNoTruncation } from "../support/helpers/no-truncation";
 import { expectSettled, expectStableHeight } from "../support/helpers/settled";
 import { waitForSidebarHydration } from "../support/helpers/workspace-ui";
 import { buildSchedulesRoute } from "../../src/utils/host-routes";
@@ -182,7 +181,7 @@ test.describe("Schedules project target", () => {
     await gotoAppShell(page);
     await waitForSidebarHydration(page);
 
-    await page.getByRole("button", { name: "Schedules" }).click();
+    await page.getByRole("button", { name: "Automations" }).click();
     await expect(page).toHaveURL(/\/schedules$/);
     await expect(page).not.toHaveURL(/\/h\//);
     await expect(page.getByTestId("schedules-empty")).toBeVisible();
@@ -217,19 +216,14 @@ test.describe("Schedules project target", () => {
     await expectSettled(page.getByTestId("schedule-thinking-trigger"));
     await expect(page.getByTestId("schedule-mode-trigger")).toBeVisible();
     await expectSettled(page.getByTestId("schedule-mode-trigger"));
-    await expect(page.getByTestId("schedule-isolation-trigger")).toHaveCount(0);
-    await expect(page.getByText("Worktree isolation is available for git projects.")).toHaveCount(
-      0,
-    );
-
     await page.getByTestId("schedule-cadence-preset-trigger").click();
     await page.getByTestId("schedule-cadence-preset-daily-9").click();
     await expect(page.getByTestId("schedule-cadence-preset-trigger")).toContainText("Daily 9:00");
     await expect(page.getByTestId("cadence-cron-expression")).toHaveValue("0 9 * * *");
 
-    await page.getByLabel("Schedule name").fill(scheduleName);
+    await page.getByLabel("Automation name").fill(scheduleName);
     await page.getByLabel("Prompt").fill("Summarize the project status.");
-    await page.getByRole("button", { name: "Create schedule" }).click();
+    await page.getByRole("button", { name: "Create automation" }).click();
 
     await expect(page.getByTestId("schedule-form-sheet")).toHaveCount(0, { timeout: 30_000 });
     await expectScheduleCreatedForProject({
@@ -237,29 +231,11 @@ test.describe("Schedules project target", () => {
       name: scheduleName,
       cadenceExpression: "0 9 * * *",
     });
-
-    const secondary = await createScheduleHost();
-    cleanupTasks.push(() => secondary.cleanup());
-    await addScheduleHostAndReload({
-      page,
-      serverId: secondary.serverId,
-      label: secondary.label,
-      port: secondary.port,
-    });
-
-    const hostFilterTrigger = page.getByTestId("schedules-host-filter-trigger");
-    await expect(hostFilterTrigger).toBeVisible({ timeout: 30_000 });
-    await hostFilterTrigger.click();
-    const hostFilterPopup = page.getByTestId("combobox-desktop-container").last();
-    await expect(hostFilterPopup).toBeVisible({ timeout: 30_000 });
-    await expectNoTruncation(hostFilterPopup);
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("combobox-desktop-container")).toHaveCount(0, {
-      timeout: 5_000,
-    });
   });
 
-  test("clears the selected project and model when the host changes", async ({ page }) => {
+  test("follows the host pinned in the sidebar footer and hides the host field", async ({
+    page,
+  }) => {
     const workspace = await seedWorkspace({ repoPrefix: "schedule-project-host-model-" });
     cleanupTasks.push(() => workspace.cleanup());
     const serverId = getServerId();
@@ -276,71 +252,52 @@ test.describe("Schedules project target", () => {
       port: secondary.port,
     });
     await expect(page.getByTestId("schedules-empty")).toBeVisible({ timeout: 30_000 });
+
+    // The screen has no host picker of its own; the sidebar footer owns the choice.
+    await expect(page.getByTestId("schedules-host-filter-trigger")).toHaveCount(0);
+    await page.getByTestId("sidebar-hosts-trigger").click();
+    await page.getByTestId(`sidebar-host-row-${secondary.serverId}`).click();
+    await expect(page.getByTestId("schedules-empty")).toBeVisible({ timeout: 30_000 });
     await page.getByTestId("schedules-empty-new").click();
     const formSheet = page.getByTestId("schedule-form-sheet");
     await expect(formSheet).toBeVisible({ timeout: 10_000 });
     await expectStableHeight(formSheet);
 
-    const hostTrigger = page.getByTestId("schedule-host-trigger");
     const projectTrigger = page.getByTestId("schedule-project-trigger");
-    const modelTrigger = page.getByTestId("schedule-model-trigger");
-    const thinkingTrigger = page.getByTestId("schedule-thinking-trigger");
-    const modeTrigger = page.getByTestId("schedule-mode-trigger");
-    await expect(hostTrigger).toBeVisible({ timeout: 30_000 });
-    await expect(projectTrigger).toHaveCount(0);
-    await expect(modelTrigger).toHaveCount(0);
-    await expect(thinkingTrigger).toHaveCount(0);
-    await expect(modeTrigger).toHaveCount(0);
-    await hostTrigger.click();
-    await page.getByTestId(`schedule-host-option-${serverId}`).click();
-    await expect(projectTrigger).toBeVisible();
-    await expect(modelTrigger).toHaveCount(0);
-    await expect(thinkingTrigger).toHaveCount(0);
-    await expect(modeTrigger).toHaveCount(0);
-    await expectSettled(hostTrigger);
-
+    await expect(page.getByTestId("schedule-host-trigger")).toHaveCount(0);
+    await expect(projectTrigger).toBeVisible({ timeout: 30_000 });
     await projectTrigger.click();
-    await page
-      .getByTestId(`schedule-project-option-${projectEquivalenceViewKey(workspace.projectKey)}`)
-      .click();
-    await expect(projectTrigger).toContainText(workspace.projectDisplayName);
-    await expectSettled(projectTrigger);
+    await expect(
+      page.getByTestId(
+        `schedule-project-option-${projectEquivalenceViewKey(secondary.projectKey)}`,
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId(
+        `schedule-project-option-${projectEquivalenceViewKey(workspace.projectKey)}`,
+      ),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await expect(formSheet).toHaveCount(0, { timeout: 10_000 });
 
-    await selectModelByLabel(page, "Ten second stream");
-    await expect(modelTrigger).toContainText("Ten second stream");
-    await expectSettled(modelTrigger);
-    await expect(thinkingTrigger).toContainText("Low");
-    await expectSettled(thinkingTrigger);
-    await expect(modeTrigger).toBeVisible();
-    await expectSettled(modeTrigger);
-
-    await hostTrigger.click();
-    await page.getByTestId(`schedule-host-option-${secondary.serverId}`).click();
-    await expect(hostTrigger).toContainText(secondary.label);
-    await expect(projectTrigger).toContainText(/select project/i);
-    await expect(modelTrigger).toHaveCount(0);
-    await expect(thinkingTrigger).toHaveCount(0);
-    await expect(modeTrigger).toHaveCount(0);
-    await expectSettled(hostTrigger);
-    await expectSettled(projectTrigger);
-
-    await projectTrigger.click();
-    await page
-      .getByTestId(`schedule-project-option-${projectEquivalenceViewKey(secondary.projectKey)}`)
-      .click();
-    await expect(projectTrigger).toContainText(secondary.projectDisplayName);
-    await expectSettled(projectTrigger);
-    await expect(modelTrigger).toContainText(/select model/i);
-    await expectSettled(modelTrigger);
-    await expect(thinkingTrigger).toHaveCount(0);
-    await expect(modeTrigger).toHaveCount(0);
-
-    await page.getByLabel("Schedule name").fill(`Cross host model ${Date.now()}`);
-    await page.getByLabel("Prompt").fill("Run on the secondary host project.");
-    await expect(page.getByRole("button", { name: "Create schedule" })).toBeDisabled();
+    // Pinning back to the primary host swaps the project list with it.
+    await page.getByTestId("sidebar-hosts-trigger").click();
+    await page.getByTestId(`sidebar-host-row-${serverId}`).click();
+    await expect(page.getByTestId("schedules-empty")).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId("schedules-empty-new").click();
+    await expect(page.getByTestId("schedule-host-trigger")).toHaveCount(0);
+    await page.getByTestId("schedule-project-trigger").click();
+    await expect(
+      page.getByTestId(
+        `schedule-project-option-${projectEquivalenceViewKey(workspace.projectKey)}`,
+      ),
+    ).toBeVisible();
   });
 
-  test("creates and edits schedule isolation and archive cleanup knobs", async ({ page }) => {
+  test("creates and edits the archive cleanup knob on worktree-backed schedules", async ({
+    page,
+  }) => {
     const workspace = await seedWorkspace({ repoPrefix: "schedule-knobs-" });
     cleanupTasks.push(() => workspace.cleanup());
     const scheduleName = `Knob schedule ${Date.now()}`;
@@ -360,15 +317,13 @@ test.describe("Schedules project target", () => {
     await expect(
       page.getByText("Off keeps each run's workspace in the sidebar for inspection."),
     ).toHaveCount(0);
-    await page.getByTestId("schedule-isolation-trigger").click();
-    await page.getByTestId("schedule-isolation-worktree").click();
-    await expect(page.getByTestId("schedule-isolation-trigger")).toContainText("Worktree");
+    await expect(page.getByTestId("schedule-isolation-trigger")).toHaveCount(0);
     await page.getByTestId("schedule-archive-on-finish-switch").click();
-    await page.getByLabel("Schedule name").fill(scheduleName);
+    await page.getByLabel("Automation name").fill(scheduleName);
     await page.getByLabel("Prompt").fill("Run with custom workspace cleanup.");
     await page.getByTestId("schedule-cadence-preset-trigger").click();
     await page.getByTestId("schedule-cadence-preset-every-hour").click();
-    await page.getByRole("button", { name: "Create schedule" }).click();
+    await page.getByRole("button", { name: "Create automation" }).click();
 
     await expect(page.getByTestId("schedule-form-sheet")).toHaveCount(0, { timeout: 30_000 });
     await expectScheduleKnobs({
@@ -383,7 +338,7 @@ test.describe("Schedules project target", () => {
     const formSheet = page.getByTestId("schedule-form-sheet");
     await expect(formSheet).toBeVisible({ timeout: 10_000 });
     await expectStableHeight(formSheet);
-    await expect(page.getByTestId("schedule-isolation-trigger")).toContainText("Worktree");
+    await expect(page.getByTestId("schedule-isolation-trigger")).toHaveCount(0);
     await expect(page.getByTestId("schedule-archive-on-finish-switch")).toHaveAttribute(
       "aria-checked",
       "false",
@@ -392,8 +347,6 @@ test.describe("Schedules project target", () => {
       page.getByText("Off keeps each run's workspace in the sidebar for inspection."),
     ).toHaveCount(0);
 
-    await page.getByTestId("schedule-isolation-trigger").click();
-    await page.getByTestId("schedule-isolation-local").click();
     await page.getByTestId("schedule-archive-on-finish-switch").click();
     await page.getByRole("button", { name: "Save changes" }).click();
 
@@ -402,7 +355,7 @@ test.describe("Schedules project target", () => {
       workspace,
       name: scheduleName,
       archiveOnFinish: true,
-      isolation: "local",
+      isolation: "worktree",
     });
   });
 });

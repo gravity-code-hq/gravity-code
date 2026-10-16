@@ -13,9 +13,9 @@ const roots: string[] = [];
 type TestPluginRuntime = NonNullable<ConstructorParameters<typeof PluginService>[3]["runtime"]>;
 
 async function createPlugin(id: string, source: string): Promise<string> {
-  const directory = await mkdtemp(path.join(tmpdir(), "paseo-plugin-service-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "gravity-plugin-service-"));
   roots.push(directory);
-  await writeFile(path.join(directory, "paseo-plugin.json"), JSON.stringify({ id }));
+  await writeFile(path.join(directory, "gravity-plugin.json"), JSON.stringify({ id }));
   await writeFile(path.join(directory, "index.server.ts"), source);
   return directory;
 }
@@ -48,7 +48,7 @@ function createService(
 }
 
 function bindTestSessionHost(service: PluginService): PluginService {
-  service.bindPaseoSessionHost({
+  service.bindGravitySessionHost({
     async attachPluginSocket(_pluginId, socket) {
       const closed = new Promise<void>((resolve) => socket.once("close", resolve));
       socket.on("message", (data) => {
@@ -114,7 +114,7 @@ function createPausedRuntime() {
       running.clear();
     },
     subscribe: () => () => undefined,
-    bindPaseoSessionHost: () => undefined,
+    bindGravitySessionHost: () => undefined,
   };
   return { runtime, started, releaseStart };
 }
@@ -149,14 +149,14 @@ function createPluginSelectivePausedRuntime(pausedPluginId: string) {
       running.clear();
     },
     subscribe: () => () => undefined,
-    bindPaseoSessionHost: () => undefined,
+    bindGravitySessionHost: () => undefined,
   };
   return { runtime, started, releaseStart, starts };
 }
 
 describe("PluginService", () => {
   it("resolves a provider icon path to sanitized inline SVG", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const directory = await createPlugin(
       "provider-icon",
@@ -192,7 +192,7 @@ describe("PluginService", () => {
   });
 
   it("publishes provider registrations only while their plugin is running", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const directory = await createPlugin(
       "provider-lifecycle",
@@ -218,7 +218,7 @@ describe("PluginService", () => {
   });
 
   it("retains logs when disabled and clears them only when removed", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const entries = [
       {
@@ -241,7 +241,7 @@ describe("PluginService", () => {
       stopPluginById: async () => false,
       stopAll: async () => undefined,
       subscribe: () => () => undefined,
-      bindPaseoSessionHost: () => undefined,
+      bindGravitySessionHost: () => undefined,
     };
     const service = createService(
       home,
@@ -260,7 +260,7 @@ describe("PluginService", () => {
   });
 
   it("publishes each configured plugin after its startup state settles", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const first = await createPlugin(
       "startup-first",
@@ -284,7 +284,7 @@ describe("PluginService", () => {
   }, 20_000);
 
   it("uses an explicit config key, exposes reload failure, and retries from disk", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const directory = await createPlugin(
       "manifest-default",
@@ -322,14 +322,14 @@ describe("PluginService", () => {
   }, 20_000);
 
   it("prefers an existing directory and installs its selected plugin subdirectory", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const repository = await mkdtemp(path.join(tmpdir(), "owner-repository-"));
     roots.push(repository);
     const pluginDirectory = path.join(repository, "plugins", "review");
     await mkdir(pluginDirectory, { recursive: true });
     await writeFile(
-      path.join(pluginDirectory, "paseo-plugin.json"),
+      path.join(pluginDirectory, "gravity-plugin.json"),
       JSON.stringify({ id: "local-monorepo" }),
     );
     await writeFile(
@@ -346,15 +346,15 @@ describe("PluginService", () => {
   }, 20_000);
 
   it("keeps the running commit when a Git update build command fails", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
-    const repository = await mkdtemp(path.join(tmpdir(), "paseo-plugin-repository-"));
+    const repository = await mkdtemp(path.join(tmpdir(), "gravity-plugin-repository-"));
     roots.push(repository);
     await runGitCommand(["init", "-b", "main"], { cwd: repository });
-    await runGitCommand(["config", "user.name", "Paseo Tests"], { cwd: repository });
-    await runGitCommand(["config", "user.email", "paseo@example.test"], { cwd: repository });
+    await runGitCommand(["config", "user.name", "Gravity Tests"], { cwd: repository });
+    await runGitCommand(["config", "user.email", "gravity@example.test"], { cwd: repository });
     await writeFile(
-      path.join(repository, "paseo-plugin.json"),
+      path.join(repository, "gravity-plugin.json"),
       JSON.stringify({ id: "git-update" }),
     );
     await writeFile(
@@ -376,7 +376,7 @@ describe("PluginService", () => {
     const installedCommit = installed.commit;
 
     await writeFile(
-      path.join(repository, "paseo-plugin.json"),
+      path.join(repository, "gravity-plugin.json"),
       JSON.stringify({
         id: "git-update",
         build: [
@@ -408,15 +408,15 @@ describe("PluginService", () => {
   }, 30_000);
 
   it("runs Git build commands in staging before validation and activation on install and update", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
-    const repository = await mkdtemp(path.join(tmpdir(), "paseo-plugin-repository-"));
+    const repository = await mkdtemp(path.join(tmpdir(), "gravity-plugin-repository-"));
     roots.push(repository);
     await runGitCommand(["init", "-b", "main"], { cwd: repository });
-    await runGitCommand(["config", "user.name", "Paseo Tests"], { cwd: repository });
-    await runGitCommand(["config", "user.email", "paseo@example.test"], { cwd: repository });
+    await runGitCommand(["config", "user.name", "Gravity Tests"], { cwd: repository });
+    await runGitCommand(["config", "user.email", "gravity@example.test"], { cwd: repository });
     await writeFile(
-      path.join(repository, "paseo-plugin.json"),
+      path.join(repository, "gravity-plugin.json"),
       JSON.stringify({
         id: "prepared-git-plugin",
         build: [
@@ -452,7 +452,7 @@ describe("PluginService", () => {
       stopPluginById: async (pluginId) => running.delete(pluginId),
       stopAll: async () => running.clear(),
       subscribe: () => () => undefined,
-      bindPaseoSessionHost: () => undefined,
+      bindGravitySessionHost: () => undefined,
     };
     const service = createService(
       home,
@@ -470,7 +470,7 @@ describe("PluginService", () => {
     await expect(stat(path.join(installed.path, "shell-injection"))).rejects.toThrow();
 
     await writeFile(
-      path.join(repository, "paseo-plugin.json"),
+      path.join(repository, "gravity-plugin.json"),
       JSON.stringify({
         id: "prepared-git-plugin",
         build: [
@@ -493,15 +493,15 @@ describe("PluginService", () => {
   }, 30_000);
 
   it("activates an update when the enabled plugin previously failed to start", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
-    const repository = await mkdtemp(path.join(tmpdir(), "paseo-plugin-repository-"));
+    const repository = await mkdtemp(path.join(tmpdir(), "gravity-plugin-repository-"));
     roots.push(repository);
     await runGitCommand(["init", "-b", "main"], { cwd: repository });
-    await runGitCommand(["config", "user.name", "Paseo Tests"], { cwd: repository });
-    await runGitCommand(["config", "user.email", "paseo@example.test"], { cwd: repository });
+    await runGitCommand(["config", "user.name", "Gravity Tests"], { cwd: repository });
+    await runGitCommand(["config", "user.email", "gravity@example.test"], { cwd: repository });
     await writeFile(
-      path.join(repository, "paseo-plugin.json"),
+      path.join(repository, "gravity-plugin.json"),
       JSON.stringify({ id: "failed-update" }),
     );
     await writeFile(path.join(repository, "index.server.ts"), "export default () => () => {};\n");
@@ -535,7 +535,7 @@ describe("PluginService", () => {
       stopPluginById: async (pluginId) => running.delete(pluginId),
       stopAll: async () => running.clear(),
       subscribe: () => () => undefined,
-      bindPaseoSessionHost: () => undefined,
+      bindGravitySessionHost: () => undefined,
     };
     const store = createStore(home, {
       "failed-update": { source: "directory", path: initial.directory, enabled: true },
@@ -568,7 +568,7 @@ describe("PluginService", () => {
   }, 30_000);
 
   it("disables and removes a plugin without touching its source directory", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const cleanupFile = path.join(home, "cleanup.txt");
     const directory = await createPlugin(
@@ -598,7 +598,7 @@ export default function contribute(plugin: unknown) {
   }, 20_000);
 
   it("detaches every plugin synchronously when the global switch turns off and recovers", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const first = await createPlugin(
       "first",
@@ -632,7 +632,7 @@ export default function contribute(plugin: unknown) {
   }, 20_000);
 
   it("does not publish an in-flight start after a later global disable", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const store = createStore(home, {
       slow: { source: "directory", path: "/plugins/slow", enabled: true },
@@ -657,7 +657,7 @@ export default function contribute(plugin: unknown) {
   });
 
   it("does not publish an in-flight enable after a later plugin disable", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const store = createStore(home, {
       slow: { source: "directory", path: "/plugins/slow", enabled: false },
@@ -681,7 +681,7 @@ export default function contribute(plugin: unknown) {
   });
 
   it("keeps a later disable authoritative over an enable waiting behind another plugin", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const store = createStore(home, {
       occupier: { source: "directory", path: "/plugins/occupier", enabled: false },
@@ -715,7 +715,7 @@ export default function contribute(plugin: unknown) {
   });
 
   it("notifies exactly once after successful and failed configured installs", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const successful = await createPlugin(
       "successful-install",
@@ -740,10 +740,10 @@ export default function contribute(plugin: unknown) {
   });
 
   it("reports invalid manifests, missing entries, and startup failures", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const invalid = await createPlugin("valid-before-corruption", "export default () => () => {};");
-    await writeFile(path.join(invalid, "paseo-plugin.json"), JSON.stringify({}));
+    await writeFile(path.join(invalid, "gravity-plugin.json"), JSON.stringify({}));
     const missingEntry = await createPlugin("missing-entry", "export default () => () => {};");
     await rm(path.join(missingEntry, "index.server.ts"));
     const legacy = await createPlugin("legacy-plugin", "export default () => () => {};");
@@ -761,7 +761,7 @@ export default function contribute(plugin: unknown) {
       "Plugin entry points are missing",
     );
     await expect(service.installDirectory({ path: legacy })).rejects.toThrow(
-      "This plugin was made for an older version of Paseo and cannot run on Paseo v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://paseo.sh/docs/plugins/v0.8/migration",
+      "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
     );
     await expect(service.installDirectory({ path: startupFailure })).rejects.toThrow(
       "startup exploded",
@@ -771,7 +771,7 @@ export default function contribute(plugin: unknown) {
         id: "legacy-plugin",
         status: "failed",
         error:
-          "This plugin was made for an older version of Paseo and cannot run on Paseo v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://paseo.sh/docs/plugins/v0.8/migration",
+          "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
       }),
       expect.objectContaining({
         id: "missing-entry",
@@ -788,7 +788,7 @@ export default function contribute(plugin: unknown) {
   });
 
   it("contains cleanup errors and invokes server cleanup once per stopped installation", async () => {
-    const home = await mkdtemp(path.join(tmpdir(), "paseo-plugin-home-"));
+    const home = await mkdtemp(path.join(tmpdir(), "gravity-plugin-home-"));
     roots.push(home);
     const cleanupFile = path.join(home, "cleanups.txt");
     const directory = await createPlugin(

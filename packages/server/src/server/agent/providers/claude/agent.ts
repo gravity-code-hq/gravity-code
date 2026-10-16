@@ -31,11 +31,13 @@ import {
   readTaskNotificationToolUseIdFromHistoryRecord,
 } from "./task-notification-tool-call.js";
 import {
+  applyClaudeRuntimeModels,
   findClaudeModel,
   getClaudeModelsWithSettings,
   normalizeClaudeRuntimeModelId,
   resolveConfiguredClaudeModel,
 } from "./models.js";
+import { type ClaudeModelProbe, probeClaudeModels } from "./model-probe.js";
 import {
   CLAUDE_DISABLED_THINKING_OPTION_ID,
   CLAUDE_ULTRACODE_THINKING_OPTION_ID,
@@ -62,6 +64,7 @@ import {
 } from "./subagents/workflow-replay-source.js";
 import { readClaudeWorkflowResultFile } from "./subagents/workflow-output.js";
 import { buildClaudeFeatures, claudeModelSupportsFastMode } from "./feature-definitions.js";
+import { CONTEXT_BUDGET_FEATURE_ID, contextBudgetTokens } from "../context-budget.js";
 import {
   buildBinaryDiagnosticRows,
   buildCommandResolutionDiagnosticRows,
@@ -161,7 +164,7 @@ export function normalizeClaudeAskUserQuestionRequestInput(
   }
 
   // Claude Code's AskUserQuestion schema says "Other" is host-provided, not a
-  // model-supplied option. Paseo's shared question UI uses allowOther for that
+  // model-supplied option. Gravity's shared question UI uses allowOther for that
   // freeform answer path.
   return {
     ...input,
@@ -201,7 +204,7 @@ export function normalizeClaudeAskUserQuestionUpdatedInput(
 ): AgentMetadata {
   const fallback = isMetadata(fallbackInput) ? fallbackInput : {};
   const base = isMetadata(updatedInput) ? updatedInput : {};
-  // Paseo's shared question UI serializes answers by question header, but Claude's
+  // Gravity's shared question UI serializes answers by question header, but Claude's
   // AskUserQuestion tool expects answer keys to match the full question text. Merge
   // the original request payload back in so provider callbacks that only return
   // `{ answers }` still satisfy Claude's full tool input schema.
@@ -404,6 +407,7 @@ interface ClaudeAgentClientOptions {
   queryFactory?: ClaudeQueryFactory;
   resolveBinary?: () => Promise<string>;
   resolveVersion?: (signal?: AbortSignal) => Promise<string>;
+  probeModels?: ClaudeModelProbe;
   configDir?: string;
 }
 
@@ -1499,6 +1503,7 @@ export class ClaudeAgentClient implements AgentClient {
   private readonly queryFactory?: ClaudeQueryFactory;
   private readonly resolveBinary: () => Promise<string>;
   private readonly resolveVersion: (signal?: AbortSignal) => Promise<string>;
+  private readonly probeModels: ClaudeModelProbe;
   private readonly configDir?: string;
 
   constructor(options: ClaudeAgentClientOptions) {
@@ -1510,6 +1515,7 @@ export class ClaudeAgentClient implements AgentClient {
     this.resolveVersion =
       options.resolveVersion ??
       ((signal) => resolveClaudeCodeVersion(this.runtimeSettings, signal));
+    this.probeModels = options.probeModels ?? probeClaudeModels;
     this.configDir = options.configDir;
   }
 
@@ -1581,6 +1587,27 @@ export class ClaudeAgentClient implements AgentClient {
     } catch (error) {
       this.logger.warn({ err: error }, "Failed to resolve Claude Code version for model catalog");
     }
+    // Claude Code owns the model list; the manifest only fills in what the CLI does not
+    // report and keeps models it has since dropped from the picker selectable.
+    try {
+      const runtimeModels = await runProviderRefreshActivity(context, "model-probe", () =>
+        this.probeModels({
+          logger: this.logger,
+          runtimeSettings: this.runtimeSettings,
+          queryFactory: this.queryFactory,
+          resolveBinary: this.resolveBinary,
+          settingSources: CLAUDE_SETTING_SOURCES,
+          configDir: this.configDir,
+          signal: context?.signal,
+        }),
+      );
+      if (runtimeModels.length > 0) {
+        applyClaudeRuntimeModels(runtimeModels, claudeCodeVersion);
+      }
+    } catch (error) {
+      // A saved model choice must survive a failed probe, so keep serving the manifest.
+      this.logger.warn({ err: error }, "Failed to probe Claude Code for its model catalog");
+    }
     const models = await runProviderRefreshActivity(context, "settings", () =>
       getClaudeModelsWithSettings(this.logger, this.configDir, claudeCodeVersion),
     );
@@ -1607,6 +1634,7 @@ export class ClaudeAgentClient implements AgentClient {
     return buildClaudeFeatures({
       modelId: claudeConfig.model,
       fastModeEnabled: claudeConfig.featureValues?.fast_mode === true,
+      contextBudget: claudeConfig.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
     });
   }
 
@@ -2159,6 +2187,7 @@ class ClaudeAgentSession implements AgentSession {
     return buildClaudeFeatures({
       modelId: this.config.model,
       fastModeEnabled: this.config.featureValues?.fast_mode === true,
+      contextBudget: this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
     });
   }
 
@@ -2484,6 +2513,15 @@ class ClaudeAgentSession implements AgentSession {
   }
 
   async setFeature(featureId: string, value: unknown): Promise<void> {
+    if (featureId === CONTEXT_BUDGET_FEATURE_ID) {
+      const autoCompactWindow = contextBudgetTokens(value);
+      this.assertContextBudgetEnvironment(autoCompactWindow);
+      if (this.query) {
+        await this.query.applyFlagSettings({ autoCompactWindow });
+      }
+      this.config.featureValues = { ...this.config.featureValues, [featureId]: value };
+      return;
+    }
     if (featureId !== "fast_mode") {
       throw new Error(`Unknown Claude feature: ${featureId}`);
     }
@@ -3152,6 +3190,10 @@ class ClaudeAgentSession implements AgentSession {
     if (fastMode !== null) {
       await this.query.applyFlagSettings({ fastMode });
     }
+    const contextBudget = this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID];
+    if (contextBudget !== undefined) {
+      await this.query.applyFlagSettings({ autoCompactWindow: contextBudgetTokens(contextBudget) });
+    }
     // Do not kick off background control-plane queries here. Methods like
     // supportedCommands()/setPermissionMode() may execute immediately after
     // ensureQuery() (for listCommands()/setMode()), and sharing the same query
@@ -3334,15 +3376,28 @@ class ClaudeAgentSession implements AgentSession {
     input: { ultracode: boolean },
   ): Pick<ClaudeOptions, "settings"> | Record<string, never> {
     const fastMode = this.resolveFastModeSetting();
-    if (fastMode === null && !input.ultracode) {
+    const autoCompactWindow = contextBudgetTokens(
+      this.config.featureValues?.[CONTEXT_BUDGET_FEATURE_ID],
+    );
+    this.assertContextBudgetEnvironment(autoCompactWindow);
+    if (fastMode === null && !input.ultracode && autoCompactWindow === null) {
       return {};
     }
     return {
       settings: mergeClaudeSettings(providerOptions.settings, {
         ...(fastMode === null ? {} : { fastMode }),
         ...(input.ultracode ? { ultracode: true } : {}),
+        ...(autoCompactWindow === null ? {} : { autoCompactWindow }),
       }),
     };
+  }
+
+  private assertContextBudgetEnvironment(budget: number | null): void {
+    if (budget !== null && this.buildSdkEnv().CLAUDE_CODE_AUTO_COMPACT_WINDOW) {
+      throw new Error(
+        "Remove CLAUDE_CODE_AUTO_COMPACT_WINDOW from the provider environment to change the context budget",
+      );
+    }
   }
 
   private resolveFastModeSetting(): boolean | null {
@@ -4764,7 +4819,7 @@ class ClaudeAgentSession implements AgentSession {
    * Effort is reachable only through hooks.
    *
    * It appears nowhere on the message stream — verified by scanning every message type at depth
-   * — and the level Paseo requests is not necessarily the level that runs, because a model that
+   * — and the level Gravity requests is not necessarily the level that runs, because a model that
    * does not support it is silently downgraded. A hook firing inside a subagent reports the
    * active post-downgrade level alongside the subagent's `agent_id`.
    *
@@ -5082,7 +5137,7 @@ class ClaudeAgentSession implements AgentSession {
     }
 
     const items: AgentTimelineItem[] = [];
-    // User SDK entries can arrive as multiple text blocks, but Paseo treats them as one message.
+    // User SDK entries can arrive as multiple text blocks, but Gravity treats them as one message.
     const userTextParts: string[] = [];
     for (const block of content) {
       if (!isClaudeContentChunk(block)) {

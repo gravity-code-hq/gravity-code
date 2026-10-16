@@ -1,5 +1,6 @@
 import type { TextInputProps } from "react-native";
 import type { NativePastedFile } from "@/composer/native-pasted-image";
+import type { InputCommand } from "./command-ranges";
 
 export interface EditingTextInputHandle {
   focus(): void;
@@ -17,6 +18,8 @@ export interface EditingTextInputProps extends Omit<
   "defaultValue" | "onChangeText" | "value"
 > {
   initialValue?: string;
+  commands?: readonly InputCommand[];
+  commandHighlightColor?: string;
   onChangeText?: (text: string) => void;
   onPasteImages?: (files: readonly NativePastedFile[]) => void;
   onPasteError?: (message: string) => void;

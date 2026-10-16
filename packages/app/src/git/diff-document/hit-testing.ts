@@ -16,7 +16,7 @@ export function hitTestDiffDocument(input: {
   horizontalOffset: number;
 }): DiffHit | null {
   const file = fileAtDocumentOffset(input.model.files, input.documentY);
-  if (!file) return null;
+  if (!file || input.documentY < file.top) return null;
   if (input.documentY < file.bodyTop) return { kind: "header", path: file.path };
   const row = rowAtOffset(input.model.rows, file.rowStart, file.rowEnd, input.documentY);
   if (!row || row.kind !== "line") return null;

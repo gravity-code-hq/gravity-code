@@ -3,9 +3,9 @@ import type {
   AgentTimelineItem,
   JsonValue,
   ToolCallDetail,
-} from "@getpaseo/protocol/agent-types";
-import { timelineItemIdentity } from "@getpaseo/protocol/timeline-identity";
-import type { AgentAttachment, AgentStreamEventPayload } from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/agent-types";
+import { timelineItemIdentity } from "@gravity/protocol/timeline-identity";
+import type { AgentAttachment, AgentStreamEventPayload } from "@gravity/protocol/messages";
 import type { AttachmentMetadata } from "@/attachments/types";
 import { extractTaskEntriesFromToolCall } from "../utils/tool-call-parsers";
 
@@ -90,6 +90,7 @@ export type StreamItem =
 export type UserMessageImageAttachment = AttachmentMetadata;
 
 export interface UserMessageItem {
+  inherited?: boolean;
   kind: "user_message";
   id: string;
   clientMessageId?: string;
@@ -103,6 +104,7 @@ export interface UserMessageItem {
 }
 
 export interface UserMessageInput {
+  inherited?: boolean;
   id?: string;
   clientMessageId?: string;
   messageId?: string;
@@ -121,6 +123,7 @@ export function createUserMessage(input: UserMessageInput): UserMessageItem {
   }
   return {
     kind: "user_message",
+    ...(input.inherited ? { inherited: true } : {}),
     id,
     ...(input.clientMessageId ? { clientMessageId: input.clientMessageId } : {}),
     ...(input.messageId ? { messageId: input.messageId } : {}),
@@ -778,6 +781,7 @@ export function isAgentToolCallItem(item: StreamItem): item is AgentToolCallItem
 type NotificationLevel = "info" | "warning" | "error";
 
 export interface NotificationItem {
+  forkSourceTitle?: string;
   kind: "notification";
   sourceType: "error" | "notification";
   id: string;
@@ -890,6 +894,7 @@ function appendUserMessage(
   clientMessageId?: string,
   timelineCursor?: TimelinePosition,
   turnId?: string,
+  inherited?: boolean,
 ): StreamItem[] {
   const { chunk, hasContent } = normalizeChunk(text);
   if (!hasContent) {
@@ -905,6 +910,7 @@ function appendUserMessage(
     turnId,
     text: chunk,
     timestamp,
+    inherited,
   });
   return upsertUserMessage(state, nextItem);
 }
@@ -1512,6 +1518,7 @@ function reduceTimelineEvent(
           item.clientMessageId,
           timelineCursor,
           event.turnId,
+          item.inherited,
         ),
       );
     case "assistant_message":
@@ -1560,6 +1567,7 @@ function reduceTimelineEvent(
       const notification: NotificationItem = {
         kind: "notification",
         sourceType: "notification",
+        forkSourceTitle: item.forkSourceTitle,
         id: createUniqueTimelineId(state, "notification", item.message, timestamp),
         ...(timelineCursor ? { timelineCursor } : {}),
         timestamp,

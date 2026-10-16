@@ -1,30 +1,28 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import { spawnProcess } from "@getpaseo/server";
-import { buildAgentDeepLink, type AgentDeepLinkTarget } from "@getpaseo/protocol/agent-deep-link";
+import { spawnProcess } from "@gravity/server";
+import { buildAgentDeepLink, type AgentDeepLinkTarget } from "@gravity/protocol/agent-deep-link";
+
+export function findMacDesktopApp(input: { homeDir: string; bundledApp?: string }): string | null {
+  if (input.bundledApp) return existsSync(input.bundledApp) ? input.bundledApp : null;
+  const candidates = [
+    "/Applications/Gravity.app",
+    path.join(input.homeDir, "Applications", "Gravity.app"),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
 
 function findDesktopApp(): string | null {
   if (process.platform === "darwin") {
-    const candidates = [
-      "/Applications/Paseo.app",
-      path.join(homedir(), "Applications", "Paseo.app"),
-    ];
-
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    }
-
-    return null;
+    return findMacDesktopApp({ homeDir: homedir(), bundledApp: process.env.GRAVITY_DESKTOP_APP });
   }
 
   if (process.platform === "linux") {
     const candidates = [
-      "/usr/bin/Paseo",
-      "/opt/Paseo/Paseo",
-      path.join(homedir(), "Applications", "Paseo.AppImage"),
+      "/usr/bin/Gravity",
+      "/opt/Gravity/Gravity",
+      path.join(homedir(), "Applications", "Gravity.AppImage"),
     ];
 
     for (const candidate of candidates) {
@@ -42,7 +40,7 @@ function findDesktopApp(): string | null {
       return null;
     }
 
-    const candidate = path.join(localAppData, "Programs", "Paseo", "Paseo.exe");
+    const candidate = path.join(localAppData, "Programs", "Gravity", "Gravity.exe");
     return existsSync(candidate) ? candidate : null;
   }
 
@@ -56,7 +54,8 @@ function cleanEnvForDesktopLaunch(): NodeJS.ProcessEnv {
   // desktop app would start as a bare Node process instead of Electron.
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.ELECTRON_NO_ATTACH_CONSOLE;
-  delete env.PASEO_NODE_ENV;
+  delete env.GRAVITY_NODE_ENV;
+  delete env.GRAVITY_DESKTOP_APP;
   return env;
 }
 
@@ -69,22 +68,22 @@ function spawnDetached(command: string, args: string[]): void {
 }
 
 function launchDesktop(args: string[]): void {
-  if (process.env.PASEO_DESKTOP_CLI === "1") {
-    throw new Error("Cannot open Paseo Desktop while running in desktop CLI passthrough mode.");
+  if (process.env.GRAVITY_DESKTOP_CLI === "1") {
+    throw new Error("Cannot open Gravity Desktop while running in desktop CLI passthrough mode.");
   }
 
   const desktopApp = findDesktopApp();
   if (!desktopApp) {
     throw new Error(
-      "Paseo desktop app not found. Install it from https://github.com/getpaseo/paseo/releases",
+      "Gravity desktop app not found. Install it from https://github.com/gravity-code-hq/gravity/releases",
     );
   }
 
   if (process.platform === "darwin") {
     // -n forces a new instance even if the app is already running. The new
     // instance relays its argv to the existing one through Electron's
-    // single-instance lock. -g keeps the terminal in the foreground.
-    spawnDetached("open", ["-n", "-g", "-a", desktopApp, "--args", ...args]);
+    // single-instance lock.
+    spawnDetached("open", ["-n", "-a", desktopApp, "--args", ...args]);
     return;
   }
 

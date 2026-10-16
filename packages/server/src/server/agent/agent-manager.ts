@@ -1,24 +1,24 @@
 import { projectTimelineRows } from "./timeline-projection.js";
 import type { PluginLifecycle } from "../plugins/lifecycle/index.js";
 import { describeHookAgent, publishAgentStream } from "../plugins/lifecycle/index.js";
-import type { PluginSessionOpenRequest } from "@getpaseo/plugin/server";
+import type { PluginSessionOpenRequest } from "@gravity/plugin/server";
 import { randomUUID } from "node:crypto";
 import { basename, resolve } from "node:path";
 import { stat } from "node:fs/promises";
 import {
   AGENT_LIFECYCLE_STATUSES,
   type AgentLifecycleStatus,
-} from "@getpaseo/protocol/agent-lifecycle";
+} from "@gravity/protocol/agent-lifecycle";
 import {
   getParentAgentIdFromLabels,
   hasOpenAgentTab,
   isDelegatedAgent,
   isOpenAgentTabLabel,
   PARENT_AGENT_ID_LABEL,
-} from "@getpaseo/protocol/agent-labels";
+} from "@gravity/protocol/agent-labels";
 import type { Logger } from "pino";
-import type { ProviderOptions, ToolPolicy } from "@getpaseo/protocol/agent-types";
-import type { ProviderPaseoToolsPolicy } from "@getpaseo/protocol/provider-config";
+import type { ProviderOptions, ToolPolicy } from "@gravity/protocol/agent-types";
+import type { ProviderGravityToolsPolicy } from "@gravity/protocol/provider-config";
 import { z } from "zod";
 import type { TerminalManager } from "../../terminal/terminal-manager.js";
 
@@ -79,16 +79,26 @@ import {
 import { invokeRewindCapability, type RewindMode } from "./rewind/rewind.js";
 import { isSystemInjectedEnvelope } from "./agent-prompt.js";
 import { isStaleProviderSessionError } from "./stale-provider-session-error.js";
-import { stripInternalPaseoMcpServer, withRuntimePaseoMcpServer } from "./runtime-mcp-config.js";
+import {
+  stripInternalGravityMcpServer,
+  withRuntimeGravityMcpServer,
+} from "./runtime-mcp-config.js";
 import { resolveCreateAgentTitles } from "./create-agent-title.js";
-import type { PaseoToolCatalogFactory } from "./tools/types.js";
-import { isPaseoToolPolicyEnabled } from "./paseo-tool-policy.js";
+import type { GravityToolCatalogFactory } from "./tools/types.js";
+import { isGravityToolPolicyEnabled } from "./gravity-tool-policy.js";
 import {
   ProviderSubagentStore,
   type ProviderSubagentDescriptor,
   type ProviderSubagentStoreEvent,
 } from "./provider-subagents/store.js";
 import { withTimeout } from "../../utils/promise-timeout.js";
+import {
+  forkHistoryRows,
+  hasForkHistory,
+  forkPromptDigest,
+  restoreForkHistoryEvent,
+  type StoredForkHistory,
+} from "./fork-history.js";
 
 const RELOAD_SESSION_CLOSE_TIMEOUT_MS = 3_000;
 const INTERRUPT_SESSION_TIMEOUT_MS = 2_000;
@@ -141,7 +151,7 @@ export type AgentRunCancellationResult =
 interface PreparedSessionConfig {
   storedConfig: AgentSessionConfig;
   launchConfig: AgentSessionConfig;
-  paseoToolPolicy: ProviderPaseoToolsPolicy | undefined;
+  gravityToolPolicy: ProviderGravityToolsPolicy | undefined;
 }
 
 interface NormalizeConfigOptions {
@@ -183,7 +193,7 @@ function buildStoredAgentConfig(record: StoredAgentRecord): AgentSessionConfig {
     config.systemPrompt = record.config.systemPrompt;
   }
   if (record.config.mcpServers != null) config.mcpServers = record.config.mcpServers;
-  return stripInternalPaseoMcpServer(config);
+  return stripInternalGravityMcpServer(config);
 }
 
 export { AGENT_LIFECYCLE_STATUSES, type AgentLifecycleStatus };
@@ -302,9 +312,9 @@ export interface AgentManagerOptions {
   terminalManager?: TerminalManager | null;
   mcpBaseUrl?: string;
   mcpAuthToken?: string;
-  paseoToolsEnabled?: boolean;
-  paseoToolCatalogFactory?: PaseoToolCatalogFactory;
-  resolvePaseoToolPolicy?: (provider: AgentProvider) => ProviderPaseoToolsPolicy | undefined;
+  gravityToolsEnabled?: boolean;
+  gravityToolCatalogFactory?: GravityToolCatalogFactory;
+  resolveGravityToolPolicy?: (provider: AgentProvider) => ProviderGravityToolsPolicy | undefined;
   appendSystemPrompt?: string;
   agentStreamCoalesceWindowMs?: number;
   rescueTimeouts?: AgentManagerRescueTimeouts;
@@ -371,6 +381,7 @@ interface HandleStreamEventOptions {
 }
 
 interface ManagedAgentBase {
+  forkHistory?: StoredForkHistory[];
   id: string;
   provider: AgentProvider;
   cwd: string;
@@ -716,12 +727,12 @@ export class AgentManager {
   private readonly agentStreamCoalescer: AgentStreamCoalescer;
   private mcpBaseUrl: string | null;
   private readonly mcpAuthToken: string | null;
-  private paseoToolsEnabled = true;
-  private paseoToolCatalogFactory: PaseoToolCatalogFactory | null = null;
-  private readonly paseoToolPolicies = new Map<string, ProviderPaseoToolsPolicy | undefined>();
-  private readonly resolvePaseoToolPolicy: (
+  private gravityToolsEnabled = true;
+  private gravityToolCatalogFactory: GravityToolCatalogFactory | null = null;
+  private readonly gravityToolPolicies = new Map<string, ProviderGravityToolsPolicy | undefined>();
+  private readonly resolveGravityToolPolicy: (
     provider: AgentProvider,
-  ) => ProviderPaseoToolsPolicy | undefined;
+  ) => ProviderGravityToolsPolicy | undefined;
   private appendSystemPrompt: string;
   private onAgentAttention?: AgentAttentionCallback;
   private onAgentArchived?: AgentArchivedCallback;
@@ -740,8 +751,8 @@ export class AgentManager {
     this.onWorkspaceStateMayHaveChanged = options?.onWorkspaceStateMayHaveChanged;
     this.mcpBaseUrl = options?.mcpBaseUrl ?? null;
     this.mcpAuthToken = options?.mcpAuthToken ?? null;
-    this.configurePaseoTools(options);
-    this.resolvePaseoToolPolicy = options.resolvePaseoToolPolicy ?? (() => undefined);
+    this.configureGravityTools(options);
+    this.resolveGravityToolPolicy = options.resolveGravityToolPolicy ?? (() => undefined);
     this.appendSystemPrompt = options.appendSystemPrompt ?? "";
     this.logger = options.logger.child({ module: "agent", component: "agent-manager" });
     this.rescueTimeouts = {
@@ -765,9 +776,9 @@ export class AgentManager {
     });
   }
 
-  private configurePaseoTools(options: AgentManagerOptions): void {
-    this.paseoToolsEnabled = options.paseoToolsEnabled ?? true;
-    this.paseoToolCatalogFactory = options.paseoToolCatalogFactory ?? null;
+  private configureGravityTools(options: AgentManagerOptions): void {
+    this.gravityToolsEnabled = options.gravityToolsEnabled ?? true;
+    this.gravityToolCatalogFactory = options.gravityToolCatalogFactory ?? null;
   }
 
   registerClient(provider: AgentProvider, client: AgentClient): void {
@@ -828,16 +839,16 @@ export class AgentManager {
     this.acceptingAgentRegistrations = false;
   }
 
-  setPaseoToolsEnabled(enabled: boolean): void {
-    this.paseoToolsEnabled = enabled;
+  setGravityToolsEnabled(enabled: boolean): void {
+    this.gravityToolsEnabled = enabled;
   }
 
-  setPaseoToolCatalogFactory(factory: PaseoToolCatalogFactory | null): void {
-    this.paseoToolCatalogFactory = factory;
+  setGravityToolCatalogFactory(factory: GravityToolCatalogFactory | null): void {
+    this.gravityToolCatalogFactory = factory;
   }
 
-  getPaseoToolPolicy(agentId: string): ProviderPaseoToolsPolicy | undefined {
-    return this.paseoToolPolicies.get(agentId);
+  getGravityToolPolicy(agentId: string): ProviderGravityToolsPolicy | undefined {
+    return this.gravityToolPolicies.get(agentId);
   }
 
   /**
@@ -1225,7 +1236,7 @@ export class AgentManager {
       options = { ...options, env: request.env };
     }
     await this.deleteAgentState(resolvedAgentId);
-    const { storedConfig, launchConfig, paseoToolPolicy } = await this.prepareSessionConfig(
+    const { storedConfig, launchConfig, gravityToolPolicy } = await this.prepareSessionConfig(
       config,
       resolvedAgentId,
       options?.env,
@@ -1234,12 +1245,12 @@ export class AgentManager {
     const client = await this.requireAvailableClient({
       provider: storedConfig.provider,
     });
-    this.paseoToolPolicies.set(resolvedAgentId, paseoToolPolicy);
+    this.gravityToolPolicies.set(resolvedAgentId, gravityToolPolicy);
     const launchContext = await this.buildLaunchContext(
       resolvedAgentId,
       client,
       storedConfig.cwd,
-      paseoToolPolicy,
+      gravityToolPolicy,
       options?.env,
       { reason: "create", purpose: "interactive", workspaceId: options.workspaceId ?? null },
     );
@@ -1328,7 +1339,7 @@ export class AgentManager {
       ...overrides,
       provider: handle.provider,
     } as AgentSessionConfig;
-    const { storedConfig, launchConfig, paseoToolPolicy } = await this.prepareSessionConfig(
+    const { storedConfig, launchConfig, gravityToolPolicy } = await this.prepareSessionConfig(
       mergedConfig,
       resolvedAgentId,
     );
@@ -1346,12 +1357,12 @@ export class AgentManager {
         `Provider '${handle.provider}' is not available. Please ensure the CLI is installed.`,
       );
     }
-    this.paseoToolPolicies.set(resolvedAgentId, paseoToolPolicy);
+    this.gravityToolPolicies.set(resolvedAgentId, gravityToolPolicy);
     const launchContext = await this.buildLaunchContext(
       resolvedAgentId,
       client,
       storedConfig.cwd,
-      paseoToolPolicy,
+      gravityToolPolicy,
       undefined,
       {
         reason: "resume",
@@ -1369,6 +1380,7 @@ export class AgentManager {
     await this.requireExternalMcpSupport(session, storedConfig);
     return this.registerSession(session, storedConfig, resolvedAgentId, {
       ...options,
+      lastUsage: record?.lastUsage,
       persistence: handle,
     });
   }
@@ -1399,19 +1411,19 @@ export class AgentManager {
       throw new Error(`Provider '${input.provider}' does not support importing sessions`);
     }
 
-    const { storedConfig, launchConfig, paseoToolPolicy } = await this.prepareSessionConfig(
+    const { storedConfig, launchConfig, gravityToolPolicy } = await this.prepareSessionConfig(
       {
         provider: input.provider,
         cwd: input.cwd,
       },
       resolvedAgentId,
     );
-    this.paseoToolPolicies.set(resolvedAgentId, paseoToolPolicy);
+    this.gravityToolPolicies.set(resolvedAgentId, gravityToolPolicy);
     const launchContext = await this.buildLaunchContext(
       resolvedAgentId,
       client,
       storedConfig.cwd,
-      paseoToolPolicy,
+      gravityToolPolicy,
       undefined,
       { reason: "import", purpose: "interactive", workspaceId: input.workspaceId },
     );
@@ -1426,7 +1438,7 @@ export class AgentManager {
     let handedToRegistration = false;
     try {
       const importedConfig = await this.normalizeConfig(
-        stripInternalPaseoMcpServer(imported.config),
+        stripInternalGravityMcpServer(imported.config),
       );
       const timelineRows = buildImportedTimelineRows(imported.timeline);
       const initialTitle = resolveImportedAgentTitle(importedConfig, timelineRows);
@@ -1459,7 +1471,7 @@ export class AgentManager {
   // config swaps). When `rehydrateFromDisk` is set, the timeline is wiped so a
   // new epoch is minted and provider history is re-streamed — this is what the
   // user-facing "Reload agent" action wants when the on-disk session was
-  // mutated outside Paseo.
+  // mutated outside Gravity.
   reloadAgentSession(
     agentId: string,
     overrides?: Partial<AgentSessionConfig>,
@@ -1496,17 +1508,17 @@ export class AgentManager {
       ...overrides,
       provider,
     } as AgentSessionConfig;
-    const { storedConfig, launchConfig, paseoToolPolicy } = await this.prepareSessionConfig(
+    const { storedConfig, launchConfig, gravityToolPolicy } = await this.prepareSessionConfig(
       refreshConfig,
       agentId,
     );
-    const hadPreviousPaseoToolPolicy = this.paseoToolPolicies.has(agentId);
-    const previousPaseoToolPolicy = this.paseoToolPolicies.get(agentId);
+    const hadPreviousGravityToolPolicy = this.gravityToolPolicies.has(agentId);
+    const previousGravityToolPolicy = this.gravityToolPolicies.get(agentId);
     const launchContext = await this.buildLaunchContext(
       agentId,
       client,
       storedConfig.cwd,
-      paseoToolPolicy,
+      gravityToolPolicy,
       undefined,
       { reason: "refresh", purpose: "interactive", workspaceId: existing.workspaceId },
     );
@@ -1530,7 +1542,7 @@ export class AgentManager {
       await this.persistSnapshot(closedExisting);
       this.assertAcceptingAgentRegistrations();
 
-      this.paseoToolPolicies.set(agentId, paseoToolPolicy);
+      this.gravityToolPolicies.set(agentId, gravityToolPolicy);
       session = handle
         ? await client.resumeSession(handle, providerLaunchConfig, launchContext)
         : await client.createSession(providerLaunchConfig, launchContext);
@@ -1556,6 +1568,7 @@ export class AgentManager {
         updatedAt: existing.updatedAt,
         lastUserMessageAt: existing.lastUserMessageAt,
         historyPrimed: rehydrateFromDisk ? false : preservedHistoryPrimed,
+        forkHistory: existing.forkHistory,
         lastUsage: preservedLastUsage,
         lastError: preservedLastError,
         attention: preservedAttention,
@@ -1571,10 +1584,10 @@ export class AgentManager {
       throw error;
     } finally {
       if (!handedToRegistration) {
-        if (hadPreviousPaseoToolPolicy) {
-          this.paseoToolPolicies.set(agentId, previousPaseoToolPolicy);
+        if (hadPreviousGravityToolPolicy) {
+          this.gravityToolPolicies.set(agentId, previousGravityToolPolicy);
         } else {
-          this.paseoToolPolicies.delete(agentId);
+          this.gravityToolPolicies.delete(agentId);
         }
         if (session) {
           await this.closeUnregisteredSession(session);
@@ -1877,7 +1890,7 @@ export class AgentManager {
         persistence: record.persistence ?? null,
         historyPrimed: true,
         lastUserMessageAt: record.lastUserMessageAt ? new Date(record.lastUserMessageAt) : null,
-        lastUsage: undefined,
+        lastUsage: record.lastUsage,
         lastError: record.lastError ?? undefined,
         attention,
         internal: record.internal,
@@ -2436,6 +2449,11 @@ export class AgentManager {
     prompt: AgentPromptInput,
     options?: AgentRunOptions,
   ): AsyncGenerator<AgentStreamEvent> {
+    // Fork context is provider input, not the visible user prompt. A canonical
+    // identity also reconciles provider echoes for attachment-only/API forks.
+    if (hasForkHistory(prompt) && !options?.clientMessageId) {
+      options = { ...options, clientMessageId: randomUUID() };
+    }
     const existingAgent = this.requireSessionAgent(agentId);
     this.logger.trace(
       {
@@ -3402,6 +3420,7 @@ export class AgentManager {
     config: AgentSessionConfig,
     agentId: string,
     options?: {
+      forkHistory?: StoredForkHistory[];
       createdAt?: Date;
       updatedAt?: Date;
       lastUserMessageAt?: Date | null;
@@ -3448,6 +3467,8 @@ export class AgentManager {
         durableTimelineHasRows,
         options,
       });
+      managed.forkHistory =
+        options?.forkHistory ?? (await this.registry?.get(resolvedAgentId))?.forkHistory;
 
       this.assertAcceptingAgentRegistrations();
       this.agents.set(resolvedAgentId, managed);
@@ -3662,7 +3683,7 @@ export class AgentManager {
 
   private discardRetainedAgentState(agentId: string): void {
     this.timelineStore.delete(agentId);
-    this.paseoToolPolicies.delete(agentId);
+    this.gravityToolPolicies.delete(agentId);
     for (const event of this.providerSubagents.deleteParent(agentId)) {
       this.dispatch({ type: "provider_subagent", event });
     }
@@ -3935,7 +3956,7 @@ export class AgentManager {
         if (event.item.type === "user_message" && isSystemInjectedEnvelope(event.item.text)) {
           continue;
         }
-        historyEvents.push(event);
+        historyEvents.push(...restoreForkHistoryEvent(event, agent.forkHistory));
       } else if (event.type === "provider_subagent") {
         providerSubagentEvents.push(event);
       }
@@ -3959,11 +3980,10 @@ export class AgentManager {
       }
     }
     for (const event of historyEvents) {
-      const row = this.recordTimeline(
-        agent.id,
-        event.item,
-        event.timestamp ? { timestamp: event.timestamp } : undefined,
-      );
+      const row = this.recordTimeline(agent.id, event.item, {
+        timestamp: event.timestamp,
+        turnId: event.turnId,
+      });
       if (broadcastTimeline) {
         this.dispatchStream(agent.id, event, {
           seq: row.seq,
@@ -4006,19 +4026,20 @@ export class AgentManager {
         if (event.item.type === "user_message" && isSystemInjectedEnvelope(event.item.text)) {
           continue;
         }
-        const row = this.recordTimeline(
-          agent.id,
-          event.item,
-          event.timestamp ? { timestamp: event.timestamp } : undefined,
-        );
-        if (deferredBroadcast) {
-          timelineEvents.push({ event, row });
-        } else if (broadcast) {
-          this.dispatchStream(agent.id, event, {
-            seq: row.seq,
-            epoch: this.timelineStore.getEpoch(agent.id),
-            timestamp: row.timestamp,
+        for (const restoredEvent of restoreForkHistoryEvent(event, agent.forkHistory)) {
+          const row = this.recordTimeline(agent.id, restoredEvent.item, {
+            timestamp: restoredEvent.timestamp,
+            turnId: restoredEvent.turnId,
           });
+          if (deferredBroadcast) {
+            timelineEvents.push({ event: restoredEvent, row });
+          } else if (broadcast) {
+            this.dispatchStream(agent.id, restoredEvent, {
+              seq: row.seq,
+              epoch: this.timelineStore.getEpoch(agent.id),
+              timestamp: row.timestamp,
+            });
+          }
         }
       }
     } catch (error) {
@@ -4597,6 +4618,35 @@ export class AgentManager {
     if (this.timelineStore.getSubmittedUserMessage(agent.id, clientMessageId)) {
       return;
     }
+    const inheritedRows = forkHistoryRows(prompt, clientMessageId);
+    if (inheritedRows.length > 0) {
+      agent.forkHistory = [
+        ...(agent.forkHistory ?? []),
+        {
+          rows: inheritedRows,
+          promptText: submittedPromptText(prompt),
+          clientMessageId,
+          providerMessageId: options?.providerMessageId,
+          providerPromptDigest: forkPromptDigest(prompt),
+        },
+      ];
+    }
+    for (const entry of inheritedRows) {
+      const row = this.recordTimeline(agent.id, entry.item, {
+        timestamp: entry.timestamp,
+        turnId: entry.turnId,
+      });
+      this.dispatchStream(
+        agent.id,
+        {
+          type: "timeline",
+          provider: agent.provider,
+          item: entry.item,
+          ...(entry.turnId ? { turnId: entry.turnId } : {}),
+        },
+        { seq: row.seq, epoch: this.timelineStore.getEpoch(agent.id), timestamp: row.timestamp },
+      );
+    }
     this.touchUpdatedAt(agent);
     agent.lastUserMessageAt = new Date();
     const item: AgentTimelineItem = {
@@ -4626,6 +4676,9 @@ export class AgentManager {
     }
     if (!existing || existing.item.type !== "user_message") return null;
     if (messageId) {
+      for (const fork of agent.forkHistory ?? []) {
+        if (fork.clientMessageId === clientMessageId) fork.providerMessageId = messageId;
+      }
       const enriched = this.timelineStore.enrichSubmittedUserMessage(
         agent.id,
         clientMessageId,
@@ -5075,22 +5128,22 @@ export class AgentManager {
     agentId: string,
     env?: Record<string, string>,
   ): Promise<PreparedSessionConfig> {
-    const storedConfig = await this.normalizeConfig(stripInternalPaseoMcpServer(config), { env });
-    const paseoToolPolicy = this.paseoToolsEnabled
-      ? this.resolvePaseoToolPolicy(storedConfig.provider)
+    const storedConfig = await this.normalizeConfig(stripInternalGravityMcpServer(config), { env });
+    const gravityToolPolicy = this.gravityToolsEnabled
+      ? this.resolveGravityToolPolicy(storedConfig.provider)
       : { enabled: false };
     const launchConfig = this.applyDaemonAppendSystemPrompt(
-      withRuntimePaseoMcpServer({
+      withRuntimeGravityMcpServer({
         config: storedConfig,
         agentId,
         mcpBaseUrl:
-          this.paseoToolsEnabled && isPaseoToolPolicyEnabled(paseoToolPolicy)
+          this.gravityToolsEnabled && isGravityToolPolicyEnabled(gravityToolPolicy)
             ? this.mcpBaseUrl
             : null,
         mcpAuthToken: this.mcpAuthToken,
       }),
     );
-    return { storedConfig, launchConfig, paseoToolPolicy };
+    return { storedConfig, launchConfig, gravityToolPolicy };
   }
 
   private applyDaemonAppendSystemPrompt(config: AgentSessionConfig): AgentSessionConfig {
@@ -5110,7 +5163,7 @@ export class AgentManager {
     agentId: string,
     client: AgentClient,
     cwd: string,
-    paseoToolPolicy: ProviderPaseoToolsPolicy | undefined,
+    gravityToolPolicy: ProviderGravityToolsPolicy | undefined,
     env?: Record<string, string>,
     opening?: {
       reason: PluginSessionOpenRequest["reason"];
@@ -5135,19 +5188,19 @@ export class AgentManager {
       agentId,
       env: {
         ...env,
-        PASEO_AGENT_ID: agentId,
-        PASEO_AGENT_CWD: cwd,
+        GRAVITY_AGENT_ID: agentId,
+        GRAVITY_AGENT_CWD: cwd,
       },
     };
     if (
-      this.paseoToolsEnabled &&
-      isPaseoToolPolicyEnabled(paseoToolPolicy) &&
-      client.capabilities.supportsNativePaseoTools &&
-      this.paseoToolCatalogFactory
+      this.gravityToolsEnabled &&
+      isGravityToolPolicyEnabled(gravityToolPolicy) &&
+      client.capabilities.supportsNativeGravityTools &&
+      this.gravityToolCatalogFactory
     ) {
-      context.paseoTools = await this.paseoToolCatalogFactory({
+      context.gravityTools = await this.gravityToolCatalogFactory({
         callerAgentId: agentId,
-        paseoToolPolicy,
+        gravityToolPolicy,
       });
     }
     return context;
@@ -5157,7 +5210,7 @@ export class AgentManager {
     launchConfig: AgentSessionConfig,
     launchContext: AgentLaunchContext,
   ): AgentSessionConfig {
-    return launchContext.paseoTools ? stripInternalPaseoMcpServer(launchConfig) : launchConfig;
+    return launchContext.gravityTools ? stripInternalGravityMcpServer(launchConfig) : launchConfig;
   }
 
   private async requireAvailableClient(options: { provider: AgentProvider }): Promise<AgentClient> {

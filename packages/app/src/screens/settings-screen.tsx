@@ -26,10 +26,7 @@ import {
   Boxes,
   Gauge,
   Keyboard,
-  Stethoscope,
   Info,
-  Bell,
-  Shield,
   Puzzle,
   Plus,
   FolderGit2,
@@ -38,7 +35,6 @@ import {
   Smartphone,
   Sparkles,
   Blocks,
-  PanelsTopLeft,
   ChevronRight,
 } from "lucide-react-native";
 import { DropdownTrigger } from "@/components/ui/dropdown-trigger";
@@ -50,6 +46,9 @@ import { HostStatusDot } from "@/components/host-status-dot";
 import { ScreenTitle } from "@/components/headers/screen-title";
 import { HeaderIconBadge } from "@/components/headers/header-icon-badge";
 import { SettingsSection } from "@/components/settings/headings/settings-section";
+import { CodexIcon } from "@/components/icons/codex-icon";
+import { ClaudeIcon } from "@/components/icons/claude-icon";
+import { ProviderSettings } from "@/components/provider-settings";
 import { AppearanceSection } from "@/screens/settings/appearance/appearance-section";
 import { LayoutSection } from "@/screens/settings/layout/layout-section";
 import {
@@ -87,6 +86,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/component
 import { DesktopPermissionsSection } from "@/desktop/components/desktop-permissions-section";
 import { DesktopNotificationsSection } from "@/desktop/components/desktop-notifications-section";
 import { BrowserDataSection } from "@/desktop/browser/settings/browser-data-section";
+import { PowerSettings } from "@/desktop/power/settings";
+import { GRAVITY_LOCAL_ONLY } from "@/gravity";
 import { IntegrationsSection } from "@/desktop/components/integrations-section";
 import { isElectronRuntime } from "@/desktop/host";
 import { useDesktopAppUpdater } from "@/desktop/updates/use-desktop-app-updater";
@@ -152,12 +153,6 @@ interface SidebarSectionItem {
 const SIDEBAR_SECTION_ITEMS: SidebarSectionItem[] = [
   { id: "general", labelKey: "settings.sections.general", icon: Settings },
   { id: "appearance", labelKey: "settings.sections.appearance", icon: Palette },
-  {
-    id: "layout",
-    labelKey: "settings.sections.layout",
-    icon: PanelsTopLeft,
-    desktopOnly: true,
-  },
   { id: "editor", labelKey: "settings.sections.editor", icon: Code2, webOnly: true },
   { id: "shortcuts", labelKey: "settings.sections.shortcuts", icon: Keyboard, desktopOnly: true },
   {
@@ -166,30 +161,17 @@ const SIDEBAR_SECTION_ITEMS: SidebarSectionItem[] = [
     icon: Puzzle,
     desktopOnly: true,
   },
-  {
-    id: "notifications",
-    labelKey: "settings.sections.notifications",
-    icon: Bell,
-    desktopOnly: true,
-  },
-  {
-    id: "permissions",
-    labelKey: "settings.sections.permissions",
-    icon: Shield,
-    desktopOnly: true,
-  },
-  { id: "diagnostics", labelKey: "settings.sections.diagnostics", icon: Stethoscope },
   { id: "about", labelKey: "settings.sections.about", icon: Info },
 ];
 
-interface HostSectionItem {
-  id: HostSectionSlug;
-  labelKey: string;
+type HostSectionItem = {
   icon: ComponentType<{ size: number; color: string }>;
-}
+} & ({ id: HostSectionSlug; labelKey: string } | { id: "codex" | "claude"; label: string });
 
 const HOST_SECTION_ITEMS: HostSectionItem[] = [
   { id: "host", labelKey: "settings.hostSections.host", icon: Server },
+  { id: "codex", label: "Codex", icon: CodexIcon },
+  { id: "claude", label: "Claude Code", icon: ClaudeIcon },
   { id: "projects", labelKey: "settings.hostSections.projects", icon: FolderGit2 },
   { id: "connections", labelKey: "settings.hostSections.connections", icon: Network },
   { id: "pair-device", labelKey: "openProject.tiles.pairDevice.title", icon: Smartphone },
@@ -207,6 +189,16 @@ function renderHostSettingsContent(
   onHostRemoved: () => void,
 ): ReactNode {
   switch (view.section) {
+    case "codex":
+    case "claude":
+      return (
+        <ProviderSettings
+          key={`${view.serverId}:${view.section}`}
+          presentation="page"
+          serverId={view.serverId}
+          provider={view.section}
+        />
+      );
     case "projects":
       return <ProjectsScreen serverId={view.serverId} />;
     case "connections":
@@ -1082,9 +1074,10 @@ function SettingsSidebar({
   const hasHosts = sortedHosts.length > 0;
   const enableBuiltInDaemonOption = useEnableBuiltInDaemonOption();
   const isDesktopApp = isElectronRuntime();
-  const items = SIDEBAR_SECTION_ITEMS.filter(
-    (item) => (!item.desktopOnly || isDesktopApp) && (!item.webOnly || isWeb),
-  );
+  const items = SIDEBAR_SECTION_ITEMS.filter((item) => {
+    const isAvailable = (!item.desktopOnly || isDesktopApp) && (!item.webOnly || isWeb);
+    return isAvailable && item.id !== "about";
+  });
   const insets = useSafeAreaInsets();
   const isDesktop = layout === "desktop";
   const outerContainerStyle = useMemo(
@@ -1131,7 +1124,7 @@ function SettingsSidebar({
             <SidebarHostSectionButton
               key={item.id}
               itemId={item.id}
-              label={t(item.labelKey)}
+              label={"label" in item ? item.label : t(item.labelKey)}
               icon={item.icon}
               isSelected={selectedHostSection === item.id}
               onSelect={onSelectHostSection}
@@ -1168,6 +1161,16 @@ function SettingsSidebar({
           ) : null}
         </View>
       )}
+      <SidebarSeparator />
+      <View style={sidebarStyles.list}>
+        <SidebarSectionButton
+          itemId="about"
+          label={t("settings.sections.about")}
+          icon={Info}
+          isSelected={selectedSectionId === "about"}
+          onSelect={onSelectSection}
+        />
+      </View>
     </>
   );
 
@@ -1480,7 +1483,7 @@ export default function SettingsScreen({ view, openAddHostIntent = null }: Setti
     if (view.kind === "host") {
       const item = HOST_SECTION_ITEMS.find((s) => s.id === view.section);
       if (!item) return null;
-      return { title: t(item.labelKey), Icon: item.icon };
+      return { title: "label" in item ? item.label : t(item.labelKey), Icon: item.icon };
     }
     if (view.kind === "section") {
       const item = SIDEBAR_SECTION_ITEMS.find((s) => s.id === view.section);
@@ -1494,8 +1497,58 @@ export default function SettingsScreen({ view, openAddHostIntent = null }: Setti
   })();
 
   let content: ReactNode;
-  if (view.kind === "section" && view.section === "layout") {
-    content = isDesktopApp ? <LayoutSection /> : null;
+  if (view.kind === "section") {
+    content = (() => {
+      switch (view.section) {
+        case "general":
+          return (
+            <>
+              <GeneralSection
+                settings={settings}
+                isDesktopApp={isDesktopApp}
+                handleSendBehaviorChange={handleSendBehaviorChange}
+                handleServiceUrlBehaviorChange={handleServiceUrlBehaviorChange}
+                handleLanguageChange={handleLanguageChange}
+                handleTerminalScrollbackLinesChange={handleTerminalScrollbackLinesChange}
+              />
+              {isDesktopApp ? <PowerSettings /> : null}
+              {isDesktopApp && !GRAVITY_LOCAL_ONLY ? <BrowserDataSection /> : null}
+              {isDesktopApp ? <DesktopNotificationsSection /> : null}
+              {isDesktopApp ? <DesktopPermissionsSection /> : null}
+              <DiagnosticsSection
+                useLegacyTerminalRenderer={settings.useLegacyTerminalRenderer}
+                onUseLegacyTerminalRendererChange={handleUseLegacyTerminalRendererChange}
+                voiceAudioEngine={voiceAudioEngine}
+                isPlaybackTestRunning={isPlaybackTestRunning}
+                playbackTestResult={playbackTestResult}
+                handlePlaybackTest={handlePlaybackTest}
+              />
+            </>
+          );
+        case "appearance":
+          return (
+            <>
+              <AppearanceSection />
+              {isDesktopApp ? <LayoutSection /> : null}
+            </>
+          );
+        case "editor":
+          return isWeb ? <EditorSection /> : null;
+        case "shortcuts":
+          return isDesktopApp ? <KeyboardShortcutsSection /> : null;
+        case "integrations":
+          return isDesktopApp ? <IntegrationsSection /> : null;
+        case "about":
+          return (
+            <AboutSection
+              appVersion={appVersion}
+              appVersionText={appVersionText}
+              isDesktopApp={isDesktopApp}
+            />
+          );
+      }
+      return null;
+    })();
   } else {
     content = (() => {
       if (view.kind === "plugin")
@@ -1518,55 +1571,6 @@ export default function SettingsScreen({ view, openAddHostIntent = null }: Setti
             showBackToProjects={!isCompactLayout}
           />
         );
-      }
-      if (view.kind === "section") {
-        switch (view.section) {
-          case "general":
-            return (
-              <>
-                <GeneralSection
-                  settings={settings}
-                  isDesktopApp={isDesktopApp}
-                  handleSendBehaviorChange={handleSendBehaviorChange}
-                  handleServiceUrlBehaviorChange={handleServiceUrlBehaviorChange}
-                  handleLanguageChange={handleLanguageChange}
-                  handleTerminalScrollbackLinesChange={handleTerminalScrollbackLinesChange}
-                />
-                {isDesktopApp ? <BrowserDataSection /> : null}
-              </>
-            );
-          case "appearance":
-            return <AppearanceSection />;
-          case "editor":
-            return isWeb ? <EditorSection /> : null;
-          case "shortcuts":
-            return isDesktopApp ? <KeyboardShortcutsSection /> : null;
-          case "integrations":
-            return isDesktopApp ? <IntegrationsSection /> : null;
-          case "notifications":
-            return isDesktopApp ? <DesktopNotificationsSection /> : null;
-          case "permissions":
-            return isDesktopApp ? <DesktopPermissionsSection /> : null;
-          case "diagnostics":
-            return (
-              <DiagnosticsSection
-                useLegacyTerminalRenderer={settings.useLegacyTerminalRenderer}
-                onUseLegacyTerminalRendererChange={handleUseLegacyTerminalRendererChange}
-                voiceAudioEngine={voiceAudioEngine}
-                isPlaybackTestRunning={isPlaybackTestRunning}
-                playbackTestResult={playbackTestResult}
-                handlePlaybackTest={handlePlaybackTest}
-              />
-            );
-          case "about":
-            return (
-              <AboutSection
-                appVersion={appVersion}
-                appVersionText={appVersionText}
-                isDesktopApp={isDesktopApp}
-              />
-            );
-        }
       }
       return null;
     })();

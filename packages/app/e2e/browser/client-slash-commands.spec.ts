@@ -1,3 +1,4 @@
+import { expectComposerMode } from "../support/helpers/composer-settings";
 import { expect, test, type Page } from "../support/fixtures";
 import { composerLocator, expectComposerVisible, submitMessage } from "../support/helpers/composer";
 import { openAgentRoute, seedMockAgentWorkspace } from "../support/helpers/mock-agent";
@@ -69,7 +70,7 @@ async function expectReplacementDraftMatchesPreviousSetup(page: Page): Promise<v
   await expect(
     page.getByRole("button", { name: "Select model (Ten second stream)" }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Select agent mode (Load test)" })).toBeVisible();
+  await expectComposerMode(page, "Load test");
 }
 
 async function createAgentFromReplacementDraft(page: Page): Promise<void> {

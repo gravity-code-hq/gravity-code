@@ -70,6 +70,35 @@ afterEach(async () => {
   await ctx.cleanup();
 }, 60000);
 
+test("delivers readable lines before the highlighted subscription update", async () => {
+  const cwd = tmpCwd();
+  const updates: CheckoutDiffUpdatePayload[] = [];
+  const stop = ctx.client.on("checkout_diff_update", (message) => {
+    if (message.type === "checkout_diff_update" && message.payload.cwd === cwd) {
+      updates.push(message.payload);
+    }
+  });
+  try {
+    initGitRepo(cwd);
+    commitFile(cwd, "example.ts", "const value = 1;\n");
+    writeFileSync(path.join(cwd, "example.ts"), "const value = 2;\n");
+    const subscription = ctx.client.observeCheckoutDiff(cwd, { mode: "uncommitted" });
+    const initial = await subscription.ready;
+    const added = initial.files[0].hunks[0].lines.find((line) => line.type === "add");
+    expect(initial.error).toBeNull();
+    expect(added).toEqual({ type: "add", content: "const value = 2;" });
+    await expect
+      .poll(() => updates[0]?.files[0].hunks[0].lines.find((line) => line.type === "add")?.tokens)
+      .toContainEqual({ text: "2", style: "number" });
+    expect(updates[0].subscriptionId).toBe(initial.subscriptionId);
+    expect(updates[0].error).toBeNull();
+    await subscription.release();
+  } finally {
+    stop();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}, 60000);
+
 test("pushes file-level checkout diff updates with deterministic path order", async () => {
   const cwd = tmpCwd();
 
@@ -135,6 +164,12 @@ test("pushes updates when subscribed from a subdirectory and files change outsid
 
 test("keeps the socket usable after rejecting an oversized structured diff", async () => {
   const cwd = tmpCwd();
+  const updates: CheckoutDiffUpdatePayload[] = [];
+  const stop = ctx.client.on("checkout_diff_update", (message) => {
+    if (message.type === "checkout_diff_update" && message.payload.cwd === cwd) {
+      updates.push(message.payload);
+    }
+  });
 
   try {
     initGitRepo(cwd);
@@ -149,17 +184,22 @@ test("keeps the socket usable after rejecting an oversized structured diff", asy
     const subscription = ctx.client.observeCheckoutDiff(cwd, { mode: "uncommitted" });
     const initial = await subscription.ready;
 
-    expect(initial).toMatchObject({
-      cwd,
-      files: [],
-      diffTooLarge: true,
-      error: { code: "UNKNOWN" },
-    });
+    expect(initial.error).toBeNull();
+    expect(initial.files).toHaveLength(2);
+    await expect
+      .poll(() => updates.find((payload) => payload.diffTooLarge), { timeout: 30000 })
+      .toMatchObject({
+        cwd,
+        files: [],
+        diffTooLarge: true,
+        error: { code: "UNKNOWN" },
+      });
 
     const status = await ctx.client.getCheckoutStatus(cwd);
     expect(status).toMatchObject({ cwd, isGit: true });
     await subscription.release();
   } finally {
+    stop();
     rmSync(cwd, { recursive: true, force: true });
   }
 }, 120000);

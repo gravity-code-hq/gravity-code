@@ -25,7 +25,7 @@ import {
   type ChangelogSection,
 } from "./parse-changelog";
 
-const WEBSITE_CHANGELOG_URL = "https://paseo.sh/changelog";
+const WEBSITE_CHANGELOG_URL = "https://github.com/gravity-code-hq/gravity/changelog";
 
 const ThemedGift = withUnistyles(Gift);
 const ThemedExternalLink = withUnistyles(ExternalLink);

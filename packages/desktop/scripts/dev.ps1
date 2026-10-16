@@ -6,8 +6,10 @@ $AppDir = (Resolve-Path "$DesktopDir\..\app").Path
 $RootDir = (Resolve-Path "$DesktopDir\..\..").Path
 $env:PATH = "$RootDir\node_modules\.bin;$env:PATH"
 
-# Build the Electron main process
-npm run build:main
+npm --prefix $RootDir run build:server
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+npm --prefix $DesktopDir run build:main
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 # Prefer Metro's stable default port so dev browser storage keeps the same
 # localhost origin across restarts. Fall back only when earlier ports are busy.
@@ -32,49 +34,49 @@ try {
 
 # Set EXPO_DEV_URL in the environment so Electron inherits it
 $env:EXPO_DEV_URL = "http://localhost:$($env:EXPO_PORT)"
-$env:EXPO_PUBLIC_PASEO_DEV_BUILD_LABEL = (git -C $RootDir branch --show-current).Trim()
+$env:EXPO_PUBLIC_GRAVITY_DEV_BUILD_LABEL = (git -C $RootDir branch --show-current).Trim()
 
-$env:PASEO_DEV_ROOT = $RootDir
-$env:PASEO_DEV_RUNTIME_FALLBACK_ROOT = $RootDir
+$env:GRAVITY_DEV_ROOT = $RootDir
+$env:GRAVITY_DEV_RUNTIME_FALLBACK_ROOT = $RootDir
 $DevRuntime = node "$ScriptDir\dev-runtime.mjs" | ConvertFrom-Json
-$env:PASEO_ELECTRON_FLAGS = $DevRuntime.electronFlags
-$env:PASEO_ELECTRON_USER_DATA_DIR = $DevRuntime.userDataDir
-Remove-Item Env:\PASEO_DEV_RUNTIME_FALLBACK_ROOT -ErrorAction SilentlyContinue
+$env:GRAVITY_ELECTRON_FLAGS = $DevRuntime.electronFlags
+$env:GRAVITY_ELECTRON_USER_DATA_DIR = $DevRuntime.userDataDir
+Remove-Item Env:\GRAVITY_DEV_RUNTIME_FALLBACK_ROOT -ErrorAction SilentlyContinue
 
 # Allow any origin in dev so Electron on random ports works.
 # SECURITY: wildcard CORS is unsafe in production — only acceptable here because
 # the daemon binds to localhost and this script is never used for production.
-$env:PASEO_CORS_ORIGINS = "*"
+$env:GRAVITY_CORS_ORIGINS = "*"
 
-# Fully isolate the dev instance from a production Paseo install so `npm run dev`
+# Fully isolate the dev instance from a production Gravity install so `npm run dev`
 # works while the installed app is open. Without this the dev build loses the
 # Electron single-instance lock to the installed app and quits, and ends up
 # pointed at the production daemon, whose CORS allowlist rejects the Metro origin.
-# PASEO_HOME defaults to a script-managed dev home. If you override it (to point
+# GRAVITY_HOME defaults to a script-managed dev home. If you override it (to point
 # dev at real data), we DON'T touch your config.json — only the managed home gets
 # its daemon config seeded below, so we never rewrite a production config.
 $DevStateDir = "$DesktopDir\.dev"
-if (-not $env:PASEO_HOME) {
-    $env:PASEO_HOME = "$DevStateDir\paseo-home"
-    $PaseoHomeManaged = $true
+if (-not $env:GRAVITY_HOME) {
+    $env:GRAVITY_HOME = "$DevStateDir\gravity-home"
+    $GravityHomeManaged = $true
 } else {
-    $PaseoHomeManaged = $false
+    $GravityHomeManaged = $false
 }
-New-Item -ItemType Directory -Force -Path $env:PASEO_HOME, $env:PASEO_ELECTRON_USER_DATA_DIR | Out-Null
+New-Item -ItemType Directory -Force -Path $env:GRAVITY_HOME, $env:GRAVITY_ELECTRON_USER_DATA_DIR | Out-Null
 
-$DevDaemonPort = if ($env:PASEO_DEV_DAEMON_PORT) { $env:PASEO_DEV_DAEMON_PORT } else { "6788" }
-if (-not $env:PASEO_LISTEN) { $env:PASEO_LISTEN = "127.0.0.1:$DevDaemonPort" }
+$DevDaemonPort = if ($env:GRAVITY_DEV_DAEMON_PORT) { $env:GRAVITY_DEV_DAEMON_PORT } else { "6788" }
+if (-not $env:GRAVITY_LISTEN) { $env:GRAVITY_LISTEN = "127.0.0.1:$DevDaemonPort" }
 
 # Seed the isolated daemon config. The desktop daemon-manager decides whether a
 # daemon is already running by reading `daemon.listen` from this config.json
-# (it does NOT honor the PASEO_LISTEN env var) and probing that address. Without
+# (it does NOT honor the GRAVITY_LISTEN env var) and probing that address. Without
 # this it reads the default 6767, finds a production daemon there, and connects
 # the dev app to prod — whose CORS allowlist then rejects the Metro origin. Pin
 # the dev port + wildcard CORS in the file so the dev app starts its OWN daemon.
-# ONLY seed the script-managed home: never rewrite a user-supplied PASEO_HOME
+# ONLY seed the script-managed home: never rewrite a user-supplied GRAVITY_HOME
 # (that could clobber a production config.json with the dev port + wildcard CORS).
-if ($PaseoHomeManaged) {
-    $env:TMP_CFG_PATH = "$($env:PASEO_HOME)/config.json"
+if ($GravityHomeManaged) {
+    $env:TMP_CFG_PATH = "$($env:GRAVITY_HOME)/config.json"
     $env:TMP_CFG_PORT = $DevDaemonPort
     $TmpScript = [System.IO.Path]::GetTempFileName() + ".js"
     $ScriptContent = @"
@@ -96,17 +98,17 @@ fs.writeFileSync(path, JSON.stringify(cfg, null, 2));
     Remove-Item Env:\TMP_CFG_PATH -ErrorAction SilentlyContinue
     Remove-Item Env:\TMP_CFG_PORT -ErrorAction SilentlyContinue
 } else {
-    Write-Host "  (custom PASEO_HOME - leaving its config.json untouched)"
+    Write-Host "  (custom GRAVITY_HOME - leaving its config.json untouched)"
 }
 
 Write-Host @"
 ======================================================
-  Paseo Desktop Dev (Windows)
+  Gravity Desktop Dev (Windows)
 ======================================================
   Metro:      http://localhost:$($env:EXPO_PORT)
-  Daemon:     $($env:PASEO_LISTEN) (isolated)
-  PASEO_HOME: $($env:PASEO_HOME)
-  userData:   $($env:PASEO_ELECTRON_USER_DATA_DIR)
+  Daemon:     $($env:GRAVITY_LISTEN) (isolated)
+  GRAVITY_HOME: $($env:GRAVITY_HOME)
+  userData:   $($env:GRAVITY_ELECTRON_USER_DATA_DIR)
 ======================================================
 "@
 
@@ -115,5 +117,5 @@ concurrently `
     --kill-others `
     --names "metro,electron" `
     --prefix-colors "magenta,cyan" `
-    "cd `"$AppDir`" && cross-env PASEO_WEB_PLATFORM=electron npx expo start --port $($env:EXPO_PORT)" `
+    "cd `"$AppDir`" && cross-env GRAVITY_WEB_PLATFORM=electron npx expo start --port $($env:EXPO_PORT)" `
     "npx wait-on tcp:$($env:EXPO_PORT) && npx electron `"$DesktopDir`""

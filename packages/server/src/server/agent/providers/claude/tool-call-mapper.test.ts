@@ -16,6 +16,37 @@ function expectMapped<T>(item: T | null): T {
 }
 
 describe("claude tool-call mapper", () => {
+  it.each([mapClaudeRunningToolCall, mapClaudeCompletedToolCall])(
+    "preserves existing Bash descriptions during execution and replay",
+    (map) => {
+      const item = expectMapped(
+        map({
+          callId: "described-bash",
+          name: "Bash",
+          input: { command: "npm run dev", description: "Start frontend server" },
+        }),
+      );
+      expect(item.detail).toEqual({
+        type: "shell",
+        command: "npm run dev",
+        description: "Start frontend server",
+      });
+    },
+  );
+
+  it.each([undefined, "", " \n ", null, 42])(
+    "keeps the Bash command when a description is unavailable: %j",
+    (description) => {
+      expect(
+        mapClaudeRunningToolCall({
+          callId: "undescribed-bash",
+          name: "Bash",
+          input: { command: "npm run dev", description },
+        })?.detail,
+      ).toEqual({ type: "shell", command: "npm run dev" });
+    },
+  );
+
   it("preserves a plan's original tool identity and outcome for live and replayed results", () => {
     const proposal = { name: "ExitPlanMode", callId: "plan-tool-1", input: { plan: "Ship it" } };
     const pending = expectMapped(mapClaudeRunningToolCall(proposal));
@@ -284,7 +315,7 @@ describe("claude tool-call mapper", () => {
       mapClaudeCompletedToolCall({
         callId: "claude-glob-1",
         name: "Glob",
-        input: { pattern: "**/.claude/commands/paseo*" },
+        input: { pattern: "**/.claude/commands/gravity*" },
         output: {
           durationMs: 7,
           numFiles: 2,
@@ -299,7 +330,7 @@ describe("claude tool-call mapper", () => {
     expect(item.name).toBe("Glob");
     expect(item.detail).toEqual({
       type: "search",
-      query: "**/.claude/commands/paseo*",
+      query: "**/.claude/commands/gravity*",
       toolName: "glob",
       filePaths: ["a.txt", "b.txt"],
       numFiles: 2,
@@ -315,7 +346,7 @@ describe("claude tool-call mapper", () => {
         name: "Grep",
         input: {
           pattern: '\\\\\\"cli\\\\\\""',
-          path: "/workspaces/paseo/packages/desktop/src",
+          path: "/workspaces/gravity/packages/desktop/src",
           output_mode: "content",
           "-n": true,
         },
@@ -436,7 +467,7 @@ describe("claude tool-call mapper", () => {
     const item = expectMapped(
       mapClaudeCompletedToolCall({
         callId: "claude-speak-1",
-        name: "mcp__paseo__speak",
+        name: "mcp__gravity__speak",
         input: { text: "Voice response from Claude." },
         output: { ok: true },
       }),
@@ -454,7 +485,7 @@ describe("claude tool-call mapper", () => {
     const item = expectMapped(
       mapClaudeCompletedToolCall({
         callId: "claude-speak-2",
-        name: "mcp__paseo_voice__speak",
+        name: "mcp__gravity_voice__speak",
         input: { text: "Hey! I can hear you." },
         output: { ok: true },
       }),

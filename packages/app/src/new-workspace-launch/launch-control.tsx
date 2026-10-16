@@ -19,8 +19,8 @@ import {
   formatResolvedCommand,
   getTerminalProfileIcon,
   substitutePrompt,
-} from "@getpaseo/protocol/terminal-profiles";
-import type { TerminalProfile } from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/terminal-profiles";
+import type { TerminalProfile } from "@gravity/protocol/messages";
 import { buildSettingsHostSectionRoute } from "@/utils/host-routes";
 import type { Theme } from "@/styles/theme";
 import {

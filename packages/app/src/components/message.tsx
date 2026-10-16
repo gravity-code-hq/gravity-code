@@ -58,8 +58,8 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from "reac
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { MarkdownRenderer, type MarkdownStyles } from "@/components/markdown/renderer";
 import type { TaskActivity, TodoEntry, UserMessageImageAttachment } from "@/types/stream";
-import type { AgentAttachment } from "@getpaseo/protocol/messages";
-import type { ToolCallDetail } from "@getpaseo/protocol/agent-types";
+import type { AgentAttachment } from "@gravity/protocol/messages";
+import type { ToolCallDetail } from "@gravity/protocol/agent-types";
 import { buildToolCallPresentation } from "@/tool-calls/presentation";
 import { resolveToolCallIcon } from "@/utils/tool-call-icon";
 import { getMarkdownListMarker, getMarkdownListSpacing } from "@/utils/markdown-list";
@@ -72,6 +72,7 @@ import { splitMarkdownBlocks } from "@/utils/split-markdown-blocks";
 import { useRevealedText } from "@/hooks/use-revealed-text";
 import { colorMarkdownLinkChildren } from "@/components/markdown/link-children";
 import { createAssistantMarkdownParser } from "@/utils/assistant-markdown-parser";
+import { VisualizationPreview } from "@/visualization/preview";
 import { formatDuration, formatMessageTimestamp } from "@/utils/time";
 import { writeMarkdownToRichClipboard } from "@/utils/rich-clipboard";
 import { getDefaultMarkdownClipboardEnvironment } from "@/utils/rich-clipboard-default-environment";
@@ -79,8 +80,11 @@ import { setAssistantMarkdownBlockHeight } from "@/utils/assistant-message-heigh
 import { isRenderProfileEnabled } from "@/utils/render-profiler";
 import { getAgentAttachmentPillContent } from "@/attachments/attachment-pill-content";
 import { PlanCard } from "./plan-card";
+import { CollapsibleUserMessageBody } from "./collapsible-user-message-body";
 import { useToolCallSheet } from "./tool-call-sheet";
 import { ToolCallDetailsContent } from "./tool-call-details";
+import { ToolCallHoverPreview } from "@/tool-calls/hover-preview";
+import { ToolCallCopyButton } from "@/tool-calls/copy-button";
 import {
   AssistantInlineCodePathLink,
   type AssistantFileLinkSource,
@@ -98,12 +102,12 @@ import {
   AttachmentThumbnail,
 } from "@/components/attachment-pill";
 import { AttachmentLightbox, type ImageLightboxSource } from "@/components/attachment-lightbox";
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
 import { isWeb, isNative } from "@/constants/platform";
-import type { AgentCapabilityFlags } from "@getpaseo/protocol/agent-types";
+import type { AgentCapabilityFlags } from "@gravity/protocol/agent-types";
 import { RewindMenu, type RewindMode } from "@/components/rewind/rewind-menu";
 import { useRewindAgentMutation } from "@/components/rewind/use-rewind-agent-mutation";
-import { AssistantForkMenu, type AssistantForkTarget } from "@/components/assistant-fork-menu";
+import { AssistantForkMenu } from "@/components/assistant-fork-menu";
 import { useRetainedPanelActive } from "@/components/retained-panel";
 import {
   markdownCopyDataSet,
@@ -113,7 +117,6 @@ import {
 } from "@/assistant-selection-copy/markup";
 import { capAssistantMessageForRender, getUtf8ByteLength } from "./assistant-message-render-limit";
 export type { InlinePathTarget } from "@/assistant-file-links";
-export type { AssistantForkTarget };
 
 interface UserMessageProps {
   serverId?: string;
@@ -152,8 +155,8 @@ function useDisableOuterSpacing(disableOuterSpacing: boolean | undefined) {
   return disableOuterSpacing ?? contextValue;
 }
 
-const WEB_TOOLCALL_SHIMMER_KEYFRAME_ID = "paseo-toolcall-shimmer-keyframes";
-const WEB_TOOLCALL_SHIMMER_ANIMATION_NAME = "paseo-toolcall-shimmer";
+const WEB_TOOLCALL_SHIMMER_KEYFRAME_ID = "gravity-toolcall-shimmer-keyframes";
+const WEB_TOOLCALL_SHIMMER_ANIMATION_NAME = "gravity-toolcall-shimmer";
 const MARKDOWN_ALLOWED_IMAGE_HANDLERS = [
   "data:image/png;base64",
   "data:image/gif;base64",
@@ -185,10 +188,10 @@ const warningColorMapping = (theme: Theme) => ({ color: theme.colors.palette.amb
 const WEB_TOOLCALL_SHIMMER_KEYFRAME_CSS = `
   @keyframes ${WEB_TOOLCALL_SHIMMER_ANIMATION_NAME} {
     0% {
-      background-position: var(--paseo-shimmer-start, -200px) 0;
+      background-position: var(--gravity-shimmer-start, -200px) 0;
     }
     100% {
-      background-position: var(--paseo-shimmer-end, 200px) 0;
+      background-position: var(--gravity-shimmer-end, 200px) 0;
     }
   }
 `;
@@ -540,9 +543,11 @@ export const UserMessage = memo(function UserMessage({
             </View>
           ) : null}
           {hasText ? (
-            <Text selectable style={userMessageStylesheet.text}>
-              {message}
-            </Text>
+            <CollapsibleUserMessageBody>
+              <Text selectable style={userMessageStylesheet.text}>
+                {message}
+              </Text>
+            </CollapsibleUserMessageBody>
           ) : null}
         </View>
         {hasText ? (
@@ -579,7 +584,7 @@ interface AssistantTurnFooterProps {
   getContent: () => string;
   completedAt?: Date;
   durationMs?: number | null;
-  onFork?: (target: AssistantForkTarget) => Promise<void> | void;
+  onFork?: () => Promise<void> | void;
 }
 
 const assistantTurnFooterStylesheet = StyleSheet.create((theme) => ({
@@ -667,12 +672,9 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
       revealTimerRef.current = null;
     }, TIMESTAMP_REVEAL_MS);
   }, [canSwap]);
-  const handleFork = useCallback(
-    (target: AssistantForkTarget) => {
-      return onFork?.(target);
-    },
-    [onFork],
-  );
+  const handleFork = useCallback(() => {
+    return onFork?.();
+  }, [onFork]);
   const canFork = Boolean(onFork);
 
   return (
@@ -1118,6 +1120,14 @@ const expandableBadgeStylesheet = StyleSheet.create((theme) => ({
   pressablePressed: {
     opacity: 0.9,
   },
+  pressableWithAction: {
+    paddingRight: 44,
+  },
+  headerAction: {
+    position: "absolute",
+    right: 4,
+    top: 2,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1524,6 +1534,17 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   const markdownRules = useMemo<RenderRules>(() => {
     return {
+      visualization_pending: () => null,
+      visualization: (node: ASTNode) => (
+        <VisualizationPreview
+          key={node.key}
+          content={node.content}
+          occurrenceKey={occurrenceKey}
+          serverId={serverId}
+          workspaceRoot={workspaceRoot}
+          client={client}
+        />
+      ),
       heading1: (
         node: ASTNode,
         children: ReactNode[],
@@ -2305,6 +2326,7 @@ export const TodoListCard = memo(function TodoListCard({
 });
 
 interface ExpandableBadgeProps {
+  headerAction?: ReactNode;
   label: string;
   secondaryLabel?: string;
   icon?: ComponentType<{ size?: number; color?: string }>;
@@ -2662,12 +2684,13 @@ function buildShimmerTextStyle(input: {
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
     animation: `${WEB_TOOLCALL_SHIMMER_ANIMATION_NAME} ${input.shimmerDuration}s linear infinite`,
-    "--paseo-shimmer-start": `${input.webShimmerTrackStart - input.offsetX}px`,
-    "--paseo-shimmer-end": `${input.webShimmerTrackEnd - input.offsetX}px`,
+    "--gravity-shimmer-start": `${input.webShimmerTrackStart - input.offsetX}px`,
+    "--gravity-shimmer-end": `${input.webShimmerTrackEnd - input.offsetX}px`,
   });
 }
 
 export const ExpandableBadge = memo(function ExpandableBadge({
+  headerAction,
   label,
   style,
   secondaryLabel,
@@ -2850,11 +2873,12 @@ export const ExpandableBadge = memo(function ExpandableBadge({
   const pressableStyle = useMemo(
     () => [
       expandableBadgeStylesheet.pressable,
+      headerAction ? expandableBadgeStylesheet.pressableWithAction : null,
       isPressed && isInteractive ? expandableBadgeStylesheet.pressablePressed : null,
       isExpanded && expandableBadgeStylesheet.pressableExpanded,
       isExpanded && !borderlessWhenExpanded && expandableBadgeStylesheet.pressableExpandedAttached,
     ],
-    [borderlessWhenExpanded, isExpanded, isInteractive, isPressed],
+    [borderlessWhenExpanded, headerAction, isExpanded, isInteractive, isPressed],
   );
 
   const detailWrapperStyle = useMemo(
@@ -2943,41 +2967,46 @@ export const ExpandableBadge = memo(function ExpandableBadge({
       onPointerEnter={isWeb ? handleHoverIn : undefined}
       onPointerLeave={isWeb ? handleHoverOut : undefined}
     >
-      <Pressable
-        {...pressHandlers}
-        disabled={!isInteractive}
-        accessibilityState={accessibilityState}
-        style={pressableStyle}
-      >
-        <View style={expandableBadgeStylesheet.headerRow}>
-          <View style={expandableBadgeStylesheet.iconBadge}>{iconSlotNode}</View>
-          <ExpandableBadgeLabelRow
-            label={label}
-            labelStyle={labelStyle}
-            secondaryLabel={secondaryLabel}
-            secondaryLabelStyle={secondaryLabelStyle}
-            shouldMeasureWebShimmer={shouldMeasureWebShimmer}
-            shouldMeasureNativeShimmer={shouldMeasureNativeShimmer}
-            isWebShimmer={isWebShimmer}
-            isNativeShimmer={isNativeShimmer}
-            shimmerLabelTextStyle={shimmerLabelTextStyle}
-            shimmerSecondaryTextStyle={shimmerSecondaryTextStyle}
-            labelRowWidth={labelRowWidth}
-            labelRowHeight={labelRowHeight}
-            nativeShimmerPeakWidth={nativeShimmerPeakWidth}
-            shimmerDuration={shimmerDuration}
-            nativeGradientId={nativeGradientIdRef.current}
-            onLabelRowLayout={handleLabelRowLayout}
-            onLabelLayout={handleLabelLayout}
-            onSecondaryLayout={handleSecondaryLayout}
-            showOpenFileButton={Boolean(onOpenFile && isHovered)}
-            isOpenFileHovered={isOpenFileHovered}
-            onOpenFilePress={handleOpenFilePress}
-            onOpenFileHoverIn={handleOpenFileHoverIn}
-            onOpenFileHoverOut={handleOpenFileHoverOut}
-          />
-        </View>
-      </Pressable>
+      <View>
+        <Pressable
+          {...pressHandlers}
+          disabled={!isInteractive}
+          accessibilityState={accessibilityState}
+          style={pressableStyle}
+        >
+          <View style={expandableBadgeStylesheet.headerRow}>
+            <View style={expandableBadgeStylesheet.iconBadge}>{iconSlotNode}</View>
+            <ExpandableBadgeLabelRow
+              label={label}
+              labelStyle={labelStyle}
+              secondaryLabel={secondaryLabel}
+              secondaryLabelStyle={secondaryLabelStyle}
+              shouldMeasureWebShimmer={shouldMeasureWebShimmer}
+              shouldMeasureNativeShimmer={shouldMeasureNativeShimmer}
+              isWebShimmer={isWebShimmer}
+              isNativeShimmer={isNativeShimmer}
+              shimmerLabelTextStyle={shimmerLabelTextStyle}
+              shimmerSecondaryTextStyle={shimmerSecondaryTextStyle}
+              labelRowWidth={labelRowWidth}
+              labelRowHeight={labelRowHeight}
+              nativeShimmerPeakWidth={nativeShimmerPeakWidth}
+              shimmerDuration={shimmerDuration}
+              nativeGradientId={nativeGradientIdRef.current}
+              onLabelRowLayout={handleLabelRowLayout}
+              onLabelLayout={handleLabelLayout}
+              onSecondaryLayout={handleSecondaryLayout}
+              showOpenFileButton={Boolean(onOpenFile && isHovered)}
+              isOpenFileHovered={isOpenFileHovered}
+              onOpenFilePress={handleOpenFilePress}
+              onOpenFileHoverIn={handleOpenFileHoverIn}
+              onOpenFileHoverOut={handleOpenFileHoverOut}
+            />
+          </View>
+        </Pressable>
+        {headerAction ? (
+          <View style={expandableBadgeStylesheet.headerAction}>{headerAction}</View>
+        ) : null}
+      </View>
       {detailContent ? (
         <Pressable
           ref={detailWrapperRef}
@@ -2993,6 +3022,7 @@ export const ExpandableBadge = memo(function ExpandableBadge({
 }, areExpandableBadgePropsEqual);
 
 function areExpandableBadgePropsEqual(previous: ExpandableBadgeProps, next: ExpandableBadgeProps) {
+  if (previous.headerAction !== next.headerAction) return false;
   if (previous.label !== next.label) return false;
   if (previous.secondaryLabel !== next.secondaryLabel) return false;
   if (previous.icon !== next.icon) return false;
@@ -3163,6 +3193,11 @@ export const ToolCall = memo(function ToolCall({
     maxDetailHeight,
   ]);
 
+  const copyAction = useMemo(() => {
+    if (!shouldRenderInline || !isExpanded) return undefined;
+    return <ToolCallCopyButton detail={effectiveDetail} errorText={presentation.errorText} />;
+  }, [effectiveDetail, isExpanded, presentation.errorText, shouldRenderInline]);
+
   if (presentation.isPlan && effectiveDetail?.type === "plan") {
     return (
       <PlanCard
@@ -3175,21 +3210,33 @@ export const ToolCall = memo(function ToolCall({
   }
 
   return (
-    <ExpandableBadge
-      testID="tool-call-badge"
-      label={presentation.displayName}
-      secondaryLabel={presentation.summary}
-      icon={presentation.icon}
-      isExpanded={shouldRenderInline && isExpanded}
-      onToggle={presentation.canOpenDetails ? handleToggle : undefined}
-      onOpenFile={handleOpenFile}
-      renderDetails={presentation.canOpenDetails && shouldRenderInline ? renderDetails : undefined}
-      isLoading={status === "running" || status === "executing"}
-      isError={status === "failed"}
-      isLastInSequence={isLastInSequence}
-      disableOuterSpacing={disableOuterSpacing}
-      onDetailHoverChange={onInlineDetailsHoverChange}
-    />
+    <ToolCallHoverPreview
+      disabled={!presentation.canOpenDetails || isExpanded}
+      toolName={toolName}
+      displayName={presentation.displayName}
+      detail={effectiveDetail}
+      errorText={presentation.errorText}
+      showLoadingSkeleton={presentation.isLoadingDetails}
+    >
+      <ExpandableBadge
+        testID="tool-call-badge"
+        headerAction={copyAction}
+        label={presentation.displayName}
+        secondaryLabel={presentation.summary}
+        icon={presentation.icon}
+        isExpanded={shouldRenderInline && isExpanded}
+        onToggle={presentation.canOpenDetails ? handleToggle : undefined}
+        onOpenFile={handleOpenFile}
+        renderDetails={
+          presentation.canOpenDetails && shouldRenderInline ? renderDetails : undefined
+        }
+        isLoading={status === "running" || status === "executing"}
+        isError={status === "failed"}
+        isLastInSequence={isLastInSequence}
+        disableOuterSpacing={disableOuterSpacing}
+        onDetailHoverChange={onInlineDetailsHoverChange}
+      />
+    </ToolCallHoverPreview>
   );
 }, areToolCallPropsEqual);
 

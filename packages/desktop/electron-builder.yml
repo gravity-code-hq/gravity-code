@@ -1,11 +1,11 @@
 npmRebuild: false
-appId: sh.paseo.desktop
-productName: Paseo
-executableName: Paseo
+appId: sh.gravity.desktop
+productName: Gravity
+executableName: Gravity
 protocols:
-  - name: Paseo agent link
+  - name: Gravity agent link
     schemes:
-      - paseo
+      - gravity
 afterPack: ./scripts/after-pack.js
 afterSign: ./scripts/after-sign.js
 directories:
@@ -13,19 +13,21 @@ directories:
 files:
   - dist/**/*
   - "!**/*.map"
-  - "!node_modules/@getpaseo/*/src/**"
-  - "!node_modules/@getpaseo/**/*.test.*"
-  - "!node_modules/@getpaseo/**/*.spec.*"
-  - "!node_modules/@getpaseo/server/dist/server/web-ui/**"
+  - "!node_modules/@gravity/*/src/**"
+  - "!node_modules/@gravity/**/*.test.*"
+  - "!node_modules/@gravity/**/*.spec.*"
+  - "!node_modules/@gravity/server/dist/server/web-ui/**"
   # Workspace packages are symlinked, so anything a dev generates inside them
   # lands in the asar. CI never has these; a local .debug run adds gigabytes.
-  - "!node_modules/@getpaseo/*/.debug/**"
-  - "!node_modules/@getpaseo/*/.tasks/**"
-  - "!node_modules/@getpaseo/*/conversations/**"
-  - "!node_modules/@getpaseo/*/test-results/**"
+  - "!node_modules/@gravity/*/.debug/**"
+  - "!node_modules/@gravity/*/.tasks/**"
+  - "!node_modules/@gravity/*/conversations/**"
+  - "!node_modules/@gravity/*/test-results/**"
 asarUnpack:
   - dist/daemon/node-entrypoint-runner.js
-  - node_modules/@getpaseo/server/dist/server/terminal/shell-integration/**/*
+  - node_modules/@gravity/server/dist/server/terminal/shell-integration/**/*
+  # ripgrep must run from disk; VS Code rewrites the asar path to the unpacked copy.
+  - node_modules/@vscode/ripgrep*/bin/**
 extraResources:
   - from: ../app/dist
     to: app-dist
@@ -33,10 +35,10 @@ extraResources:
     to: editor-target-icons
 publish:
   provider: github
-  owner: getpaseo
-  repo: paseo
+  owner: gravity-code-hq
+  repo: gravity
 mac:
-  artifactName: "Paseo-${version}-${arch}.${ext}"
+  artifactName: "Gravity-${version}-${arch}.${ext}"
   minimumSystemVersion: "13.0.0"
   category: public.app-category.developer-tools
   icon: assets/icon.icns
@@ -45,8 +47,8 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
   extraResources:
-    - from: bin/paseo
-      to: bin/paseo
+    - from: bin/gravity
+      to: bin/gravity
     - from: assets/icon.png
       to: icon.png
   target:
@@ -55,12 +57,12 @@ mac:
 linux:
   category: Development
   icon: assets
-  artifactName: "Paseo-${version}-${arch}.${ext}"
-  maintainer: "Mohamed Boudra <hello@moboudra.com>"
-  vendor: "Paseo"
+  artifactName: "Gravity-${version}-${arch}.${ext}"
+  maintainer: "Gravity Code <22559884+shreeshiv@users.noreply.github.com>"
+  vendor: "Gravity"
   extraResources:
-    - from: bin/paseo
-      to: bin/paseo
+    - from: bin/gravity
+      to: bin/gravity
   target:
     - AppImage
     - deb
@@ -72,19 +74,19 @@ rpm:
   afterInstall: scripts/linux-sandbox/after-install.tpl
 appImage:
   # A nonempty argument list replaces builder's hardcoded --no-sandbox default.
-  executableArgs: ["--class=Paseo"]
+  executableArgs: ["--class=Gravity"]
   # Keep the AppImage filename stable across versions (no ${version}) so
   # electron-updater overwrites the file in place instead of renaming it to a new
   # versioned path. A rename orphans the old binary, breaks desktop shortcuts, and
-  # dangles the ~/.local/bin/paseo CLI symlink, which points at $APPIMAGE. The
+  # dangles the ~/.local/bin/gravity CLI symlink, which points at $APPIMAGE. The
   # version stays discoverable via the release tag and the in-app version.
-  artifactName: "Paseo-${arch}.${ext}"
+  artifactName: "Gravity-${arch}.${ext}"
 win:
-  artifactName: "Paseo-Setup-${version}-${arch}.${ext}"
+  artifactName: "Gravity-Setup-${version}-${arch}.${ext}"
   icon: assets/icon.ico
   extraResources:
-    - from: bin/paseo.cmd
-      to: bin/paseo.cmd
+    - from: bin/gravity.cmd
+      to: bin/gravity.cmd
   target:
     - target: nsis
       arch:

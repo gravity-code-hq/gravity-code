@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import { getElectronHost } from "@/desktop/electron/host";
 import type { BrowserKeyboardPolicy } from "@/desktop/browser/shortcuts";
-import type { SessionInboundMessage, SessionOutboundMessage } from "@getpaseo/protocol/messages";
+import type { SessionInboundMessage, SessionOutboundMessage } from "@gravity/protocol/messages";
 
 type BrowserAutomationExecuteRequest = Extract<
   SessionOutboundMessage,
@@ -89,6 +89,7 @@ export interface DesktopWebUtilsBridge {
 }
 
 export interface DesktopMenuBridge {
+  zoomApp?: (direction: "in" | "out" | "reset") => Promise<void>;
   showContextMenu?: (input?: { kind?: "terminal"; hasSelection?: boolean }) => Promise<void>;
   setCapturingShortcut?: (capturing: boolean) => Promise<void>;
 }
@@ -173,6 +174,7 @@ export interface DesktopInvokeBridge {
 }
 
 export interface DesktopHostBridge {
+  power?: { invoke(input: unknown): Promise<unknown> };
   platform?: string;
   windowChromeMode?: string;
   invoke?: DesktopInvokeBridge["invoke"];
@@ -191,7 +193,7 @@ export interface DesktopHostBridge {
 
 declare global {
   interface Window {
-    paseoDesktop?: DesktopHostBridge;
+    gravityDesktop?: DesktopHostBridge;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, Text, View, type PressableStateCallbackType } from "react-native";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
@@ -38,6 +38,7 @@ export function SidebarGroupToggleRow({
   testID: string;
 }) {
   const { t } = useTranslation();
+  const accessibilityState = useMemo(() => ({ expanded }), [expanded]);
   const label = t(
     expanded ? "sidebar.workspace.actions.showLess" : "sidebar.workspace.actions.showMore",
   );
@@ -55,6 +56,7 @@ export function SidebarGroupToggleRow({
     <Pressable
       accessibilityRole={isWeb ? undefined : "button"}
       accessibilityLabel={label}
+      accessibilityState={accessibilityState}
       onPress={onPress}
       style={rowStyle}
       testID={testID}

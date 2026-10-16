@@ -31,7 +31,7 @@ import type {
   ToolCallTimelineItem,
 } from "../agent-sdk-types.js";
 import { importSessionFromPersistence } from "../provider-session-import.js";
-import { getAgentProviderDefinition } from "@getpaseo/protocol/provider-manifest";
+import { getAgentProviderDefinition } from "@gravity/protocol/provider-manifest";
 
 export const MOCK_LOAD_TEST_PROVIDER_ID = "mock";
 export const MOCK_LOAD_TEST_DEFAULT_MODEL_ID = "five-minute-stream";
@@ -213,6 +213,8 @@ interface LargeAgentStreamPayloadRequest {
 interface AgentStreamStressRequest {
   count: number;
   coalesced: boolean;
+  toolCalls: boolean;
+  outputLines: number;
 }
 
 type SteeringReplayShape = "claude" | "codex";
@@ -399,7 +401,7 @@ function parseLargeAgentStreamPayloadPrompt(
 
 function parseAgentStreamStressPrompt(prompt: AgentPromptInput): AgentStreamStressRequest | null {
   const text = promptToText(prompt);
-  const match = /emit\s+(\d+)\s+(coalesced\s+)?agent stream updates/i.exec(text);
+  const match = /emit\s+(\d+)\s+(?:(coalesced|tool call)\s+)?agent stream updates/i.exec(text);
   if (!match) {
     return null;
   }
@@ -409,7 +411,9 @@ function parseAgentStreamStressPrompt(prompt: AgentPromptInput): AgentStreamStre
   }
   return {
     count: Math.min(count, 5_000),
-    coalesced: Boolean(match[2]),
+    coalesced: match[2]?.toLowerCase() === "coalesced",
+    toolCalls: match[2]?.toLowerCase() === "tool call",
+    outputLines: Math.min(Number(/with (\d+) output lines/i.exec(text)?.[1] ?? 1), 5_000),
   };
 }
 
@@ -418,8 +422,10 @@ function parseStructuredBranchNamePrompt(
 ): { title: string; branch: string } | null {
   const text = promptToText(prompt);
   const hasBranchNamePrompt =
-    text.includes("Generate a title and a git branch name for a coding agent") &&
-    (text.includes("Return JSON only with fields 'title' and 'branch'.") ||
+    (text.includes("Generate a title and a git branch name for a coding agent") ||
+      text.includes("Generate a git branch name from the user prompt")) &&
+    (text.includes("Return JSON only with field 'branch'.") ||
+      text.includes("Return JSON only with fields 'title' and 'branch'.") ||
       text.includes('"title"') ||
       text.includes('"branch"'));
   if (
@@ -608,7 +614,7 @@ function buildCycleQueue(turnId: string, cycle: number): CycleEvent[] {
   const shellDetail: ToolCallDetail = {
     type: "shell",
     command: "node scripts/simulate-stream-burst.mjs",
-    cwd: "/tmp/paseo-mock-load",
+    cwd: "/tmp/gravity-mock-load",
     output:
       "[burst] tick 1 userIsAtBottom=true\n[burst] tick 2 userIsAtBottom=true\n[burst] drag-start isDragging=true\n[burst] tick 3 suppressed\n[burst] drag-end isDragging=false\n",
     exitCode: 0,
@@ -1147,7 +1153,7 @@ export class MockLoadTestAgentSession implements AgentSession {
       const detail: ToolCallDetail = {
         type: "shell",
         command: "sleep 5",
-        cwd: "/tmp/paseo-mock-load",
+        cwd: "/tmp/gravity-mock-load",
       };
       this.emitTimeline(
         turn.turnId,
@@ -1362,6 +1368,25 @@ export class MockLoadTestAgentSession implements AgentSession {
     this.emitTurnStarted(turn);
 
     for (let index = 0; index < stress.count; index += 1) {
+      if (stress.toolCalls) {
+        this.emitTimeline(
+          turn.turnId,
+          createToolCall({
+            callId: `${turn.turnId}:stress-tool:${index}`,
+            name: "bash",
+            status: "completed",
+            detail: {
+              type: "shell",
+              command: `echo tool-${index + 1}`,
+              output: Array.from({ length: stress.outputLines }, (_, line) => {
+                if (stress.outputLines === 1) return `tool-${index + 1}`;
+                return `tool-${index + 1} output line ${line + 1}`;
+              }).join("\n"),
+            },
+          }),
+        );
+        continue;
+      }
       this.emitTimeline(
         turn.turnId,
         stress.coalesced

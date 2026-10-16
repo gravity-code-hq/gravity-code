@@ -3,6 +3,8 @@ import { Text, View } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { getProviderIcon } from "@/components/provider-icons";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { SettingsSection } from "@/components/settings/headings/settings-section";
+import { settingsStyles } from "@/styles/settings";
 import type { Theme } from "@/styles/theme";
 import { ProviderUsageBalanceBar } from "./balance-bar";
 import { formatAgo } from "./format";
@@ -48,6 +50,22 @@ export function ProviderUsageCard({
   const footer = footerText(usage);
   const balances = usage.balances ?? [];
   const details = usage.details ?? [];
+  const meteredBalances = balances.filter((balance) => balance.limit != null && balance.limit > 0);
+  const unmeteredBalances = balances.filter(
+    (balance) => balance.limit == null || balance.limit <= 0,
+  );
+  const barBalances = compact ? balances : meteredBalances;
+  const footerBalances = compact ? [] : unmeteredBalances;
+  const hasBars = usage.windows.length > 0 || barBalances.length > 0;
+  const hasDetails = details.length > 0 || footerBalances.length > 0;
+  const separateDetails = !compact && hasBars;
+  const detailsStyle = useMemo(
+    () => [
+      compact ? styles.details : styles.sectionDetails,
+      separateDetails && styles.detailsBorder,
+    ],
+    [compact, separateDetails],
+  );
 
   const containerStyle = useMemo(
     () => [styles.container, compact ? styles.containerCompact : styles.containerPadded],
@@ -61,23 +79,41 @@ export function ProviderUsageCard({
     ],
     [usage.status],
   );
+  const sectionIcon = useMemo(
+    () => (
+      <ThemedProviderUsageIcon iconKey={usage.providerId} size={14} uniProps={mutedIconColor} />
+    ),
+    [usage.providerId],
+  );
+  const planBadge = useMemo(
+    () => (usage.planLabel ? <StatusBadge label={usage.planLabel} variant="muted" /> : null),
+    [usage.planLabel],
+  );
+  const statusBadge = useMemo(
+    () => (status ? <StatusBadge label={status} variant="muted" /> : null),
+    [status],
+  );
 
-  return (
+  const header = (
+    <View style={styles.header}>
+      {sectionIcon}
+      <Text style={styles.name} numberOfLines={1}>
+        {usage.displayName}
+      </Text>
+      {planBadge}
+      <View style={styles.headerSpacer} />
+      {status ? (
+        <View style={styles.statusRow}>
+          <View style={dotStyle} />
+          <Text style={styles.statusLabel}>{status}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const body = (
     <View style={containerStyle}>
-      <View style={styles.header}>
-        <ThemedProviderUsageIcon iconKey={usage.providerId} size={14} uniProps={mutedIconColor} />
-        <Text style={styles.name} numberOfLines={1}>
-          {usage.displayName}
-        </Text>
-        {usage.planLabel ? <StatusBadge label={usage.planLabel} variant="muted" /> : null}
-        <View style={styles.headerSpacer} />
-        {status ? (
-          <View style={styles.statusRow}>
-            <View style={dotStyle} />
-            <Text style={styles.statusLabel}>{status}</Text>
-          </View>
-        ) : null}
-      </View>
+      {compact ? header : null}
 
       {usage.error ? (
         <Text style={styles.error} numberOfLines={3}>
@@ -85,19 +121,22 @@ export function ProviderUsageCard({
         </Text>
       ) : null}
 
-      {usage.windows.length > 0 || balances.length > 0 ? (
-        <View style={styles.bars}>
+      {hasBars ? (
+        <View style={compact ? styles.bars : styles.sectionBars}>
           {usage.windows.map((window) => (
-            <ProviderUsageWindowBar key={window.id} window={window} />
+            <ProviderUsageWindowBar key={window.id} window={window} compact={compact} />
           ))}
-          {balances.map((balance) => (
-            <ProviderUsageBalanceBar key={balance.id} balance={balance} />
+          {barBalances.map((balance) => (
+            <ProviderUsageBalanceBar key={balance.id} balance={balance} compact={compact} />
           ))}
         </View>
       ) : null}
 
-      {details.length > 0 ? (
-        <View style={styles.details}>
+      {hasDetails ? (
+        <View style={detailsStyle}>
+          {footerBalances.map((balance) => (
+            <ProviderUsageBalanceBar key={balance.id} balance={balance} compact={compact} />
+          ))}
           {details.map((detail) => (
             <View key={detail.id} style={styles.detailRow}>
               <Text style={styles.detailLabel} numberOfLines={1}>
@@ -117,6 +156,20 @@ export function ProviderUsageCard({
         </Text>
       ) : null}
     </View>
+  );
+
+  if (compact) return body;
+
+  return (
+    <SettingsSection
+      title={usage.displayName}
+      leading={sectionIcon}
+      titleAccessory={planBadge}
+      trailing={statusBadge}
+      testID={`provider-usage-section-${usage.providerId}`}
+    >
+      <View style={settingsStyles.card}>{body}</View>
+    </SettingsSection>
   );
 }
 
@@ -169,6 +222,17 @@ const styles = StyleSheet.create((theme) => ({
   bars: {
     gap: theme.spacing[3],
   },
+  sectionBars: {
+    gap: theme.spacing[6],
+  },
+  sectionDetails: {
+    gap: theme.spacing[3],
+  },
+  detailsBorder: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: theme.spacing[4],
+  },
   details: {
     gap: theme.spacing[1],
   },
@@ -187,7 +251,7 @@ const styles = StyleSheet.create((theme) => ({
     fontSize: theme.fontSize.sm,
   },
   error: {
-    color: theme.colors.palette.red[300],
+    color: theme.colors.statusDanger,
     fontSize: theme.fontSize.sm,
     lineHeight: theme.fontSize.sm * 1.4,
   },

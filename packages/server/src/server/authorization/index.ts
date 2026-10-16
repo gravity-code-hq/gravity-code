@@ -1,5 +1,5 @@
 import type { SessionInboundMessage, SessionOutboundMessage } from "../messages.js";
-import { DAEMON_PERMISSIONS, type DaemonPermission } from "@getpaseo/protocol/messages";
+import { DAEMON_PERMISSIONS, type DaemonPermission } from "@gravity/protocol/messages";
 import {
   type PermissionRequirement,
   requiredPermissionForInbound,

@@ -1,22 +1,9 @@
 import { useMemo, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { type PressableStateCallbackType } from "react-native";
-import { StyleSheet, withUnistyles } from "react-native-unistyles";
-import {
-  Archive,
-  Circle,
-  CircleCheck,
-  Copy,
-  MoreVertical,
-  Pencil,
-  Pin,
-  PinOff,
-  Tag,
-} from "lucide-react-native";
-import { isWeb } from "@/constants/platform";
+import { withUnistyles } from "react-native-unistyles";
+import { Archive, Circle, CircleCheck, Copy, Pin, PinOff, Plus, Tag } from "lucide-react-native";
 import { getForgePresentation, normalizeForge } from "@/git/forge";
 import type { SidebarWorkspaceEntry } from "@/hooks/use-sidebar-workspaces-list";
-import { useAppSettings } from "@/hooks/use-settings";
 import type { Theme } from "@/styles/theme";
 import type { ShortcutKey } from "@/utils/format-shortcut";
 import {
@@ -24,7 +11,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   ContextMenu,
@@ -32,6 +18,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { SidebarMenuTrigger } from "./sidebar-menu-trigger";
 import { Shortcut } from "@/components/ui/shortcut";
 import { OpenInFileManagerMenuItem } from "@/workspace/open-in-file-manager/menu-item";
 import { resolveSidebarWorkspaceAccessibilityLabel } from "@/components/sidebar/sidebar-workspace-title";
@@ -45,23 +32,21 @@ import {
   type WorkspaceLabelTarget,
 } from "@/workspace-labels/picker";
 
-const foregroundColorMapping = (theme: Theme) => ({ color: theme.colors.foreground });
 const foregroundMutedColorMapping = (theme: Theme) => ({
   color: theme.colors.foregroundMuted,
 });
 
-const ThemedMoreVertical = withUnistyles(MoreVertical);
 const ThemedCopy = withUnistyles(Copy);
 const ThemedArchive = withUnistyles(Archive);
 const ThemedCircle = withUnistyles(Circle);
-const ThemedPencil = withUnistyles(Pencil);
 const ThemedCircleCheck = withUnistyles(CircleCheck);
 const ThemedPin = withUnistyles(Pin);
 const ThemedPinOff = withUnistyles(PinOff);
 const ThemedTag = withUnistyles(Tag);
+const ThemedPlus = withUnistyles(Plus);
 
+const newAgentLeadingIcon = <ThemedPlus size={14} uniProps={foregroundMutedColorMapping} />;
 const copyLeadingIcon = <ThemedCopy size={14} uniProps={foregroundMutedColorMapping} />;
-const renameLeadingIcon = <ThemedPencil size={14} uniProps={foregroundMutedColorMapping} />;
 const markAsReadLeadingIcon = (
   <ThemedCircleCheck size={14} uniProps={foregroundMutedColorMapping} />
 );
@@ -70,23 +55,14 @@ const archiveLeadingIcon = <ThemedArchive size={14} uniProps={foregroundMutedCol
 const pinLeadingIcon = <ThemedPin size={14} uniProps={foregroundMutedColorMapping} />;
 const unpinLeadingIcon = <ThemedPinOff size={14} uniProps={foregroundMutedColorMapping} />;
 
-function renderTriggerIcon({ hovered }: { hovered?: boolean }) {
-  return (
-    <ThemedMoreVertical
-      size={14}
-      uniProps={hovered ? foregroundColorMapping : foregroundMutedColorMapping}
-    />
-  );
-}
-
 export interface SidebarWorkspaceMenuProps {
   workspaceKey: string;
   serverId?: string;
   workspaceId?: string;
   workspaceLabels?: readonly string[];
+  onNewAgent?: () => void;
   onCopyPath?: () => void;
   onCopyBranchName?: () => void;
-  onRename?: () => void;
   onMarkAsRead?: () => void;
   onMarkAsUnread?: () => void;
   onArchive: () => void;
@@ -132,9 +108,9 @@ function SidebarWorkspaceMenuItems({
   workspaceKey,
   serverId,
   workspaceId,
+  onNewAgent,
   onCopyPath,
   onCopyBranchName,
-  onRename,
   onMarkAsRead,
   onMarkAsUnread,
   onArchive,
@@ -158,6 +134,16 @@ function SidebarWorkspaceMenuItems({
 
   return (
     <>
+      {onNewAgent ? (
+        <WorkspaceMenuItem
+          surface={surface}
+          testID={`sidebar-workspace-menu-new-agent-${workspaceKey}`}
+          leading={newAgentLeadingIcon}
+          onSelect={onNewAgent}
+        >
+          {t("sidebar.workspace.actions.newAgent")}
+        </WorkspaceMenuItem>
+      ) : null}
       {onCopyPath ? (
         <WorkspaceMenuItem
           surface={surface}
@@ -176,16 +162,6 @@ function SidebarWorkspaceMenuItems({
           onSelect={onCopyBranchName}
         >
           {t("sidebar.workspace.actions.copyBranchName")}
-        </WorkspaceMenuItem>
-      ) : null}
-      {onRename ? (
-        <WorkspaceMenuItem
-          surface={surface}
-          testID={`sidebar-workspace-menu-rename-${workspaceKey}`}
-          leading={renameLeadingIcon}
-          onSelect={onRename}
-        >
-          {t("sidebar.workspace.actions.rename")}
         </WorkspaceMenuItem>
       ) : null}
       {onMarkAsRead ? (
@@ -254,9 +230,9 @@ export function SidebarWorkspaceMenu({
   serverId,
   workspaceId,
   workspaceLabels,
+  onNewAgent,
   onCopyPath,
   onCopyBranchName,
-  onRename,
   onMarkAsRead,
   onMarkAsUnread,
   onArchive,
@@ -279,15 +255,10 @@ export function SidebarWorkspaceMenu({
   const pages = useWorkspaceLabelMenuPages(workspaceTarget);
   return (
     <DropdownMenu compactMode="sheet" open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger
-        hitSlop={8}
-        style={triggerStyle}
-        accessibilityRole={isWeb ? undefined : "button"}
+      <SidebarMenuTrigger
         accessibilityLabel={t("sidebar.workspace.actions.menu")}
         testID={`sidebar-workspace-kebab-${workspaceKey}`}
-      >
-        {renderTriggerIcon}
-      </DropdownMenuTrigger>
+      />
       <DropdownMenuContent
         align="end"
         width={260}
@@ -300,9 +271,9 @@ export function SidebarWorkspaceMenu({
           serverId={serverId}
           workspaceId={workspaceId}
           workspaceLabels={workspaceLabels}
+          onNewAgent={onNewAgent}
           onCopyPath={onCopyPath}
           onCopyBranchName={onCopyBranchName}
-          onRename={onRename}
           onMarkAsRead={onMarkAsRead}
           onMarkAsUnread={onMarkAsUnread}
           onArchive={onArchive}
@@ -333,9 +304,9 @@ export function SidebarWorkspaceContextMenu({
   hostBadgeLabel,
   serviceSummary,
   workspaceKey,
+  onNewAgent,
   onCopyPath,
   onCopyBranchName,
-  onRename,
   onMarkAsRead,
   onMarkAsUnread,
   onArchive,
@@ -361,9 +332,6 @@ export function SidebarWorkspaceContextMenu({
       highlightStyle: ComponentProps<typeof ContextMenuTrigger>["highlightStyle"];
     }
 >) {
-  const {
-    settings: { workspaceTitleSource },
-  } = useAppSettings();
   const { t } = useTranslation();
   const pullRequestLabel = workspace.prHint
     ? t("workspace.git.pr.accessibility.pullRequest", {
@@ -373,7 +341,6 @@ export function SidebarWorkspaceContextMenu({
     : null;
   const rowAccessibilityLabel = resolveSidebarWorkspaceAccessibilityLabel({
     workspace,
-    workspaceTitleSource,
     leadingProjectName,
     hostBadgeLabel,
     pullRequestLabel,
@@ -413,9 +380,9 @@ export function SidebarWorkspaceContextMenu({
           serverId={workspaceTarget.serverId}
           workspaceId={workspaceTarget.workspaceId}
           workspaceLabels={workspaceTarget.labels}
+          onNewAgent={onNewAgent}
           onCopyPath={onCopyPath}
           onCopyBranchName={onCopyBranchName}
-          onRename={onRename}
           onMarkAsRead={onMarkAsRead}
           onMarkAsUnread={onMarkAsUnread}
           onArchive={onArchive}
@@ -431,21 +398,3 @@ export function SidebarWorkspaceContextMenu({
     </ContextMenu>
   );
 }
-
-function triggerStyle({ hovered = false }: PressableStateCallbackType & { hovered?: boolean }) {
-  return [styles.trigger, hovered && styles.triggerHovered];
-}
-
-const styles = StyleSheet.create((theme) => ({
-  trigger: {
-    padding: 2,
-    borderRadius: 4,
-    marginLeft: 2,
-    // MoreVertical paints only around the center of its SVG. Keep the padded hit box, but
-    // pull the painted dots through that unused view-box space onto the trailing-content rail.
-    marginRight: -7,
-  },
-  triggerHovered: {
-    backgroundColor: theme.colors.surface2,
-  },
-}));

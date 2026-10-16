@@ -17,7 +17,6 @@ import type { Theme } from "@/styles/theme";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import {
   AlignJustify,
-  ChevronDown,
   Columns2,
   ExternalLink,
   ListChevronsDownUp,
@@ -47,7 +46,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import * as Clipboard from "expo-clipboard";
 import { useFileDownload } from "@/hooks/use-file-download";
@@ -60,14 +58,15 @@ import { BranchSwitcher } from "@/components/branch-switcher";
 import { useGitActions } from "@/git/use-actions";
 import { GIT_ACTION_ICONS } from "@/git/action-icons";
 import { buildForgeSignInCommand, getForgePresentation, type Forge } from "@/git/forge";
-import { parseGitRemoteLocation } from "@getpaseo/protocol/git-remote";
-import type { ForgeAuthState } from "@getpaseo/protocol/messages";
+import { parseGitRemoteLocation } from "@gravity/protocol/git-remote";
+import type { ForgeAuthState } from "@gravity/protocol/messages";
 import { useCheckoutGitActionsStore } from "@/git/actions-store";
 import { useToast } from "@/contexts/toast-context";
 import { useSessionStore } from "@/stores/session-store";
 import { confirmDialog } from "@/utils/confirm-dialog";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   PaneContentToolbar,
   paneContentToolbarIconSize,
@@ -205,7 +204,6 @@ const ThemedListChevronsDownUp = withUnistyles(ListChevronsDownUp);
 const ThemedListChevronsUpDown = withUnistyles(ListChevronsUpDown);
 const ThemedMaximize = withUnistyles(Maximize);
 const noopStateChange = () => {};
-const ThemedChevronDown = withUnistyles(ChevronDown);
 const ThemedMoreHorizontal = withUnistyles(MoreHorizontal);
 const ThemedExternalLink = withUnistyles(ExternalLink);
 const DIFF_OPTIONS_WHITESPACE_ICON = (
@@ -277,7 +275,7 @@ export function DiffLayoutToggle({
   );
 }
 
-interface DiffModeMenuProps {
+interface DiffModeControlProps {
   diffMode: "uncommitted" | "base";
   committedDescription?: string;
   testIDPrefix?: string;
@@ -285,57 +283,49 @@ interface DiffModeMenuProps {
   onSelectBase: () => void;
 }
 
-export function DiffModeMenu({
+export function DiffModeControl({
   diffMode,
   committedDescription,
   testIDPrefix = "changes-diff",
   onSelectUncommitted,
   onSelectBase,
-}: DiffModeMenuProps) {
+}: DiffModeControlProps) {
   const { t } = useTranslation();
-  const uncommittedLabel = t("workspace.git.diff.uncommitted");
-  const committedLabel = t("workspace.git.diff.committed");
+  const options = useMemo(
+    () => [
+      {
+        value: "uncommitted" as const,
+        label: t("workspace.git.diff.uncommitted"),
+        testID: `${testIDPrefix}-mode-uncommitted`,
+      },
+      {
+        value: "base" as const,
+        label: t("workspace.git.diff.committed"),
+        testID: `${testIDPrefix}-mode-committed`,
+      },
+    ],
+    [t, testIDPrefix],
+  );
+  const selectMode = useCallback(
+    (value: "uncommitted" | "base") => {
+      if (value === "uncommitted") onSelectUncommitted();
+      else onSelectBase();
+    },
+    [onSelectUncommitted, onSelectBase],
+  );
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        testID={`${testIDPrefix}-status-trigger`}
-        style={toolbarLabelTriggerStyle}
-        accessibilityRole="button"
-        accessibilityLabel={t("workspace.git.diff.diffMode")}
-      >
-        {(state) => {
-          const highlighted = isToolbarLabelTriggerHighlighted(state);
-          return (
-            <>
-              <Text style={toolbarLabelTriggerTextStyle(highlighted)} numberOfLines={1}>
-                {diffMode === "uncommitted" ? uncommittedLabel : committedLabel}
-              </Text>
-              <ToolbarLabelTriggerIcon>
-                <ThemedChevronDown size={12} uniProps={extraMutedIconColorMapping} />
-              </ToolbarLabelTriggerIcon>
-            </>
-          );
-        }}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" width={260} testID={`${testIDPrefix}-status-menu`}>
-        <DropdownMenuItem
-          testID={`${testIDPrefix}-mode-uncommitted`}
-          selected={diffMode === "uncommitted"}
-          onSelect={onSelectUncommitted}
-        >
-          {uncommittedLabel}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          testID={`${testIDPrefix}-mode-committed`}
-          selected={diffMode === "base"}
-          description={committedDescription}
-          onSelect={onSelectBase}
-        >
-          {committedLabel}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <View
+      accessibilityLabel={t("workspace.git.diff.diffMode")}
+      accessibilityHint={committedDescription}
+    >
+      <SegmentedControl
+        options={options}
+        value={diffMode}
+        onValueChange={selectMode}
+        size="sm"
+        testID={`${testIDPrefix}-mode-control`}
+      />
+    </View>
   );
 }
 
@@ -729,7 +719,7 @@ function ChangesComparisonToolbar({
       trailing="glyph"
     >
       <ChangesToolbarLeading>
-        <DiffModeMenu
+        <DiffModeControl
           diffMode={model.diffMode}
           committedDescription={model.committedDescription}
           onSelectUncommitted={model.onSelectUncommitted}

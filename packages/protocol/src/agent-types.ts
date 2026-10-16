@@ -213,6 +213,7 @@ export type ToolCallDetail =
   | {
       type: "shell";
       command: string;
+      description?: string;
       cwd?: string;
       output?: string;
       exitCode?: number | null;
@@ -369,7 +370,13 @@ export interface AgentTaskItem {
 }
 
 export type AgentTimelineItem =
-  | { type: "user_message"; text: string; messageId?: string; clientMessageId?: string }
+  | {
+      type: "user_message";
+      text: string;
+      messageId?: string;
+      clientMessageId?: string;
+      inherited?: boolean;
+    }
   | { type: "assistant_message"; text: string; messageId?: string }
   | { type: "reasoning"; text: string }
   | ToolCallTimelineItem
@@ -379,6 +386,7 @@ export type AgentTimelineItem =
       type: "notification";
       level: "info" | "warning" | "error";
       message: string;
+      forkSourceTitle?: string;
     }
   | CompactionTimelineItem
   | PluginTimelineItem;

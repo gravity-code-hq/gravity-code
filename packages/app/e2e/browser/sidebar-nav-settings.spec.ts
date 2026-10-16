@@ -18,7 +18,7 @@ test.describe("Sidebar items in Appearance settings", () => {
     await gotoAppShell(page);
 
     await test.step("the sidebar starts in the default order", async () => {
-      await expectSidebarOrder(page, ["new-workspace", "history", "search", "schedules"]);
+      await expectSidebarOrder(page, ["new-workspace", "search", "schedules"]);
     });
 
     await test.step("the Sidebar section lists every item in the same order", async () => {
@@ -27,15 +27,10 @@ test.describe("Sidebar items in Appearance settings", () => {
       await expect(page.getByTestId("sidebar-nav-section-info")).toHaveAccessibleName(
         "About Sidebar",
       );
-      await expectSidebarNavSettingsOrder(page, [
-        "new-workspace",
-        "history",
-        "search",
-        "schedules",
-      ]);
+      await expectSidebarNavSettingsOrder(page, ["new-workspace", "search", "schedules"]);
       await expectSidebarNavSettingsRow(page, {
-        key: "history",
-        label: "History",
+        key: "search",
+        label: "Search",
         visible: true,
       });
       // Items with a keyboard shortcut badge it next to their name. Chords render
@@ -45,52 +40,38 @@ test.describe("Sidebar items in Appearance settings", () => {
       ).toBeVisible();
     });
 
-    await test.step("moving Schedules up twice lifts it above History", async () => {
+    await test.step("moving Schedules up lifts it above Search", async () => {
       await moveSidebarNavItemUp(page, "schedules");
-      await expectSidebarNavSettingsOrder(page, [
-        "new-workspace",
-        "history",
-        "schedules",
-        "search",
-      ]);
-      await moveSidebarNavItemUp(page, "schedules");
-      await expectSidebarNavSettingsOrder(page, [
-        "new-workspace",
-        "schedules",
-        "history",
-        "search",
-      ]);
+      await expectSidebarNavSettingsOrder(page, ["new-workspace", "schedules", "search"]);
 
       await leaveSettings(page);
-      await expectSidebarOrder(page, ["new-workspace", "schedules", "history", "search"]);
+      await expectSidebarOrder(page, ["new-workspace", "schedules", "search"]);
     });
 
-    await test.step("turning History off removes it from the sidebar", async () => {
+    await test.step("turning Search off removes it from the sidebar", async () => {
       await openSidebarNavSettings(page);
-      await setSidebarNavItemVisible(page, "history", false);
+      await setSidebarNavItemVisible(page, "search", false);
       await expectStoredSidebarNav(page, [
         { key: "new-workspace", visible: true },
         { key: "schedules", visible: true },
-        { key: "history", visible: false },
-        { key: "search", visible: true },
+        { key: "search", visible: false },
       ]);
 
       await leaveSettings(page);
-      await expectSidebarItemHidden(page, "history");
-      await expectSidebarOrder(page, ["new-workspace", "schedules", "search"]);
+      await expectSidebarItemHidden(page, "search");
+      await expectSidebarOrder(page, ["new-workspace", "schedules"]);
     });
 
     await test.step("the sidebar keeps that shape across a reload", async () => {
       await page.reload();
-      await expectSidebarItemHidden(page, "history");
-      await expectSidebarOrder(page, ["new-workspace", "schedules", "search"]);
+      await expectSidebarItemHidden(page, "search");
+      await expectSidebarOrder(page, ["new-workspace", "schedules"]);
     });
   });
 
   test("renders no top-level items when every one is turned off", async ({ page }) => {
     await seedSidebarNavPreferences(page, [
       { key: "new-workspace", visible: false },
-      { key: "history", visible: false },
       { key: "search", visible: false },
       { key: "schedules", visible: false },
     ]);
@@ -101,7 +82,6 @@ test.describe("Sidebar items in Appearance settings", () => {
       timeout: 30_000,
     });
     await expectSidebarItemHidden(page, "new-workspace");
-    await expectSidebarItemHidden(page, "history");
     await expectSidebarItemHidden(page, "search");
     await expectSidebarItemHidden(page, "schedules");
   });

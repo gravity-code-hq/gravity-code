@@ -1,3 +1,4 @@
+import { SidebarWorkspaceAgentList } from "./workspace-agent-list";
 import {
   memo,
   useCallback,
@@ -19,6 +20,8 @@ import {
 import { NestableScrollContainer } from "react-native-draggable-flatlist";
 import type { GestureType } from "react-native-gesture-handler";
 import { navigateToWorkspace } from "@/stores/navigation-active-workspace-store";
+import { generateDraftId } from "@/stores/draft-keys";
+import { SidebarWorkspaceNewAgentButton } from "@/components/sidebar/sidebar-workspace-new-agent-button";
 import { useActiveWorkspaceSelection } from "@/stores/navigation-active-workspace-store";
 import { type SidebarWorkspaceEntry } from "@/hooks/use-sidebar-workspaces-list";
 import type { StatusBucket } from "@/hooks/sidebar-status-view-model";
@@ -40,7 +43,6 @@ import {
   CircleX,
 } from "lucide-react-native";
 import { useToast } from "@/contexts/toast-context";
-import { WorkspaceRenameModal } from "@/components/workspace-rename-modal";
 import { useWorkspaceClipboardActions } from "@/hooks/use-workspace-clipboard-actions";
 import { redirectIfArchivingActiveWorkspace } from "@/utils/sidebar-workspace-archive-redirect";
 import { useWorkspaceArchive } from "@/workspace/use-workspace-archive";
@@ -535,24 +537,44 @@ const StatusWorkspaceRow = memo(function StatusWorkspaceRow({
     navigateToWorkspace({ serverId: workspace.serverId, workspaceId: workspace.workspaceId });
   }, [onWorkspacePress, workspace.serverId, workspace.workspaceId]);
 
+  const handleNewAgent = useCallback(() => {
+    if (!workspace.serverId) return;
+    onWorkspacePress?.();
+    navigateToWorkspace({
+      serverId: workspace.serverId,
+      workspaceId: workspace.workspaceId,
+      target: { kind: "draft", draftId: generateDraftId() },
+    });
+  }, [onWorkspacePress, workspace.serverId, workspace.workspaceId]);
+
   return (
-    <StatusWorkspaceRowWithMenu
-      workspace={workspace}
-      hostBadge={hostBadge}
-      projectName={projectName}
-      projectIconDataUri={projectIconDataUri}
-      selected={selected}
-      shortcutNumber={shortcutNumber}
-      showShortcutBadge={showShortcutBadge}
-      canPin={canPin}
-      onToggleWorkspacePin={onToggleWorkspacePin}
-      reserveIdleStatusIndicatorSpace={reserveIdleStatusIndicatorSpace}
-      inStatusGroup={inStatusGroup}
-      onPress={handlePress}
-      drag={drag}
-      isDragging={isDragging}
-      dragHandleProps={dragHandleProps}
-    />
+    <View>
+      <StatusWorkspaceRowWithMenu
+        workspace={workspace}
+        hostBadge={hostBadge}
+        projectName={projectName}
+        projectIconDataUri={projectIconDataUri}
+        selected={selected}
+        shortcutNumber={shortcutNumber}
+        showShortcutBadge={showShortcutBadge}
+        canPin={canPin}
+        onToggleWorkspacePin={onToggleWorkspacePin}
+        reserveIdleStatusIndicatorSpace={reserveIdleStatusIndicatorSpace}
+        inStatusGroup={inStatusGroup}
+        onPress={handlePress}
+        onNewAgent={handleNewAgent}
+        drag={drag}
+        isDragging={isDragging}
+        dragHandleProps={dragHandleProps}
+      />
+      {!isDragging ? (
+        <SidebarWorkspaceAgentList
+          workspace={workspace}
+          selected={selected}
+          onWorkspacePress={onWorkspacePress}
+        />
+      ) : null}
+    </View>
   );
 });
 
@@ -569,6 +591,7 @@ function StatusWorkspaceRowWithMenu({
   reserveIdleStatusIndicatorSpace = true,
   inStatusGroup = true,
   onPress,
+  onNewAgent,
   drag,
   isDragging = false,
   dragHandleProps,
@@ -589,6 +612,7 @@ function StatusWorkspaceRowWithMenu({
    */
   inStatusGroup?: boolean;
   onPress: () => void;
+  onNewAgent: () => void;
   drag?: () => void;
   isDragging?: boolean;
   dragHandleProps?: DraggableListDragHandleProps;
@@ -596,7 +620,6 @@ function StatusWorkspaceRowWithMenu({
   const { t } = useTranslation();
   const toast = useToast();
   const [isHidingWorkspace, setIsHidingWorkspace] = useState(false);
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
   const isArchiving = workspace.archivingAt !== null || isHidingWorkspace;
 
   const redirectAfterArchive = useCallback(() => {
@@ -633,8 +656,6 @@ function StatusWorkspaceRowWithMenu({
     clipboard.copyBranchName(workspace);
   }, [clipboard, workspace]);
 
-  const handleOpenRename = useCallback(() => setIsRenameOpen(true), []);
-  const handleCloseRename = useCallback(() => setIsRenameOpen(false), []);
   const isPinned = workspace.pinnedAt != null;
   const handleTogglePin = useCallback(() => {
     onToggleWorkspacePin(workspace);
@@ -670,42 +691,34 @@ function StatusWorkspaceRowWithMenu({
   });
 
   return (
-    <>
-      <StatusWorkspaceRowInner
-        workspace={workspace}
-        hostBadge={hostBadge}
-        projectName={projectName}
-        projectIconDataUri={projectIconDataUri}
-        selected={selected}
-        shortcutNumber={shortcutNumber}
-        showShortcutBadge={showShortcutBadge}
-        onPress={onPress}
-        isArchiving={isArchiving}
-        archiveLabel={t("sidebar.workspace.actions.archive")}
-        archiveStatus={isArchiving ? "pending" : "idle"}
-        archivePendingLabel={t("sidebar.workspace.actions.archiving")}
-        onArchive={handleArchive}
-        onCopyBranchName={workspace.projectKind === "git" ? handleCopyBranchName : undefined}
-        onCopyPath={handleCopyPath}
-        onRename={handleOpenRename}
-        onMarkAsRead={hasClearableAttention ? handleMarkAsRead : undefined}
-        onMarkAsUnread={canMarkUnread ? handleMarkAsUnread : undefined}
-        archiveShortcutKeys={selected ? archiveShortcutKeys : null}
-        isPinned={isPinned}
-        onTogglePin={onTogglePin}
-        reserveIdleStatusIndicatorSpace={reserveIdleStatusIndicatorSpace}
-        inStatusGroup={inStatusGroup}
-        drag={drag}
-        isDragging={isDragging}
-        dragHandleProps={dragHandleProps}
-      />
-      <WorkspaceRenameModal
-        visible={isRenameOpen}
-        workspace={workspace}
-        onClose={handleCloseRename}
-        testID={`sidebar-workspace-rename-modal-${workspace.workspaceKey}`}
-      />
-    </>
+    <StatusWorkspaceRowInner
+      workspace={workspace}
+      hostBadge={hostBadge}
+      projectName={projectName}
+      projectIconDataUri={projectIconDataUri}
+      selected={selected}
+      shortcutNumber={shortcutNumber}
+      showShortcutBadge={showShortcutBadge}
+      onPress={onPress}
+      onNewAgent={isArchiving ? undefined : onNewAgent}
+      isArchiving={isArchiving}
+      archiveLabel={t("sidebar.workspace.actions.archive")}
+      archiveStatus={isArchiving ? "pending" : "idle"}
+      archivePendingLabel={t("sidebar.workspace.actions.archiving")}
+      onArchive={handleArchive}
+      onCopyBranchName={workspace.projectKind === "git" ? handleCopyBranchName : undefined}
+      onCopyPath={handleCopyPath}
+      onMarkAsRead={hasClearableAttention ? handleMarkAsRead : undefined}
+      onMarkAsUnread={canMarkUnread ? handleMarkAsUnread : undefined}
+      archiveShortcutKeys={selected ? archiveShortcutKeys : null}
+      isPinned={isPinned}
+      onTogglePin={onTogglePin}
+      reserveIdleStatusIndicatorSpace={reserveIdleStatusIndicatorSpace}
+      inStatusGroup={inStatusGroup}
+      drag={drag}
+      isDragging={isDragging}
+      dragHandleProps={dragHandleProps}
+    />
   );
 }
 
@@ -718,6 +731,7 @@ interface StatusWorkspaceRowInnerProps {
   shortcutNumber: number | null;
   showShortcutBadge: boolean;
   onPress: () => void;
+  onNewAgent?: () => void;
   isArchiving: boolean;
   archiveLabel?: string;
   archiveStatus?: "idle" | "pending" | "success";
@@ -725,7 +739,6 @@ interface StatusWorkspaceRowInnerProps {
   onArchive?: () => void;
   onCopyBranchName?: () => void;
   onCopyPath?: () => void;
-  onRename?: () => void;
   onMarkAsRead?: () => void;
   onMarkAsUnread?: () => void;
   archiveShortcutKeys?: ShortcutKey[][] | null;
@@ -765,6 +778,7 @@ function StatusWorkspaceRowInnerContent({
   shortcutNumber,
   showShortcutBadge,
   onPress,
+  onNewAgent,
   isArchiving,
   archiveLabel,
   archiveStatus = "idle",
@@ -772,7 +786,6 @@ function StatusWorkspaceRowInnerContent({
   onArchive,
   onCopyBranchName,
   onCopyPath,
-  onRename,
   onMarkAsRead,
   onMarkAsUnread,
   archiveShortcutKeys,
@@ -866,9 +879,9 @@ function StatusWorkspaceRowInnerContent({
               hostBadgeLabel={hostBadge?.label}
               serviceSummary={serviceSummary}
               workspaceKey={workspace.workspaceKey}
+              onNewAgent={onNewAgent}
               onCopyPath={onCopyPath}
               onCopyBranchName={onCopyBranchName}
-              onRename={onRename}
               onMarkAsRead={onMarkAsRead}
               onMarkAsUnread={onMarkAsUnread}
               onArchive={onArchive}
@@ -914,9 +927,9 @@ function StatusWorkspaceRowInnerContent({
                     reserveSlotWidth={reserveSlotWidth}
                     isPinned={isPinned}
                     onTogglePin={onTogglePin}
+                    onNewAgent={onNewAgent}
                     onCopyPath={onCopyPath}
                     onCopyBranchName={onCopyBranchName}
-                    onRename={onRename}
                     onMarkAsRead={onMarkAsRead}
                     onMarkAsUnread={onMarkAsUnread}
                     onArchive={onArchive}
@@ -945,9 +958,9 @@ function StatusWorkspaceActionSlot({
   reserveSlotWidth,
   isPinned,
   onTogglePin,
+  onNewAgent,
   onCopyPath,
   onCopyBranchName,
-  onRename,
   onMarkAsRead,
   onMarkAsUnread,
   onArchive,
@@ -965,9 +978,9 @@ function StatusWorkspaceActionSlot({
   reserveSlotWidth: boolean;
   isPinned?: boolean;
   onTogglePin?: () => void;
+  onNewAgent?: () => void;
   onCopyPath?: () => void;
   onCopyBranchName?: () => void;
-  onRename?: () => void;
   onMarkAsRead?: () => void;
   onMarkAsUnread?: () => void;
   onArchive?: () => void;
@@ -977,15 +990,23 @@ function StatusWorkspaceActionSlot({
   archiveShortcutKeys?: ShortcutKey[][] | null;
 }) {
   const kebab = useOpenKebabMenuVisibility(showKebab);
+  const showNewAgent = Boolean(onNewAgent && onArchive);
   return (
-    <SidebarWorkspaceTrailingActionSlot reserveWidth={reserveSlotWidth}>
+    <SidebarWorkspaceTrailingActionSlot reserveWidth={reserveSlotWidth} wide={showNewAgent}>
       <SidebarWorkspaceTrailingActionBase presentation={trailingPresentation}>
         <SidebarWorkspaceTrailingContent workspace={workspace} trailing={trailing} />
       </SidebarWorkspaceTrailingActionBase>
       <SidebarWorkspaceTrailingActionOverlay
         visible={kebab.showKebab}
         scrimBackdrop={showScrim ? backdrop : undefined}
+        wide={showNewAgent}
       >
+        {kebab.showKebab && showNewAgent && onNewAgent ? (
+          <SidebarWorkspaceNewAgentButton
+            onPress={onNewAgent}
+            testID={`sidebar-workspace-new-agent-${workspace.workspaceKey}`}
+          />
+        ) : null}
         {kebab.showKebab && onArchive ? (
           <SidebarWorkspaceMenu
             {...kebab.menuProps}
@@ -993,9 +1014,9 @@ function StatusWorkspaceActionSlot({
             serverId={workspace.serverId}
             workspaceId={workspace.workspaceId}
             workspaceLabels={workspace.labels}
+            onNewAgent={onNewAgent}
             onCopyPath={onCopyPath}
             onCopyBranchName={onCopyBranchName}
-            onRename={onRename}
             onMarkAsRead={onMarkAsRead}
             onMarkAsUnread={onMarkAsUnread}
             onArchive={onArchive}

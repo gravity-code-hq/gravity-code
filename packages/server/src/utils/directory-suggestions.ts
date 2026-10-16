@@ -1,7 +1,7 @@
 import type { Dirent, Stats } from "node:fs";
 import { readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
-import { scorePathMatch, type MatchScore } from "@getpaseo/protocol/search/text-match";
+import { scorePathMatch, type MatchScore } from "@gravity/protocol/search/text-match";
 import { isPathInsideRoot } from "./path.js";
 import { runGitCommand } from "./run-git-command.js";
 
@@ -107,7 +107,7 @@ export const WORKSPACE_SEARCH_HIDDEN_DIRECTORIES = [
   ".codex",
   ".github",
   ".opencode",
-  ".paseo",
+  ".gravity",
   ".vscode",
 ] as const;
 const IGNORED_DIRECTORY_NAMES = new Set([
@@ -144,10 +144,10 @@ export async function searchDirectoryEntries(
   const input = buildSearchInput(options, root, gitIgnoredPaths);
   if (!input) return [];
 
+  // Suffix mode resolves a path an agent wrote, so a bare root-level name like `TODO.md` is a
+  // named path too and must reach retrieval before gitignore-filtered discovery.
   const exact =
-    input.plan.browseExactPath || (input.matchMode === "suffix" && input.plan.isPathQuery)
-      ? await findExactEntry(input)
-      : null;
+    input.plan.browseExactPath || input.matchMode === "suffix" ? await findExactEntry(input) : null;
   if (exact && input.limit === 1) return [exact];
 
   const browsesRoot = input.plan.isPathQuery && !input.plan.normalizedQuery;

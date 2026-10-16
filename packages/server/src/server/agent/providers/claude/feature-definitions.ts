@@ -1,4 +1,5 @@
 import type { AgentFeature, AgentFeatureToggle } from "../../agent-sdk-types.js";
+import { buildContextBudgetFeature } from "../context-budget.js";
 import { claudeManifestModelSupportsFastMode } from "./model-manifest.js";
 
 export const CLAUDE_FAST_MODE_FEATURE: Omit<AgentFeatureToggle, "value"> = {
@@ -17,15 +18,15 @@ export function claudeModelSupportsFastMode(modelId: string | null | undefined):
 export function buildClaudeFeatures(input: {
   modelId: string | null | undefined;
   fastModeEnabled: boolean;
+  contextBudget?: unknown;
 }): AgentFeature[] {
-  if (!claudeModelSupportsFastMode(input.modelId)) {
-    return [];
-  }
-
-  return [
-    {
+  const features: AgentFeature[] = [];
+  if (claudeModelSupportsFastMode(input.modelId)) {
+    features.push({
       ...CLAUDE_FAST_MODE_FEATURE,
       value: input.fastModeEnabled,
-    },
-  ];
+    });
+  }
+  features.push(buildContextBudgetFeature(input.contextBudget));
+  return features;
 }

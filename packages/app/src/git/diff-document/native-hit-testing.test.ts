@@ -1,4 +1,4 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import { describe, expect, it } from "vitest";
 import { buildDiffDocumentModel } from "./model";
 import { hitTestDiffBodyPoint } from "./native-hit-testing";
@@ -97,6 +97,9 @@ function build(layout: "unified" | "split") {
     measureText: { measure: (text) => Array.from(text).length * 10 },
     palette: {
       surface: "#000",
+      hunkBackground: "#123",
+      additionGutterBackground: "#142",
+      deletionGutterBackground: "#412",
       headerSurface: "#111",
       border: "#222",
       foreground: "#fff",

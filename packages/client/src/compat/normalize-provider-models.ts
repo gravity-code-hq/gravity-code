@@ -1,11 +1,11 @@
-import type { AgentModelDefinition, ProviderSnapshotEntry } from "@getpaseo/protocol/agent-types";
-import { normalizeAgentModelDefinition } from "@getpaseo/protocol/agent-types";
-import { expandProviderSnapshot } from "@getpaseo/protocol/provider-snapshot-codec";
+import type { AgentModelDefinition, ProviderSnapshotEntry } from "@gravity/protocol/agent-types";
+import { normalizeAgentModelDefinition } from "@gravity/protocol/agent-types";
+import { expandProviderSnapshot } from "@gravity/protocol/provider-snapshot-codec";
 import type {
   GetProvidersSnapshotResponseMessage,
   ListProviderModelsResponseMessage,
   SessionOutboundMessage,
-} from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/messages";
 
 type ListProviderModelsPayload = ListProviderModelsResponseMessage["payload"];
 type GetProvidersSnapshotPayload = GetProvidersSnapshotResponseMessage["payload"];

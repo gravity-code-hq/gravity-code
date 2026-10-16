@@ -3,6 +3,7 @@ import type { FileHandle } from "node:fs/promises";
 import { ensurePrivateDirectory } from "./private-files.js";
 import { join } from "node:path";
 import { hostname } from "node:os";
+import { spawnSync } from "node:child_process";
 import { z } from "zod";
 
 export const pidLockInfoSchema = z.object({
@@ -43,14 +44,27 @@ const PID_LOCK_READ_RETRY_DELAY_MS = 50;
 export function isPidRunning(pid: number): boolean {
   try {
     process.kill(pid, 0);
-    return true;
   } catch (error) {
     return isErrnoException(error) && error.code === "EPERM";
   }
+
+  if (process.platform !== "win32") {
+    // kill(pid, 0) succeeds for zombies until their parent reaps them. A stopped
+    // dev runner can leave a dead supervisor holding the daemon lock indefinitely.
+    const state = spawnSync("ps", ["-p", String(pid), "-o", "stat="], {
+      encoding: "utf8",
+      timeout: 1000,
+      maxBuffer: 1024,
+    });
+    if (state.status === 0 && state.stdout.trim().startsWith("Z")) {
+      return false;
+    }
+  }
+  return true;
 }
 
-function getPidFilePath(paseoHome: string): string {
-  return join(paseoHome, "paseo.pid");
+function getPidFilePath(gravityHome: string): string {
+  return join(gravityHome, "gravity.pid");
 }
 
 async function touchPidLockFile(pidPath: string): Promise<void> {
@@ -95,7 +109,7 @@ export function isSamePidLock(left: PidLockInfo, right: PidLockInfo): boolean {
 
 function createLockHeldError(lock: PidLockInfo): PidLockError {
   return new PidLockError(
-    `Another Paseo daemon is already running (PID ${lock.pid}, started ${lock.startedAt})`,
+    `Another Gravity daemon is already running (PID ${lock.pid}, started ${lock.startedAt})`,
     lock,
   );
 }
@@ -138,7 +152,7 @@ async function writeNewPidLock(pidPath: string, lockInfo: PidLockInfo): Promise<
     const raceLock = await readPidLock(pidPath);
     if (raceLock) {
       throw new PidLockError(
-        `Another Paseo daemon is already running (PID ${raceLock.pid})`,
+        `Another Gravity daemon is already running (PID ${raceLock.pid})`,
         raceLock,
       );
     }
@@ -149,13 +163,13 @@ async function writeNewPidLock(pidPath: string, lockInfo: PidLockInfo): Promise<
 }
 
 export async function acquirePidLock(
-  paseoHome: string,
+  gravityHome: string,
   listen: string | null,
   options?: AcquirePidLockOptions,
 ): Promise<void> {
-  const pidPath = getPidFilePath(paseoHome);
+  const pidPath = getPidFilePath(gravityHome);
 
-  ensurePrivateDirectory(paseoHome);
+  ensurePrivateDirectory(gravityHome);
 
   // Try to read existing lock
   const existingLock = await readPidLock(pidPath);
@@ -177,17 +191,17 @@ export async function acquirePidLock(
     uid: process.getuid?.() ?? 0,
     listen,
     heartbeat: true,
-    ...(process.env.PASEO_DESKTOP_MANAGED === "1" ? { desktopManaged: true } : {}),
+    ...(process.env.GRAVITY_DESKTOP_MANAGED === "1" ? { desktopManaged: true } : {}),
   };
 
   await writeNewPidLock(pidPath, lockInfo);
 }
 
 export async function refreshPidLock(
-  paseoHome: string,
+  gravityHome: string,
   options?: { ownerPid?: number },
 ): Promise<void> {
-  const pidPath = getPidFilePath(paseoHome);
+  const pidPath = getPidFilePath(gravityHome);
   const lockOwnerPid = resolveOwnerPid(options?.ownerPid);
   let fd;
   try {
@@ -242,7 +256,7 @@ async function readPidLockFromHandleWithRetry(fd: FileHandle): Promise<PidLockIn
 }
 
 export function startPidLockHeartbeat(
-  paseoHome: string,
+  gravityHome: string,
   options?: {
     ownerPid?: number;
     intervalMs?: number;
@@ -257,7 +271,7 @@ export function startPidLockHeartbeat(
       return;
     }
     refreshing = true;
-    refreshPidLock(paseoHome, { ownerPid: options?.ownerPid })
+    refreshPidLock(gravityHome, { ownerPid: options?.ownerPid })
       .catch((error) => {
         if (options?.onError) {
           options.onError(error);
@@ -276,11 +290,11 @@ export function startPidLockHeartbeat(
 }
 
 export async function updatePidLock(
-  paseoHome: string,
+  gravityHome: string,
   patch: { listen: string | null },
   options?: { ownerPid?: number },
 ): Promise<void> {
-  const pidPath = getPidFilePath(paseoHome);
+  const pidPath = getPidFilePath(gravityHome);
   const lockOwnerPid = resolveOwnerPid(options?.ownerPid);
   const fd = await open(pidPath, "r+");
   try {
@@ -307,10 +321,10 @@ export async function updatePidLock(
 }
 
 export async function releasePidLock(
-  paseoHome: string,
+  gravityHome: string,
   options?: { ownerPid?: number; startedAt?: string },
 ): Promise<void> {
-  const pidPath = getPidFilePath(paseoHome);
+  const pidPath = getPidFilePath(gravityHome);
   const lockOwnerPid = resolveOwnerPid(options?.ownerPid);
   try {
     // Only remove if it's our lock
@@ -327,15 +341,15 @@ export async function releasePidLock(
   }
 }
 
-export async function getPidLockInfo(paseoHome: string): Promise<PidLockInfo | null> {
-  const pidPath = getPidFilePath(paseoHome);
+export async function getPidLockInfo(gravityHome: string): Promise<PidLockInfo | null> {
+  const pidPath = getPidFilePath(gravityHome);
   return readPidLock(pidPath);
 }
 
 export async function isLocked(
-  paseoHome: string,
+  gravityHome: string,
 ): Promise<{ locked: boolean; info?: PidLockInfo }> {
-  const info = await getPidLockInfo(paseoHome);
+  const info = await getPidLockInfo(gravityHome);
   if (!info) {
     return { locked: false };
   }

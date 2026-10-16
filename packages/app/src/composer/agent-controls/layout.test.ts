@@ -11,20 +11,17 @@ describe("composer control layout", () => {
     expect(resolveComposerControlPresentation("full")).toEqual({
       showCarets: true,
       showThinkingLabel: true,
-      showModeLabel: true,
-      aggregateFeatures: false,
+      showPlanLabel: true,
     });
     expect(resolveComposerControlPresentation("condensed")).toEqual({
       showCarets: false,
       showThinkingLabel: false,
-      showModeLabel: true,
-      aggregateFeatures: true,
+      showPlanLabel: true,
     });
     expect(resolveComposerControlPresentation("tight")).toEqual({
       showCarets: false,
       showThinkingLabel: false,
-      showModeLabel: false,
-      aggregateFeatures: true,
+      showPlanLabel: false,
     });
   });
 
@@ -32,124 +29,71 @@ describe("composer control layout", () => {
     const controls = {
       hasModel: true,
       hasThinking: true,
-      hasMode: true,
-      features: [{ type: "toggle" as const }],
+      hasPlan: true,
+      hasSettings: true,
       fontScale: 1,
     };
 
     expect(
       resolveComposerControlDensity({
-        availableWidth: 420,
+        availableWidth: 360,
         currentDensity: "full",
         controls,
       }),
     ).toBe("full");
-    expect(
-      resolveComposerControlDensity({
-        availableWidth: 380,
-        currentDensity: "full",
-        controls,
-      }),
-    ).toBe("condensed");
-    expect(
-      resolveComposerControlDensity({
-        availableWidth: 290,
-        currentDensity: "condensed",
-        controls,
-      }),
-    ).toBe("condensed");
-    expect(
-      resolveComposerControlDensity({
-        availableWidth: 280,
-        currentDensity: "condensed",
-        controls,
-      }),
-    ).toBe("tight");
     expect(
       resolveComposerControlDensity({
         availableWidth: 300,
+        currentDensity: "full",
+        controls,
+      }),
+    ).toBe("condensed");
+    expect(
+      resolveComposerControlDensity({
+        availableWidth: 225,
+        currentDensity: "condensed",
+        controls,
+      }),
+    ).toBe("condensed");
+    expect(
+      resolveComposerControlDensity({
+        availableWidth: 220,
+        currentDensity: "condensed",
+        controls,
+      }),
+    ).toBe("tight");
+    expect(
+      resolveComposerControlDensity({
+        availableWidth: 240,
         currentDensity: "tight",
         controls,
       }),
     ).toBe("tight");
     expect(
       resolveComposerControlDensity({
-        availableWidth: 312,
+        availableWidth: 250,
         currentDensity: "tight",
         controls,
       }),
     ).toBe("condensed");
   });
 
-  it("budgets extra features and larger text before restoring full labels", () => {
-    const base = {
-      availableWidth: 430,
-      currentDensity: "condensed" as const,
+  it("budgets one settings trigger regardless of the provider's secondary controls", () => {
+    const controls = {
+      hasModel: true,
+      hasThinking: true,
+      hasPlan: true,
+      hasSettings: true,
+      fontScale: 1,
     };
-
     expect(
-      resolveComposerControlDensity({
-        ...base,
-        controls: {
-          hasModel: true,
-          hasThinking: true,
-          hasMode: true,
-          features: [{ type: "toggle" }],
-          fontScale: 1,
-        },
-      }),
+      resolveComposerControlDensity({ availableWidth: 350, currentDensity: "condensed", controls }),
     ).toBe("full");
     expect(
       resolveComposerControlDensity({
-        ...base,
-        controls: {
-          hasModel: true,
-          hasThinking: true,
-          hasMode: true,
-          features: [{ type: "toggle" }, { type: "select", label: "Tools" }],
-          fontScale: 1,
-        },
-      }),
-    ).toBe("condensed");
-    expect(
-      resolveComposerControlDensity({
-        ...base,
-        controls: {
-          hasModel: true,
-          hasThinking: true,
-          hasMode: true,
-          features: [{ type: "toggle" }],
-          fontScale: 1.25,
-        },
-      }),
-    ).toBe("condensed");
-  });
-
-  it("condenses before a labeled feature would overflow", () => {
-    const base = {
-      availableWidth: 430,
-      currentDensity: "full" as const,
-      controls: {
-        hasModel: true,
-        hasThinking: true,
-        hasMode: true,
-        fontScale: 1,
-      },
-    };
-
-    expect(
-      resolveComposerControlDensity({
-        ...base,
-        controls: { ...base.controls, features: [{ type: "toggle" }] },
-      }),
-    ).toBe("full");
-    expect(
-      resolveComposerControlDensity({
-        ...base,
-        controls: {
-          ...base.controls,
-          features: [{ type: "select", label: "A much longer localized feature label" }],
-        },
+        availableWidth: 350,
+        currentDensity: "condensed",
+        controls: { ...controls, fontScale: 1.5 },
       }),
     ).toBe("condensed");
   });

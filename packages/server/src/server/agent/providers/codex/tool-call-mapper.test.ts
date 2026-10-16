@@ -8,6 +8,20 @@ function expectMapped<T>(item: T | null): T {
 }
 
 describe("codex tool-call mapper", () => {
+  it("preserves a description when present in a shell tool envelope", () => {
+    expect(
+      mapCodexToolCallEnvelope({
+        callId: "described-shell",
+        name: "exec_command",
+        input: { cmd: "npm run dev", description: "Start frontend server" },
+      })?.detail,
+    ).toEqual({
+      type: "shell",
+      command: "npm run dev",
+      description: "Start frontend server",
+    });
+  });
+
   it("maps commandExecution start into running canonical call", () => {
     const item = expectMapped(
       mapCodexToolCallFromThreadItem({
@@ -822,13 +836,13 @@ describe("codex tool-call mapper", () => {
     });
   });
 
-  it("normalizes codex paseo speak mcp calls and extracts spoken text", () => {
+  it("normalizes codex gravity speak mcp calls and extracts spoken text", () => {
     const item = expectMapped(
       mapCodexToolCallFromThreadItem({
         type: "mcpToolCall",
         id: "codex-speak-thread-1",
         status: "completed",
-        server: "paseo",
+        server: "gravity",
         tool: "speak",
         arguments: { text: "Voice response from Codex." },
         result: { ok: true },
@@ -849,7 +863,7 @@ describe("codex tool-call mapper", () => {
         type: "mcpToolCall",
         id: "codex-browser-screenshot",
         status: "completed",
-        server: "paseo",
+        server: "gravity",
         tool: "browser_screenshot",
         arguments: { browserId: "11111111-1111-4111-8111-111111111111" },
         result: {
@@ -864,7 +878,7 @@ describe("codex tool-call mapper", () => {
     expect(item).toEqual({
       type: "tool_call",
       callId: "codex-browser-screenshot",
-      name: "paseo.browser_screenshot",
+      name: "gravity.browser_screenshot",
       status: "completed",
       error: null,
       detail: {
@@ -881,15 +895,15 @@ describe("codex tool-call mapper", () => {
     expect(JSON.stringify(item)).not.toContain("iVBORw0KGgo=");
   });
 
-  it("normalizes codex paseo_voice.speak mcp calls and extracts spoken text", () => {
+  it("normalizes codex gravity_voice.speak mcp calls and extracts spoken text", () => {
     const item = expectMapped(
       mapCodexToolCallFromThreadItem({
         type: "mcpToolCall",
         id: "codex-speak-thread-2",
         status: "completed",
-        server: "paseo_voice",
+        server: "gravity_voice",
         tool: "speak",
-        arguments: { text: "Voice response from Codex via paseo_voice." },
+        arguments: { text: "Voice response from Codex via gravity_voice." },
         result: { ok: true },
       }),
     );
@@ -897,16 +911,16 @@ describe("codex tool-call mapper", () => {
     expect(item.name).toBe("speak");
     expect(item.detail).toEqual({
       type: "unknown",
-      input: "Voice response from Codex via paseo_voice.",
+      input: "Voice response from Codex via gravity_voice.",
       output: null,
     });
   });
 
-  it("normalizes codex paseo speak tool-call names and extracts spoken text", () => {
+  it("normalizes codex gravity speak tool-call names and extracts spoken text", () => {
     const item = expectMapped(
       mapCodexToolCallEnvelope({
         callId: "codex-speak-tool-call-1",
-        name: "paseo.speak",
+        name: "gravity.speak",
         input: { text: "Tool call speech text." },
         output: { ok: true },
       }),

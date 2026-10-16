@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveNodeExecPath } from "./runtime-paths";
+import { resolveDaemonRunnerEntrypoint, resolveNodeExecPath } from "./runtime-paths";
+import { resolveExternalCliEntrypoint, resolvePassthroughCliEntrypoint } from "./cli/entrypoints";
 
 const mocks = vi.hoisted(() => ({
   existsSync: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock("electron-log/main", () => ({
   default: { warn: vi.fn() },
 }));
 
-vi.mock("@getpaseo/server", () => ({
+vi.mock("@gravity/server", () => ({
   spawnProcess: vi.fn(),
 }));
 
@@ -54,8 +55,8 @@ describe("runtime-paths", () => {
     mocks.existsSync.mockReturnValue(true);
     setProcessRuntime({
       platform: "darwin",
-      execPath: "/Applications/Paseo.app/Contents/MacOS/Paseo",
-      resourcesPath: "/Applications/Paseo.app/Contents/Resources",
+      execPath: "/Applications/Gravity.app/Contents/MacOS/Gravity",
+      resourcesPath: "/Applications/Gravity.app/Contents/Resources",
     });
   });
 
@@ -70,7 +71,31 @@ describe("runtime-paths", () => {
 
   it("uses the macOS Helper executable for packaged daemon node launches", () => {
     expect(resolveNodeExecPath()).toBe(
-      "/Applications/Paseo.app/Contents/Frameworks/Paseo Helper.app/Contents/MacOS/Paseo Helper",
+      "/Applications/Gravity.app/Contents/Frameworks/Gravity Helper.app/Contents/MacOS/Gravity Helper",
     );
+  });
+
+  it("resolves the daemon runner from the bundled server package", () => {
+    const entryPath =
+      "/Applications/Gravity.app/Contents/Resources/app.asar/node_modules/@gravity/server/dist/scripts/supervisor-entrypoint.js";
+    mocks.existsSync.mockImplementation((filePath) => filePath === entryPath);
+
+    expect(resolveDaemonRunnerEntrypoint()).toEqual({ entryPath, execArgv: [] });
+  });
+
+  it("resolves the external CLI from the bundled CLI package", () => {
+    const entryPath =
+      "/Applications/Gravity.app/Contents/Resources/app.asar/node_modules/@gravity/cli/dist/index.js";
+    mocks.existsSync.mockImplementation((filePath) => filePath === entryPath);
+
+    expect(resolveExternalCliEntrypoint()).toEqual({ entryPath, execArgv: [] });
+  });
+
+  it("resolves the passthrough CLI from the bundled CLI package", () => {
+    const entryPath =
+      "/Applications/Gravity.app/Contents/Resources/app.asar/node_modules/@gravity/cli/dist/run.js";
+    mocks.existsSync.mockImplementation((filePath) => filePath === entryPath);
+
+    expect(resolvePassthroughCliEntrypoint()).toBe(entryPath);
   });
 });

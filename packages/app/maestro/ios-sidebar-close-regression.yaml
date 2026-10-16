@@ -1,11 +1,16 @@
-appId: sh.paseo.debug
+appId: sh.gravity.debug
 ---
 # Establish History with the sidebar closed. The host filter then proves a close
-# swipe did not activate the row below it.
+# swipe did not activate the row below it. History has no sidebar row; open it
+# through Search.
 - tapOn:
     id: "menu-button"
 - tapOn:
-    id: "sidebar-sessions"
+    id: "sidebar-search"
+- tapOn:
+    id: "command-center-input"
+- inputText: "History"
+- pressKey: Enter
 - assertVisible:
     id: "sessions-host-filter-trigger"
 

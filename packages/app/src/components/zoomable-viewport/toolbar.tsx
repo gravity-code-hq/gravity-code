@@ -8,10 +8,13 @@ import {
   iconButtonChromeGlyphSize,
   iconButtonChromeStyle,
 } from "@/components/ui/icon-button-chrome";
+import { Button } from "@/components/ui/button";
+import { CONTROL_HEIGHTS } from "@/components/ui/control-geometry";
 import type { ZoomableViewportAction } from "./types";
 
 interface ViewportToolbarProps {
   actions: ZoomableViewportAction[];
+  placement?: "corner" | "inset-corner";
   maxScale: number;
   minScale: number;
   onReset: () => void;
@@ -27,6 +30,7 @@ interface ResolvedViewportAction extends ZoomableViewportAction {
 
 export const ViewportToolbar = React.memo(function ViewportToolbar({
   actions,
+  placement = "corner",
   maxScale,
   minScale,
   onReset,
@@ -36,6 +40,7 @@ export const ViewportToolbar = React.memo(function ViewportToolbar({
   visible,
 }: ViewportToolbarProps) {
   const { t } = useTranslation();
+  const insetCorner = placement === "inset-corner";
   const viewportActions: ResolvedViewportAction[] = [
     {
       icon: ZoomIn,
@@ -49,25 +54,47 @@ export const ViewportToolbar = React.memo(function ViewportToolbar({
       onPress: onZoomOut,
       disabled: scale <= minScale,
     },
-    {
-      icon: Scan,
-      label: t("message.diagram.resetZoom"),
-      onPress: onReset,
-      disabled: scale === 1,
-    },
-    ...actions.map((action) => ({ ...action, disabled: false })),
+    ...(insetCorner
+      ? []
+      : [
+          {
+            icon: Scan,
+            label: t("message.diagram.resetZoom"),
+            onPress: onReset,
+            disabled: scale === 1,
+          },
+        ]),
+    ...actions.map((action) => ({ ...action, disabled: action.disabled ?? false })),
   ];
 
   return (
-    <View style={styles.cluster} testID="zoomable-viewport-toolbar">
-      {viewportActions.map((action) => (
-        <ViewportToolbarButton
-          key={action.label}
-          action={action}
-          disabled={action.disabled}
-          visible={visible}
-        />
-      ))}
+    <View
+      style={insetCorner ? styles.lightboxCluster : styles.cluster}
+      testID="zoomable-viewport-toolbar"
+    >
+      {viewportActions.map((action) =>
+        insetCorner ? (
+          <Button
+            key={action.testID ?? action.label}
+            accessibilityLabel={action.label}
+            variant="secondary"
+            size="md"
+            leftIcon={action.icon}
+            loading={action.loading}
+            disabled={action.disabled}
+            onPress={action.onPress}
+            testID={action.testID}
+            style={styles.lightboxButton}
+          />
+        ) : (
+          <ViewportToolbarButton
+            key={action.label}
+            action={action}
+            disabled={action.disabled}
+            visible={visible}
+          />
+        ),
+      )}
     </View>
   );
 });
@@ -113,6 +140,22 @@ function ViewportToolbarButton({
 }
 
 const styles = StyleSheet.create((theme) => ({
+  lightboxCluster: {
+    position: "absolute",
+    top: theme.spacing[6],
+    right: theme.spacing[6],
+    zIndex: 1,
+    flexDirection: "row",
+    gap: theme.spacing[2],
+    pointerEvents: "box-none",
+  },
+  lightboxButton: {
+    width: CONTROL_HEIGHTS.compact,
+    height: CONTROL_HEIGHTS.compact,
+    minHeight: CONTROL_HEIGHTS.compact,
+    padding: 0,
+    pointerEvents: "auto",
+  },
   cluster: {
     position: "absolute",
     top: theme.spacing[2],

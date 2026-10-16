@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native-unistyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { X } from "lucide-react-native";
+import { Check, Copy, X } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
+import { copyImage } from "@/utils/copy-image";
 import type { AttachmentMetadata } from "@/attachments/types";
 import { useAttachmentPreviewUrl } from "@/attachments/use-attachment-preview-url";
 import { isNative, isWeb } from "@/constants/platform";
@@ -33,12 +34,36 @@ export function AttachmentLightbox({ source, onClose }: AttachmentLightboxProps)
   const attachmentUrl = useAttachmentPreviewUrl(metadata);
   const url = source?.type === "uri" ? source.uri : attachmentUrl;
   const contentSize = source?.type === "uri" ? source.contentSize : undefined;
+  const [copyStatus, setCopyStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
+  const copyAttempt = useRef(0);
+  const copying = useRef(false);
   const [errored, setErrored] = useState(false);
+  const isOpen = source !== null;
   const modalLayer = useGlobalWebOverlayLayer("modal", isWeb && source !== null);
 
   useEffect(() => {
     setErrored(false);
-  }, [metadata?.id, url]);
+    setCopyStatus("idle");
+    copying.current = false;
+    return () => {
+      copyAttempt.current += 1;
+    };
+  }, [metadata?.id, url, isOpen]);
+
+  const handleCopy = useCallback(async () => {
+    if (!url || copying.current) return;
+    copying.current = true;
+    const attempt = ++copyAttempt.current;
+    setCopyStatus("pending");
+    try {
+      await copyImage(url);
+      if (copyAttempt.current === attempt) setCopyStatus("success");
+    } catch {
+      if (copyAttempt.current === attempt) setCopyStatus("error");
+    } finally {
+      if (copyAttempt.current === attempt) copying.current = false;
+    }
+  }, [url]);
 
   const handleWebOverlayKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -71,13 +96,22 @@ export function AttachmentLightbox({ source, onClose }: AttachmentLightboxProps)
   const actions = useMemo(
     () => [
       {
+        icon: copyStatus === "success" ? Check : Copy,
+        label:
+          copyStatus === "success" ? t("common.states.copied") : t("message.attachments.copyImage"),
+        onPress: handleCopy,
+        disabled: copyStatus === "pending",
+        loading: copyStatus === "pending",
+        testID: "attachment-lightbox-copy",
+      },
+      {
         icon: X,
         label: t("message.attachments.closeImage"),
         onPress: onClose,
         testID: "attachment-lightbox-close",
       },
     ],
-    [onClose, t],
+    [copyStatus, handleCopy, onClose, t],
   );
 
   const handleImageError = useCallback(() => setErrored(true), []);
@@ -108,6 +142,7 @@ export function AttachmentLightbox({ source, onClose }: AttachmentLightboxProps)
                   <ZoomableImage
                     accessibilityLabel={t("composer.attachments.openImage")}
                     actions={actions}
+                    toolbarPlacement="inset-corner"
                     contentSize={contentSize}
                     fit={LIGHTBOX_FIT}
                     onError={handleImageError}
@@ -118,6 +153,13 @@ export function AttachmentLightbox({ source, onClose }: AttachmentLightboxProps)
                   />
                 )}
               </View>
+              {copyStatus === "error" ? (
+                <View pointerEvents="none" style={styles.copyFeedback}>
+                  <Text accessibilityRole="alert" style={styles.errorText}>
+                    {t("message.attachments.copyImageFailed")}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </View>
         </WindowChromeRootRegion>
@@ -156,6 +198,15 @@ const styles = StyleSheet.create((theme) => ({
     flex: 1,
     width: "100%",
     alignSelf: "center",
+  },
+  copyFeedback: {
+    position: "absolute",
+    bottom: theme.spacing[4],
+    alignSelf: "center",
+    maxWidth: "90%",
+    padding: theme.spacing[3],
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface2,
   },
   errorText: {
     color: theme.colors.foregroundMuted,

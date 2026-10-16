@@ -66,7 +66,7 @@ function SwitchTrack({
   );
 }
 
-const ThemedSwitchTrack = withUnistyles(SwitchTrack, (theme: Theme) => ({
+export const SwitchIndicator = withUnistyles(SwitchTrack, (theme: Theme) => ({
   trackOffColor: theme.colors.surface3,
   trackOnColor: theme.colors.accent,
   thumbOffColor: theme.colors.palette.white,
@@ -108,7 +108,7 @@ export function Switch({
       testID={testID}
       style={pressableStyle}
     >
-      <ThemedSwitchTrack value={value} />
+      <SwitchIndicator value={value} />
     </Pressable>
   );
 }

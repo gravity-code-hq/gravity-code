@@ -12,7 +12,7 @@ import { formatFdroidChangelog, syncFdroidChangelogs } from "./sync-fdroid-chang
 const CHANGELOG_CHARACTER_LIMIT = 500;
 
 function withTempRepo(fn, { changelog, version = "0.2.3" }) {
-  const tempDir = mkdtempSync(path.join(tmpdir(), "paseo-fdroid-changelogs-"));
+  const tempDir = mkdtempSync(path.join(tmpdir(), "gravity-fdroid-changelogs-"));
   try {
     writeFileSync(path.join(tempDir, "package.json"), JSON.stringify({ version }));
     writeFileSync(path.join(tempDir, "CHANGELOG.md"), changelog);
@@ -134,7 +134,10 @@ test("stays inside the 500 character limit and keeps the full-notes link", () =>
         contents.length <= CHANGELOG_CHARACTER_LIMIT,
         `expected <= ${CHANGELOG_CHARACTER_LIMIT}, got ${contents.length}`,
       );
-      assert.match(contents, /Full notes: https:\/\/paseo\.sh\/changelog\n$/);
+      assert.match(
+        contents,
+        /Full notes: https:\/\/github\.com\/gravity-code-hq\/gravity\/changelog\n$/,
+      );
       // Truncation happens at a bullet boundary, never mid-sentence.
       assert.equal(contents.includes("Shipped improvement number 0."), true);
       assert.equal(/- Shipped improvement number \d+\.\.\.$/m.test(contents), false);
@@ -180,7 +183,7 @@ test("preserves a blockquoted notice ahead of the bullets", () => {
   const contents = formatFdroidChangelog([
     "> **Important update notice**",
     ">",
-    "> If you installed Paseo Desktop 0.1.108, you need to [reinstall manually](https://paseo.sh/download).",
+    "> If you installed Gravity Desktop 0.1.108, you need to [reinstall manually](https://github.com/gravity-code-hq/gravity/download).",
     "",
     "### Fixed",
     "",
@@ -189,7 +192,7 @@ test("preserves a blockquoted notice ahead of the bullets", () => {
 
   assert.match(
     contents,
-    /^Important update notice\nIf you installed Paseo Desktop 0\.1\.108, you need to reinstall manually\.\n\nFixed\n- Desktop no longer gets stuck connecting\./,
+    /^Important update notice\nIf you installed Gravity Desktop 0\.1\.108, you need to reinstall manually\.\n\nFixed\n- Desktop no longer gets stuck connecting\./,
   );
   assert.ok(contents.length <= CHANGELOG_CHARACTER_LIMIT);
 });
@@ -198,7 +201,7 @@ test("keeps the notice whole and cuts bullets when the budget runs out", () => {
   const notice = `- ${"y".repeat(10)}`;
   const bullets = Array.from({ length: 30 }, () => `- ${"b".repeat(60)}`);
   const contents = formatFdroidChangelog([
-    "> Reinstall Paseo manually before updating, the old updater cannot install this build.",
+    "> Reinstall Gravity manually before updating, the old updater cannot install this build.",
     "",
     "### Fixed",
     "",
@@ -209,7 +212,7 @@ test("keeps the notice whole and cuts bullets when the budget runs out", () => {
   assert.ok(contents.length <= CHANGELOG_CHARACTER_LIMIT);
   assert.match(
     contents,
-    /^Reinstall Paseo manually before updating, the old updater cannot install this build\.\n/,
+    /^Reinstall Gravity manually before updating, the old updater cannot install this build\.\n/,
   );
   // The notice survived intact, so some bullets must have been dropped.
   assert.ok(contents.split("\n").filter((line) => line.startsWith("- b")).length < bullets.length);
@@ -243,11 +246,11 @@ test("renders the real 0.1.109 notice, which is the entry's whole point", () => 
     "",
     "> **Important update notice**",
     ">",
-    "> If you installed Paseo Desktop 0.1.108, you need to [download and reinstall Paseo manually](https://paseo.sh/download) to get this fix. The bug in 0.1.108 prevents its automatic updater from installing 0.1.109. Users on 0.1.107 or earlier can update normally.",
+    "> If you installed Gravity Desktop 0.1.108, you need to [download and reinstall Gravity manually](https://github.com/gravity-code-hq/gravity/download) to get this fix. The bug in 0.1.108 prevents its automatic updater from installing 0.1.109. Users on 0.1.107 or earlier can update normally.",
     "",
     "### Fixed",
     "",
-    "- Paseo Desktop no longer gets stuck connecting or loses native window controls after updating ([#2111](https://github.com/getpaseo/paseo/pull/2111) by [@cleiter](https://github.com/cleiter))",
+    "- Gravity Desktop no longer gets stuck connecting or loses native window controls after updating ([#2111](https://github.com/gravity-code-hq/gravity/pull/2111) by [@cleiter](https://github.com/cleiter))",
     "",
   ].join("\n");
 
@@ -256,19 +259,25 @@ test("renders the real 0.1.109 notice, which is the entry's whole point", () => 
       const { contents } = syncFdroidChangelogs([], { cwd: dir });
       assert.ok(contents.length <= CHANGELOG_CHARACTER_LIMIT);
       assert.match(contents, /^Important update notice\n/);
-      assert.match(contents, /download and reinstall Paseo manually/);
+      assert.match(contents, /download and reinstall Gravity manually/);
       assert.match(contents, /Users on 0\.1\.107 or earlier can update normally\./);
-      assert.match(contents, /\nFixed\n- Paseo Desktop no longer gets stuck connecting/);
+      assert.match(contents, /\nFixed\n- Gravity Desktop no longer gets stuck connecting/);
       assert.equal(contents.includes("#2111"), false);
     },
     { changelog, version: "0.1.109" },
   );
 });
 
-test("preserves the standalone 0.1.96 Android notice", () => {
-  const changelog = readFileSync(path.resolve("CHANGELOG.md"), "utf8");
-  const entry = changelog.match(/## 0\.1\.96 - 2026-06-13\n([\s\S]*?)(?=\n## |$)/)?.[1];
-  assert.ok(entry);
+test("preserves a standalone italic release notice", () => {
+  const entry = [
+    "",
+    "_This release only fixes an Android issue — desktop users don't need to update._",
+    "",
+    "### Fixed",
+    "",
+    "- On Android, the sidebar no longer reappears and gets stuck after you open a chat",
+    "",
+  ].join("\n");
 
   const contents = formatFdroidChangelog(entry.split("\n"));
   assert.match(contents, /This release only fixes an Android issue/);

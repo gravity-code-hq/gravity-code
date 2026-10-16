@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AgentProvider } from "@getpaseo/protocol/agent-types";
+import type { AgentProvider } from "@gravity/protocol/agent-types";
 
 const featureValuesSchema = z.record(z.string(), z.union([z.boolean(), z.string(), z.null()]));
 
@@ -16,6 +16,9 @@ export interface FormPreferences {
   provider?: string;
   providerPreferences?: Record<string, ProviderPreferences>;
   favoriteModels?: Array<{ provider: string; modelId: string }>;
+  // COMPAT(workspaceIsolationPreference): the Isolation control was removed in
+  // v0.8.0; nothing writes this any more. Kept so preference files saved by
+  // older apps still parse. Remove after 2027-03-25.
   isolation?: "local" | "worktree";
   launchTarget?: LaunchTarget;
 }
@@ -46,6 +49,7 @@ export const FormPreferencesSchema = z.strictObject({
       }),
     )
     .optional(),
+  // COMPAT(workspaceIsolationPreference): see FormPreferences.
   isolation: z.enum(["local", "worktree"]).optional(),
   // What the New workspace composer submits to: the chat agent (default) or a
   // terminal profile. See `@/new-workspace-launch` for resolution/fallback.

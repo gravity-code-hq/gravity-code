@@ -1,47 +1,47 @@
 import type { z } from "zod";
-import type { ProviderPaseoToolsPolicy } from "@getpaseo/protocol/provider-config";
+import type { ProviderGravityToolsPolicy } from "@gravity/protocol/provider-config";
 
-export interface PaseoToolExecutionContext {
+export interface GravityToolExecutionContext {
   signal?: AbortSignal;
-  sendUpdate?: (update: PaseoToolResult) => void;
+  sendUpdate?: (update: GravityToolResult) => void;
 }
 
-export interface PaseoToolResult {
+export interface GravityToolResult {
   content: Array<{ type: string; text?: string; [key: string]: unknown }>;
   structuredContent?: unknown;
   isError?: boolean;
 }
 
-export interface PaseoToolConfig {
+export interface GravityToolConfig {
   title?: string;
   description?: string;
   inputSchema?: z.ZodRawShape | z.ZodType;
   outputSchema?: z.ZodRawShape;
 }
 
-export interface PaseoToolDefinition extends PaseoToolConfig {
+export interface GravityToolDefinition extends GravityToolConfig {
   name: string;
   description: string;
-  handler: (input: unknown, context: PaseoToolExecutionContext) => Promise<PaseoToolResult>;
+  handler: (input: unknown, context: GravityToolExecutionContext) => Promise<GravityToolResult>;
 }
 
-export interface PaseoToolCatalog {
-  tools: ReadonlyMap<string, PaseoToolDefinition>;
-  getTool(name: string): PaseoToolDefinition | undefined;
+export interface GravityToolCatalog {
+  tools: ReadonlyMap<string, GravityToolDefinition>;
+  getTool(name: string): GravityToolDefinition | undefined;
   executeTool(
     name: string,
     input: unknown,
-    context?: PaseoToolExecutionContext,
-  ): Promise<PaseoToolResult>;
+    context?: GravityToolExecutionContext,
+  ): Promise<GravityToolResult>;
 }
 
-export interface PaseoToolRuntimeContext {
+export interface GravityToolRuntimeContext {
   callerAgentId?: string;
-  paseoToolPolicy?: ProviderPaseoToolsPolicy;
+  gravityToolPolicy?: ProviderGravityToolsPolicy;
   enableVoiceTools?: boolean;
   voiceOnly?: boolean;
 }
 
-export type PaseoToolCatalogFactory = (
-  context: PaseoToolRuntimeContext,
-) => PaseoToolCatalog | Promise<PaseoToolCatalog>;
+export type GravityToolCatalogFactory = (
+  context: GravityToolRuntimeContext,
+) => GravityToolCatalog | Promise<GravityToolCatalog>;

@@ -9,6 +9,7 @@ interface ZoomableImageProps {
   uri: string;
   accessibilityLabel?: string;
   actions?: ZoomableViewportAction[];
+  toolbarPlacement?: "corner" | "inset-corner";
   contentSize?: ViewportSize;
   fit?: ViewportFitOptions;
   maxScale?: number;
@@ -24,6 +25,7 @@ export function ZoomableImage({
   uri,
   accessibilityLabel,
   actions,
+  toolbarPlacement,
   contentSize,
   fit,
   maxScale,
@@ -76,6 +78,7 @@ export function ZoomableImage({
     <ZoomableViewport
       accessibilityLabel={accessibilityLabel}
       actions={actions}
+      toolbarPlacement={toolbarPlacement}
       contentSize={resolvedSize}
       fit={fit}
       maxScale={maxScale}

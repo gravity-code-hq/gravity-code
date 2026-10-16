@@ -73,7 +73,7 @@ describe("OpenCode auto_accept feature", () => {
     const { runtime } = mockOpenCodeClient({
       agents: [
         { name: "build", mode: "primary", hidden: false, description: "Build agent" },
-        { name: "paseo-custom", mode: "primary", hidden: false, description: "Custom agent" },
+        { name: "gravity-custom", mode: "primary", hidden: false, description: "Custom agent" },
       ],
     });
 
@@ -87,7 +87,7 @@ describe("OpenCode auto_accept feature", () => {
       force: false,
     });
 
-    expect(modes.map((mode) => mode.id)).toEqual(["build", "paseo-custom"]);
+    expect(modes.map((mode) => mode.id)).toEqual(["build", "gravity-custom"]);
   });
 
   test("returns no modes when discovery finds none, rather than fabricating defaults", async () => {
@@ -234,17 +234,17 @@ describe("OpenCode auto_accept feature", () => {
         featureValues: undefined,
         parent: {
           provider: "opencode",
-          modeId: "paseo-custom",
+          modeId: "gravity-custom",
           isUnattended: true,
         },
         unattended: true,
         availableModes: [
           { id: "build", label: "Build" },
           { id: "plan", label: "Plan" },
-          { id: "paseo-custom", label: "Paseo Custom" },
+          { id: "gravity-custom", label: "Gravity Custom" },
         ],
       }),
-    ).toEqual({ modeId: "paseo-custom", featureValues: { auto_accept: true } });
+    ).toEqual({ modeId: "gravity-custom", featureValues: { auto_accept: true } });
   });
 
   test("inherits auto accept from an OpenCode parent when the child chooses a mode", () => {

@@ -36,8 +36,8 @@ describe("resolveSidebarNavItems", () => {
 
     expect(summarize(items)).toEqual([
       { key: "new-workspace", visible: true },
-      { key: "history", visible: true },
       { key: "search", visible: true },
+      { key: "linear", visible: true },
       { key: "schedules", visible: true },
       { key: kanbanKey, visible: true },
       { key: notesKey, visible: true },
@@ -65,8 +65,8 @@ describe("resolveSidebarNavItems", () => {
       { key: kanbanKey, visible: false },
       { key: "schedules", visible: true },
       { key: "new-workspace", visible: false },
-      { key: "history", visible: true },
       { key: "search", visible: true },
+      { key: "linear", visible: true },
       { key: notesKey, visible: true },
     ]);
   });
@@ -77,15 +77,32 @@ describe("resolveSidebarNavItems", () => {
       preferences: [
         { key: notesKey, visible: false },
         { key: "bogus", visible: true },
-        { key: "history", visible: true },
+        { key: "search", visible: true },
       ],
     });
 
     expect(items.map((item) => item.key)).toEqual([
-      "history",
+      "search",
+      "new-workspace",
+      "linear",
+      "schedules",
+    ]);
+  });
+
+  it("drops the retired history item from a stored order", () => {
+    const items = resolveSidebarNavItems({
+      pluginGroups: [],
+      preferences: [
+        { key: "history", visible: true },
+        { key: "schedules", visible: true },
+      ],
+    });
+
+    expect(items.map((item) => item.key)).toEqual([
+      "schedules",
       "new-workspace",
       "search",
-      "schedules",
+      "linear",
     ]);
   });
 
@@ -93,15 +110,15 @@ describe("resolveSidebarNavItems", () => {
     const items = resolveSidebarNavItems({
       pluginGroups: [],
       preferences: [
-        { key: "history", visible: false },
-        { key: "history", visible: true },
+        { key: "search", visible: false },
+        { key: "search", visible: true },
       ],
     });
 
     expect(summarize(items)).toEqual([
-      { key: "history", visible: false },
+      { key: "search", visible: false },
       { key: "new-workspace", visible: true },
-      { key: "search", visible: true },
+      { key: "linear", visible: true },
       { key: "schedules", visible: true },
     ]);
   });
@@ -115,8 +132,8 @@ describe("setSidebarNavItemVisible", () => {
 
     expect(next).toEqual([
       { key: "new-workspace", visible: true },
-      { key: "history", visible: true },
       { key: "search", visible: false },
+      { key: "linear", visible: true },
       { key: "schedules", visible: true },
       { key: kanbanKey, visible: true },
     ]);
@@ -125,17 +142,17 @@ describe("setSidebarNavItemVisible", () => {
   it("carries preferences for unavailable plugins through an unrelated edit", () => {
     const previous: SidebarNavPreference[] = [
       { key: notesKey, visible: false },
-      { key: "history", visible: true },
+      { key: "search", visible: true },
     ];
     const items = resolveSidebarNavItems({ pluginGroups: [], preferences: previous });
 
-    const next = setSidebarNavItemVisible({ items, key: "history", visible: false, previous });
+    const next = setSidebarNavItemVisible({ items, key: "search", visible: false, previous });
 
     expect(next).toEqual([
       { key: notesKey, visible: false },
-      { key: "history", visible: false },
+      { key: "search", visible: false },
       { key: "new-workspace", visible: true },
-      { key: "search", visible: true },
+      { key: "linear", visible: true },
       { key: "schedules", visible: true },
     ]);
   });
@@ -144,20 +161,19 @@ describe("setSidebarNavItemVisible", () => {
     const previous: SidebarNavPreference[] = [
       { key: "new-workspace", visible: true },
       { key: notesKey, visible: false },
-      { key: "history", visible: true },
       { key: "search", visible: true },
       { key: "schedules", visible: true },
     ];
     const items = resolveSidebarNavItems({ pluginGroups: [], preferences: previous });
 
-    const next = setSidebarNavItemVisible({ items, key: "history", visible: false, previous });
+    const next = setSidebarNavItemVisible({ items, key: "search", visible: false, previous });
 
     expect(next).toEqual([
       { key: "new-workspace", visible: true },
       { key: notesKey, visible: false },
-      { key: "history", visible: false },
-      { key: "search", visible: true },
+      { key: "search", visible: false },
       { key: "schedules", visible: true },
+      { key: "linear", visible: true },
     ]);
     expect(summarize(resolveSidebarNavItems({ pluginGroups: [notes], preferences: next }))).toEqual(
       next,
@@ -180,9 +196,9 @@ describe("moveSidebarNavItem", () => {
     const next = moveSidebarNavItem({ items, key: "search", direction: "up", previous: [] });
 
     expect(next.map((preference) => preference.key)).toEqual([
-      "new-workspace",
       "search",
-      "history",
+      "new-workspace",
+      "linear",
       "schedules",
       kanbanKey,
     ]);
@@ -193,8 +209,8 @@ describe("moveSidebarNavItem", () => {
 
     expect(next.map((preference) => preference.key)).toEqual([
       "new-workspace",
-      "history",
       "search",
+      "linear",
       kanbanKey,
       "schedules",
     ]);
@@ -225,7 +241,7 @@ describe("moveSidebarNavItem", () => {
       { key: notesKey, visible: true },
     ];
 
-    const next = moveSidebarNavItem({ items, key: "history", direction: "up", previous });
+    const next = moveSidebarNavItem({ items, key: "search", direction: "up", previous });
 
     expect(next.filter((preference) => preference.key === notesKey)).toEqual([
       { key: notesKey, visible: false },
@@ -237,7 +253,7 @@ describe("builtinSidebarNavShortcutAction", () => {
   it("maps only the builtins that have a keyboard shortcut", () => {
     expect(builtinSidebarNavShortcutAction("new-workspace")).toBe("new-workspace");
     expect(builtinSidebarNavShortcutAction("search")).toBe("toggle-command-center");
-    expect(builtinSidebarNavShortcutAction("history")).toBeNull();
+    expect(builtinSidebarNavShortcutAction("linear")).toBeNull();
     expect(builtinSidebarNavShortcutAction("schedules")).toBeNull();
   });
 });

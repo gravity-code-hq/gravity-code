@@ -22,10 +22,10 @@ import type {
 } from "../../worktree-bootstrap.js";
 import {
   buildWorkspaceScriptPayloads,
-  readPaseoConfigForProjection,
+  readGravityConfigForProjection,
 } from "../../script-status-projection.js";
 import { deriveProjectServiceSlug, deriveProjectSlug } from "../../workspace-git-metadata.js";
-import type { PaseoServicePortAllocation } from "@getpaseo/protocol/paseo-config-schema";
+import type { GravityServicePortAllocation } from "@gravity/protocol/gravity-config-schema";
 
 type WorkspaceScriptsPayload = WorkspaceDescriptorPayload["scripts"];
 
@@ -63,7 +63,7 @@ export function createWorkspaceScriptsService(deps: {
   getDaemonTcpHost: (() => string | null) | null;
   serviceProxyPublicBaseUrl: string | null;
   resolveScriptHealth: ((hostname: string) => ScriptHealthState | null) | null;
-  globalServicePorts?: PaseoServicePortAllocation;
+  globalServicePorts?: GravityServicePortAllocation;
   logger: pino.Logger;
   emit: (message: SessionOutboundMessage) => void;
   wantsStatusUpdates?: () => boolean;
@@ -119,7 +119,7 @@ export function createWorkspaceScriptsService(deps: {
     return buildWorkspaceScriptPayloads({
       workspaceId: workspace.workspaceId,
       workspaceDirectory: workspace.cwd,
-      paseoConfig: readPaseoConfigForProjection(workspace.cwd, logger),
+      gravityConfig: readGravityConfigForProjection(workspace.cwd, logger),
       serviceProxy,
       runtimeStore: scriptRuntimeStore,
       daemonPort: getDaemonTcpPort?.() ?? null,

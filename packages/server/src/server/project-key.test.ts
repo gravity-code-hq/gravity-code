@@ -2,7 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { deriveProjectGroupingDisplayName, deriveProjectKey } from "./project-key.js";
+import {
+  deriveProjectGroupingDisplayName,
+  deriveProjectKey,
+  githubOwnerFromProjectKey,
+} from "./project-key.js";
 
 describe("deriveProjectKey", () => {
   const rootPath = path.resolve("repo");
@@ -10,15 +14,17 @@ describe("deriveProjectKey", () => {
     deriveProjectKey({ rootPath, remoteUrl, worktreeRoot: rootPath, mainRepoRoot: null });
 
   test.each([
-    "https://github.com/getpaseo/paseo.git",
-    "ssh://git@github.com/getpaseo/paseo.git",
-    "git@github.com:getpaseo/paseo.git",
+    "https://github.com/gravity-code-hq/gravity.git",
+    "ssh://git@github.com/gravity-code-hq/gravity.git",
+    "git@github.com:gravity-code-hq/gravity.git",
   ])("normalizes common remote form %s", (remoteUrl) => {
-    expect(derive(remoteUrl)).toBe("remote:github.com/getpaseo/paseo");
+    expect(derive(remoteUrl)).toBe("remote:github.com/gravity-code-hq/gravity");
   });
 
   test("normalizes GitHub casing", () => {
-    expect(derive("git@github.com:GetPaseo/Paseo.git")).toBe("remote:github.com/getpaseo/paseo");
+    expect(derive("git@github.com:GetGravity/Gravity.git")).toBe(
+      "remote:github.com/gravity-code-hq/gravity",
+    );
   });
 
   test("preserves self-hosted paths and explicit ports", () => {
@@ -28,8 +34,8 @@ describe("deriveProjectKey", () => {
   });
 
   test("groups an SSH remote whether or not its default port is spelled out", () => {
-    expect(derive("ssh://git@github.com:22/getpaseo/paseo.git")).toBe(
-      derive("ssh://git@github.com/getpaseo/paseo.git"),
+    expect(derive("ssh://git@github.com:22/gravity-code-hq/gravity.git")).toBe(
+      derive("ssh://git@github.com/gravity-code-hq/gravity.git"),
     );
   });
 
@@ -75,11 +81,11 @@ describe("deriveProjectKey", () => {
 
   test("keeps a repository root distinct from one of its subprojects", () => {
     const worktreeRoot = path.resolve("host-a", "repo");
-    const remoteUrl = "git@github.com:getpaseo/paseo.git";
+    const remoteUrl = "git@github.com:gravity-code-hq/gravity.git";
 
     expect(
       deriveProjectKey({ rootPath: worktreeRoot, remoteUrl, worktreeRoot, mainRepoRoot: null }),
-    ).toBe("remote:github.com/getpaseo/paseo");
+    ).toBe("remote:github.com/gravity-code-hq/gravity");
     expect(
       deriveProjectKey({
         rootPath: path.join(worktreeRoot, "packages", "app"),
@@ -87,11 +93,11 @@ describe("deriveProjectKey", () => {
         worktreeRoot,
         mainRepoRoot: null,
       }),
-    ).toBe("remote:github.com/getpaseo/paseo#subdir:packages/app");
+    ).toBe("remote:github.com/gravity-code-hq/gravity#subdir:packages/app");
   });
 
   test("groups the same subproject across different absolute checkout roots", () => {
-    const remoteUrl = "git@github.com:getpaseo/paseo.git";
+    const remoteUrl = "git@github.com:gravity-code-hq/gravity.git";
     const deriveSubproject = (worktreeRoot: string) =>
       deriveProjectKey({
         rootPath: path.join(worktreeRoot, "packages", "app"),
@@ -111,10 +117,10 @@ describe("deriveProjectGroupingDisplayName", () => {
     expect(
       deriveProjectGroupingDisplayName({
         rootPath: path.resolve("repo"),
-        remoteUrl: "git@github.com:getpaseo/paseo.git",
+        remoteUrl: "git@github.com:gravity-code-hq/gravity.git",
         worktreeRoot: path.resolve("repo"),
       }),
-    ).toBe("getpaseo/paseo");
+    ).toBe("gravity-code-hq/gravity");
   });
 
   test("uses the selected directory name without a remote", () => {
@@ -137,5 +143,26 @@ describe("deriveProjectGroupingDisplayName", () => {
         worktreeRoot,
       }),
     ).toBe("server");
+  });
+});
+
+describe("githubOwnerFromProjectKey", () => {
+  test.each([
+    ["remote:github.com/nousresearch/hermes-agent", "nousresearch"],
+    ["remote:github.com/openclaw/openclaw#subdir:packages/app", "openclaw"],
+  ])("reads the owner from %s", (projectKey, owner) => {
+    expect(githubOwnerFromProjectKey(projectKey)).toBe(owner);
+  });
+
+  test.each([
+    null,
+    "/Users/me/repo",
+    "host:server-1:/Users/me/repo",
+    "remote:gitlab.com/group/repo",
+    "remote:github.com:8443/owner/repo",
+    "remote:github.com/",
+    "remote:github.com/-owner/repo",
+  ])("returns null for %s", (projectKey) => {
+    expect(githubOwnerFromProjectKey(projectKey)).toBeNull();
   });
 });

@@ -1,8 +1,8 @@
 import type { AgentTimelineItem } from "./agent-sdk-types.js";
-import type { AgentAttachment } from "@getpaseo/protocol/messages";
+import type { AgentAttachment } from "@gravity/protocol/messages";
 import type { AgentTimelineRow } from "./agent-timeline-store-types.js";
-import { isLikelyExternalToolName } from "@getpaseo/protocol/tool-name-normalization";
-import { buildToolCallDisplayModel } from "@getpaseo/protocol/tool-call-display";
+import { isLikelyExternalToolName } from "@gravity/protocol/tool-name-normalization";
+import { buildToolCallDisplayModel } from "@gravity/protocol/tool-call-display";
 import { projectTimelineRows } from "./timeline-projection.js";
 
 const DEFAULT_MAX_ITEMS = 0;
@@ -227,6 +227,7 @@ function selectForkContextRows(input: {
   boundaryMessageId?: string | null;
 }): {
   items: AgentTimelineItem[];
+  entries: Array<{ item: AgentTimelineItem; timestamp: string; turnId?: string }>;
   boundaryCursor: { epoch: string; seq: number } | null;
   boundaryMessageId: string | null;
 } {
@@ -236,6 +237,7 @@ function selectForkContextRows(input: {
   if (!boundaryCursor && !boundaryMessageId) {
     return {
       items: projectedRows.map((entry) => entry.item),
+      entries: projectedRows,
       boundaryCursor: null,
       boundaryMessageId: null,
     };
@@ -269,6 +271,7 @@ function selectForkContextRows(input: {
 
   return {
     items: projected.map((entry) => entry.item),
+    entries: projected,
     boundaryCursor,
     boundaryMessageId,
   };
@@ -284,7 +287,7 @@ function buildForkContextText(input: {
   agentTitle?: string | null;
   cwd?: string | null;
 }): string {
-  const header = ["Chat history from a previous Paseo agent."];
+  const header = ["Chat history from a previous Gravity agent."];
   const agentTitle = trimContextMetadata(input.agentTitle);
   const cwd = trimContextMetadata(input.cwd);
   if (agentTitle) {
@@ -329,6 +332,14 @@ export function buildAgentForkContextAttachment(input: {
       mimeType: "text/plain",
       contextKind: "chat_history",
       title: "Chat history",
+      forkHistory: {
+        sourceTitle: trimContextMetadata(input.agentTitle) ?? "Previous conversation",
+        entries: selected.entries.map(({ item, timestamp, turnId }) => ({
+          item,
+          timestamp,
+          ...(turnId ? { turnId } : {}),
+        })),
+      },
       text: buildForkContextText({
         body,
         agentTitle: input.agentTitle,

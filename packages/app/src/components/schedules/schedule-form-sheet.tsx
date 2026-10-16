@@ -10,10 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { Text, View } from "react-native";
-import { Brain, Folder, GitBranch } from "lucide-react-native";
+import { Brain, Folder } from "lucide-react-native";
 import { StyleSheet } from "react-native-unistyles";
-import type { AgentProvider } from "@getpaseo/protocol/agent-types";
-import type { ScheduleCadence, ScheduleSummary } from "@getpaseo/protocol/schedule/types";
+import type { AgentProvider } from "@gravity/protocol/agent-types";
+import type { ScheduleCadence, ScheduleSummary } from "@gravity/protocol/schedule/types";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { AdaptiveModalSheet, type SheetHeader } from "@/components/adaptive-modal-sheet";
 import { ComboboxItem } from "@/components/ui/combobox";
@@ -26,6 +26,7 @@ import { Field, FormTextInput } from "@/components/ui/form-field";
 import { Switch } from "@/components/ui/switch";
 import { getProviderIcon } from "@/components/provider-icons";
 import { CadenceEditor } from "@/components/schedules/cadence-editor";
+import { ScheduleTemplateField } from "@/components/schedules/schedule-template-field";
 import {
   SelectField,
   SelectFieldTrigger,
@@ -64,6 +65,7 @@ export interface ScheduleFormSheetProps {
   onClose: () => void;
   mode: "create" | "edit";
   schedule?: ScheduleSummary;
+  templateId?: string;
 }
 
 function parseMaxRuns(raw: string): number | null {
@@ -75,7 +77,7 @@ function requireCronCadence(
   cadence: Extract<ScheduleCadence, { type: "cron" }> | undefined,
 ): Extract<ScheduleCadence, { type: "cron" }> {
   if (!cadence) {
-    throw new Error("Choose a cron cadence before creating this schedule");
+    throw new Error("Choose a cron cadence before creating this automation");
   }
   return cadence;
 }
@@ -109,7 +111,7 @@ function openKey(props: ScheduleFormSheetProps): string {
   if (props.mode === "edit") {
     return `edit:${props.serverId ?? ""}:${props.schedule?.id ?? ""}`;
   }
-  return `create:${props.serverId ?? ""}`;
+  return `create:${props.serverId ?? ""}:${props.templateId ?? ""}`;
 }
 
 function selectScheduleHosts(
@@ -132,6 +134,7 @@ function buildSnapshot(input: {
   projectTargets: ReturnType<typeof buildScheduleProjectTargets>;
   preferences: FormPreferences;
   timezone: string;
+  templateId: string | undefined;
 }): ScheduleFormSnapshot {
   const schedule = input.schedule
     ? { ...input.schedule, serverId: input.serverId, serverName: undefined }
@@ -149,6 +152,7 @@ function buildSnapshot(input: {
       projectTargets: input.projectTargets,
       preferences: input.preferences,
       timezone: input.timezone,
+      templateId: input.templateId,
     },
   };
 }
@@ -159,23 +163,19 @@ function updateSelectionPreferences(input: {
   model: string;
   mode: string;
   thinkingOptionId: string;
-  isolation: "local" | "worktree";
 }): FormPreferences {
   const model = input.model.trim();
   const mode = input.mode.trim();
   const thinkingOptionId = input.thinkingOptionId.trim();
-  return {
-    ...mergeProviderPreferences({
-      preferences: input.preferences,
-      provider: input.provider,
-      updates: {
-        model: model || undefined,
-        mode: mode || undefined,
-        ...(model && thinkingOptionId ? { thinkingByModel: { [model]: thinkingOptionId } } : {}),
-      },
-    }),
-    isolation: input.isolation,
-  };
+  return mergeProviderPreferences({
+    preferences: input.preferences,
+    provider: input.provider,
+    updates: {
+      model: model || undefined,
+      mode: mode || undefined,
+      ...(model && thinkingOptionId ? { thinkingByModel: { [model]: thinkingOptionId } } : {}),
+    },
+  });
 }
 
 export function ScheduleFormSheet(props: ScheduleFormSheetProps): ReactElement | null {
@@ -238,13 +238,23 @@ function OpenScheduleFormSheet({
   onDismiss,
   mode,
   schedule,
+  templateId,
 }: ScheduleFormSheetProps & { onDismiss: () => void }): ReactElement {
   const controlSize: FieldControlSize = useIsCompactFormFactor() ? "md" : "sm";
   const { projects } = useProjects();
   const hostProfiles = useHosts();
+  // The screen pins one host (the sidebar footer's pick). A create-mode
+  // serverId narrows the form to it, which also hides the Host field.
+  const formHostProfiles = useMemo(
+    () =>
+      mode === "create" && serverId
+        ? hostProfiles.filter((host) => host.serverId === serverId)
+        : hostProfiles,
+    [hostProfiles, mode, serverId],
+  );
   const hosts = useStoreWithEqualityFn(
     useSessionStore,
-    useMemo(() => selectScheduleHosts(hostProfiles), [hostProfiles]),
+    useMemo(() => selectScheduleHosts(formHostProfiles), [formHostProfiles]),
     equal,
   );
   const { preferences, updatePreferences } = useFormPreferences();
@@ -260,8 +270,9 @@ function OpenScheduleFormSheet({
         projectTargets,
         preferences,
         timezone,
+        templateId,
       }),
-    [hosts, mode, preferences, projectTargets, schedule, serverId, timezone],
+    [hosts, mode, preferences, projectTargets, schedule, serverId, templateId, timezone],
   );
   const model = useScheduleFormModel(snapshot);
   const state = useSyncExternalStore(model.subscribe, model.getState, model.getState);
@@ -302,11 +313,9 @@ function OpenScheduleFormSheet({
         model: state.selectedModel,
         mode: state.selectedMode,
         thinkingOptionId: state.selectedThinkingOptionId,
-        isolation: state.isolation,
       }),
     );
   }, [
-    state.isolation,
     state.selectedMode,
     state.selectedModel,
     state.selectedProvider,
@@ -402,7 +411,7 @@ function OpenScheduleFormSheet({
 
   const header = useMemo<SheetHeader>(() => {
     if (mode !== "edit") {
-      return { title: "New schedule" };
+      return { title: "New automation" };
     }
     return { title: schedule?.target.type === "agent" ? "Edit heartbeat" : "Edit schedule" };
   }, [mode, schedule?.target.type]);
@@ -426,7 +435,7 @@ function OpenScheduleFormSheet({
           loading={isSubmitting}
           testID="schedule-form-submit"
         >
-          {mode === "edit" ? "Save changes" : "Create schedule"}
+          {mode === "edit" ? "Save changes" : "Create automation"}
         </Button>
       </View>
     ),
@@ -489,14 +498,25 @@ function ScheduleFormFields({
     );
   }
 
+  const templateResetKey = `template-${state.templateApplyCount}`;
+
   return (
     <>
+      {state.mode === "create" ? (
+        <ScheduleTemplateField
+          selectedTemplateId={state.selectedTemplateId}
+          onSelect={model.applyTemplate}
+          size={controlSize}
+        />
+      ) : null}
+
       <Field label="Name">
         <FormTextInput
           size={controlSize}
           testID="schedule-name-input"
-          accessibilityLabel="Schedule name"
+          accessibilityLabel="Automation name"
           initialValue={state.name}
+          resetKey={templateResetKey}
           onChangeText={model.setName}
           placeholder="Optional"
           autoCapitalize="none"
@@ -510,6 +530,7 @@ function ScheduleFormFields({
           testID="schedule-prompt-input"
           accessibilityLabel="Prompt"
           initialValue={state.prompt}
+          resetKey={templateResetKey}
           onChangeText={model.setPrompt}
           placeholder="What should the agent do each run?"
           style={styles.multilineInput}
@@ -529,6 +550,7 @@ function ScheduleFormFields({
       />
 
       <CadenceEditor
+        key={templateResetKey}
         value={state.cadence}
         onChange={model.setCadence}
         error={cadenceError ?? undefined}
@@ -794,10 +816,6 @@ function ScheduleTargetFields({
         />
       ) : null}
 
-      {state.disclosure.showIsolationField ? (
-        <ScheduleIsolationField model={model} state={state} size={controlSize} />
-      ) : null}
-
       {state.disclosure.showArchiveOnFinishField ? (
         <Field label="Archive on finish">
           <Switch
@@ -809,81 +827,6 @@ function ScheduleTargetFields({
         </Field>
       ) : null}
     </>
-  );
-}
-
-function ScheduleIsolationField({
-  model,
-  state,
-  size,
-}: {
-  model: ScheduleFormModel;
-  state: ScheduleFormState;
-  size: FieldControlSize;
-}): ReactElement {
-  const options = useMemo<SelectFieldOption<"local" | "worktree">[]>(
-    () => [
-      {
-        id: "local",
-        value: "local",
-        label: "Local",
-        testID: "schedule-isolation-local",
-      },
-      {
-        id: "worktree",
-        value: "worktree",
-        label: "Worktree",
-        testID: "schedule-isolation-worktree",
-      },
-    ],
-    [],
-  );
-  const selectedDisplay = useMemo<SelectFieldDisplay>(
-    () => ({ label: state.effectiveIsolation === "worktree" ? "Worktree" : "Local" }),
-    [state.effectiveIsolation],
-  );
-  const triggerLeading = useMemo(
-    () => (
-      <View style={styles.optionIconBox}>
-        {state.effectiveIsolation === "worktree" ? (
-          <GitBranch size={16} color={styles.providerIcon.color} />
-        ) : (
-          <Folder size={16} color={styles.providerIcon.color} />
-        )}
-      </View>
-    ),
-    [state.effectiveIsolation],
-  );
-  const handleSelectIsolation = useCallback(
-    (value: "local" | "worktree") => {
-      model.setIsolation(value);
-    },
-    [model],
-  );
-  const renderIsolationOption = useCallback(
-    (input: SelectFieldRenderOptionInput<"local" | "worktree">) => (
-      <IsolationOptionItem {...input} />
-    ),
-    [],
-  );
-
-  return (
-    <SelectField
-      label="Isolation"
-      value={state.effectiveIsolation}
-      selectedDisplay={selectedDisplay}
-      options={options}
-      onChange={handleSelectIsolation}
-      placeholder="Select isolation"
-      emptyText="No isolation options found"
-      searchable={false}
-      title="Isolation"
-      size={size}
-      testID="schedule-isolation"
-      triggerTestID="schedule-isolation-trigger"
-      triggerLeading={triggerLeading}
-      renderOption={renderIsolationOption}
-    />
   );
 }
 
@@ -911,37 +854,6 @@ function ScheduleAgentTargetField({
         </Text>
       </View>
     </Field>
-  );
-}
-
-function IsolationOptionItem({
-  option,
-  selected,
-  active,
-  onPress,
-}: SelectFieldRenderOptionInput<"local" | "worktree">): ReactElement {
-  const leadingSlot = useMemo(
-    () => (
-      <View style={styles.optionIconBox}>
-        {option.value === "worktree" ? (
-          <GitBranch size={16} color={styles.providerIcon.color} />
-        ) : (
-          <Folder size={16} color={styles.providerIcon.color} />
-        )}
-      </View>
-    ),
-    [option.value],
-  );
-
-  return (
-    <ComboboxItem
-      testID={option.testID}
-      label={option.label}
-      selected={selected}
-      active={active}
-      onPress={onPress}
-      leadingSlot={leadingSlot}
-    />
   );
 }
 

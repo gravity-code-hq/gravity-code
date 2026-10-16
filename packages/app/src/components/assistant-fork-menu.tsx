@@ -12,10 +12,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 
-export type AssistantForkTarget = "tab" | "workspace";
-
 interface AssistantForkMenuProps {
-  onFork: (target: AssistantForkTarget) => Promise<void> | void;
+  onFork: () => Promise<void> | void;
   testID?: string;
 }
 
@@ -30,30 +28,26 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
 }: AssistantForkMenuProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [pendingTarget, setPendingTarget] = useState<AssistantForkTarget | null>(null);
-  const isLocked = pendingTarget !== null;
+  const [isLocked, setIsLocked] = useState(false);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
-      if (!next && pendingTarget !== null) return;
+      if (!next && isLocked) return;
       setIsOpen(next);
     },
-    [pendingTarget],
+    [isLocked],
   );
 
-  const handleSelect = useCallback(
-    (target: AssistantForkTarget) => async () => {
-      if (isLocked) return;
-      setPendingTarget(target);
-      try {
-        await onFork(target);
-      } finally {
-        setPendingTarget(null);
-        setIsOpen(false);
-      }
-    },
-    [isLocked, onFork],
-  );
+  const handleSelect = useCallback(async () => {
+    if (isLocked) return;
+    setIsLocked(true);
+    try {
+      await onFork();
+    } finally {
+      setIsLocked(false);
+      setIsOpen(false);
+    }
+  }, [isLocked, onFork]);
 
   const triggerStyle = useCallback(
     () => [styles.trigger, isLocked ? styles.triggerDisabled : null],
@@ -100,23 +94,12 @@ export const AssistantForkMenu = memo(function AssistantForkMenu({
       <DropdownMenuContent align="start" minWidth={220} side="bottom" testID={`${testID}-content`}>
         <DropdownMenuItem
           closeOnSelect={false}
-          disabled={isLocked && pendingTarget !== "tab"}
           leading={forkIcon}
-          onSelect={handleSelect("tab")}
-          status={pendingTarget === "tab" ? "pending" : undefined}
+          onSelect={handleSelect}
+          status={isLocked ? "pending" : undefined}
           testID={`${testID}-new-tab`}
         >
           {t("message.actions.forkInNewTab")}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          closeOnSelect={false}
-          disabled={isLocked && pendingTarget !== "workspace"}
-          leading={forkIcon}
-          onSelect={handleSelect("workspace")}
-          status={pendingTarget === "workspace" ? "pending" : undefined}
-          testID={`${testID}-new-workspace`}
-        >
-          {t("message.actions.forkInNewWorkspace")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

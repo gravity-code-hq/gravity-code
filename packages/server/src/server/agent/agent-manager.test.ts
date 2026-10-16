@@ -17,9 +17,11 @@ import { AgentStorage } from "./agent-storage.js";
 import { InMemoryAgentTimelineStore } from "./agent-timeline-store.js";
 import { toAgentPayload } from "./agent-projections.js";
 import { projectTimelineRows } from "./timeline-projection.js";
-import { getOpenAgentTabLabel, PARENT_AGENT_ID_LABEL } from "@getpaseo/protocol/agent-labels";
+import { getOpenAgentTabLabel, PARENT_AGENT_ID_LABEL } from "@gravity/protocol/agent-labels";
 import { formatSystemNotificationPrompt, startAgentRun } from "./agent-prompt.js";
 import { StaleProviderSessionError } from "./stale-provider-session-error.js";
+import { buildAgentForkContextAttachment } from "./activity-curator.js";
+import { buildAgentPrompt } from "./prompt-attachments.js";
 import { ensureAgentLoaded, ensureUnarchivedAgentLoaded } from "./agent-loading.js";
 import type { StoredAgentRecord } from "./agent-storage.js";
 import type {
@@ -48,7 +50,7 @@ import type {
   ImportProviderSessionContext,
   ResolveAgentDefaultModeInput,
 } from "./agent-sdk-types.js";
-import type { PaseoToolCatalog } from "./tools/types.js";
+import type { GravityToolCatalog } from "./tools/types.js";
 import type { ProviderDefinition } from "./provider-registry.js";
 
 const DESKTOP_OPEN_AGENT_TAB_LABEL = getOpenAgentTabLabel("desktop-client");
@@ -408,7 +410,7 @@ class EnvProbeAgentClient extends TestAgentClient {
     const script = `
       process.stdout.write(JSON.stringify({
         probe: process.env.CHUNK14_PROBE ?? null,
-        agentId: process.env.PASEO_AGENT_ID ?? null
+        agentId: process.env.GRAVITY_AGENT_ID ?? null
       }));
     `;
     const child = spawn(process.execPath, ["-e", script], {
@@ -439,7 +441,9 @@ class EnvProbeAgentClient extends TestAgentClient {
 }
 
 class TestAgentSession implements AgentSession {
-  readonly provider = "codex" as const;
+  get provider(): AgentProvider {
+    return this.config.provider;
+  }
   readonly capabilities = TEST_CAPABILITIES;
   readonly id = randomUUID();
   private runtimeModel: string | null = null;
@@ -662,6 +666,138 @@ async function startAndSteerThroughManager(
   });
   return { manager, agentId: agent.id, workdir };
 }
+
+test.each(["codex", "claude"] as const)(
+  "fork history survives %s prompt echoes and persistence",
+  async (provider) => {
+    const workdir = mkdtempSync(join(tmpdir(), "agent-manager-fork-"));
+    const store = new RecordingTimelineStore();
+    const prompts: AgentPromptInput[] = [];
+    const storage = new AgentStorage(join(workdir, "agents"), logger);
+    class ForkSession extends TestAgentSession {
+      override async *streamHistory(): AsyncGenerator<AgentStreamEvent> {
+        yield {
+          type: "timeline",
+          provider,
+          item: {
+            type: "user_message",
+            text: "<chat-history-summary>raw context</chat-history-summary>\nContinue",
+            messageId: "provider-prompt",
+          },
+        };
+      }
+      override async startTurn(prompt: AgentPromptInput, options?: AgentRunOptions) {
+        prompts.push(prompt);
+        const turnId = "new-turn";
+        // Both providers echo the complete model input, including the transcript.
+        this.pushEvent({
+          type: "timeline",
+          provider,
+          turnId,
+          item: {
+            type: "user_message",
+            text: "<chat-history-summary>raw context</chat-history-summary>\nContinue",
+            messageId: "provider-prompt",
+            clientMessageId: options?.clientMessageId,
+          },
+        });
+        setTimeout(() => this.pushEvent({ type: "turn_completed", provider, turnId }), 0);
+        return { turnId };
+      }
+    }
+    class ForkClient extends TestAgentClient {
+      override async createSession(config: AgentSessionConfig) {
+        return new ForkSession(config);
+      }
+    }
+    const manager = new AgentManager({
+      clients: { [provider]: new ForkClient(provider) },
+      registry: storage,
+      durableTimelineStore: store,
+      logger,
+    });
+    let agentId: string | undefined;
+    try {
+      const agent = await manager.createAgent({ provider, cwd: workdir }, undefined, {
+        workspaceId: undefined,
+      });
+      agentId = agent.id;
+      const timestamp = "2026-07-26T10:00:00.000Z";
+      const source: AgentTimelineRow[] = [
+        {
+          seq: 1,
+          timestamp,
+          item: { type: "user_message", text: "Original prompt", messageId: "old-user" },
+        },
+        {
+          seq: 2,
+          timestamp,
+          item: {
+            type: "assistant_message",
+            text: "**Original** response",
+            messageId: "old-assistant",
+          },
+        },
+        {
+          seq: 3,
+          timestamp,
+          item: {
+            type: "tool_call",
+            callId: "old-tool",
+            name: "Read",
+            status: "completed",
+            error: null,
+            detail: { type: "plain_text", text: "Original output" },
+          },
+        },
+      ];
+      const { attachment } = buildAgentForkContextAttachment({
+        rows: source,
+        agentTitle: "Source chat",
+      });
+      const prompt = buildAgentPrompt("Continue", undefined, [attachment]);
+      await manager.runAgent(agent.id, prompt);
+      await manager.flush();
+      expect(prompts).toEqual([prompt]);
+      const rows = manager.fetchTimeline(agent.id, { limit: 0 }).rows;
+      expect(rows.map((row) => row.item)).toMatchObject([
+        { type: "user_message", text: "Original prompt", inherited: true },
+        { type: "assistant_message", text: "**Original** response" },
+        { type: "tool_call", detail: { type: "plain_text", text: "Original output" } },
+        { type: "notification", forkSourceTitle: "Source chat" },
+        { type: "user_message", text: "Continue" },
+      ]);
+      expect(rows[0]?.item).not.toHaveProperty("messageId");
+      expect(rows[0]?.timestamp).toBe(timestamp);
+      expect((await store.getCommittedRows(agent.id)).map((row) => row.item)).toEqual(
+        rows.map((row) => row.item),
+      );
+      // A fork of a fork uses the copied rows rather than a transcript inside a transcript.
+      const secondFork = buildAgentForkContextAttachment({ rows, agentTitle: "Second fork" });
+      expect(secondFork.attachment.forkHistory?.entries).toHaveLength(5);
+      expect(secondFork.attachment.text).not.toContain("<chat-history-summary>raw context");
+      await storage.flush();
+      const reopenedStorage = new AgentStorage(join(workdir, "agents"), logger);
+      const saved = await reopenedStorage.get(agent.id);
+      expect(saved?.forkHistory?.[0]?.rows.map((row) => row.item)).toEqual(
+        rows.slice(0, 4).map((row) => row.item),
+      );
+      await manager.hydrateTimelineFromProvider(agent.id, { force: true });
+      expect(
+        manager.fetchTimeline(agent.id, { limit: 0 }).rows.map((row) => row.item),
+      ).toMatchObject([
+        { type: "user_message", text: "Original prompt", inherited: true },
+        { type: "assistant_message", text: "**Original** response" },
+        { type: "tool_call", detail: { text: "Original output" } },
+        { type: "notification", forkSourceTitle: "Source chat" },
+        { type: "user_message", text: "Continue" },
+      ]);
+    } finally {
+      if (agentId) await manager.closeAgent(agentId);
+      rmSync(workdir, { recursive: true, force: true });
+    }
+  },
+);
 
 test("uses an injected timeline store without making it a production requirement", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-timeline-store-"));
@@ -2726,8 +2862,8 @@ test("createAgent passes daemon launch env through the provider launch context",
   expect(client.lastLaunchContext).toEqual({
     agentId: snapshot.id,
     env: {
-      PASEO_AGENT_ID: snapshot.id,
-      PASEO_AGENT_CWD: workdir,
+      GRAVITY_AGENT_ID: snapshot.id,
+      GRAVITY_AGENT_CWD: workdir,
     },
   });
 });
@@ -2807,7 +2943,7 @@ test("createAgent persists workspaceId on the stored record and emits it in the 
   }
 });
 
-test("createAgent injects paseo MCP server only into provider launch config", async () => {
+test("createAgent injects gravity MCP server only into provider launch config", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
@@ -2854,7 +2990,7 @@ test("createAgent injects paseo MCP server only into provider launch config", as
     },
   });
   expect(client.lastConfig?.mcpServers).toEqual({
-    paseo: {
+    gravity: {
       type: "http",
       url: `http://127.0.0.1:6767/mcp/agents?callerAgentId=${snapshot.id}`,
     },
@@ -3001,12 +3137,12 @@ test("reloadAgentSession preserves the live session when its replacement cannot 
     }
   }
 
-  let paseoToolPolicy = { disabledTools: ["list_agents"] };
+  let gravityToolPolicy = { disabledTools: ["list_agents"] };
   const manager = new AgentManager({
     clients: { codex: new UnsupportedReloadClient() },
     registry: new AgentStorage(join(workdir, "agents"), logger),
     logger,
-    resolvePaseoToolPolicy: () => paseoToolPolicy,
+    resolveGravityToolPolicy: () => gravityToolPolicy,
   });
 
   try {
@@ -3015,7 +3151,7 @@ test("reloadAgentSession preserves the live session when its replacement cannot 
       "00000000-0000-4000-8000-000000000109",
       { workspaceId: undefined },
     );
-    paseoToolPolicy = { disabledTools: ["create_agent"] };
+    gravityToolPolicy = { disabledTools: ["create_agent"] };
 
     await expect(
       manager.reloadAgentSession(created.id, {
@@ -3029,7 +3165,7 @@ test("reloadAgentSession preserves the live session when its replacement cannot 
     expect(original.closed).toBe(false);
     expect(manager.getAgent(created.id)?.session).toBe(original);
     expect(manager.getAgent(created.id)?.lifecycle).toBe("idle");
-    expect(manager.getPaseoToolPolicy(created.id)).toEqual({
+    expect(manager.getGravityToolPolicy(created.id)).toEqual({
       disabledTools: ["list_agents"],
     });
   } finally {
@@ -3037,12 +3173,12 @@ test("reloadAgentSession preserves the live session when its replacement cannot 
   }
 });
 
-test("createAgent passes native Paseo tools through launch context without internal MCP", async () => {
+test("createAgent passes native Gravity tools through launch context without internal MCP", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
 
-  const paseoTools: PaseoToolCatalog = {
+  const gravityTools: GravityToolCatalog = {
     tools: new Map(),
     getTool: () => undefined,
     executeTool: async () => {
@@ -3054,7 +3190,7 @@ test("createAgent passes native Paseo tools through launch context without inter
     override readonly capabilities = {
       ...TEST_CAPABILITIES,
       supportsMcpServers: true,
-      supportsNativePaseoTools: true,
+      supportsNativeGravityTools: true,
     };
     lastConfig: AgentSessionConfig | null = null;
     lastLaunchContext: AgentLaunchContext | undefined;
@@ -3077,7 +3213,7 @@ test("createAgent passes native Paseo tools through launch context without inter
     registry: storage,
     logger,
     mcpBaseUrl: "http://127.0.0.1:6767/mcp/agents",
-    paseoToolCatalogFactory: () => paseoTools,
+    gravityToolCatalogFactory: () => gravityTools,
     idFactory: () => "00000000-0000-4000-8000-000000000106",
   });
 
@@ -3096,7 +3232,7 @@ test("createAgent passes native Paseo tools through launch context without inter
     { workspaceId: undefined },
   );
 
-  expect(client.lastLaunchContext?.paseoTools).toBe(paseoTools);
+  expect(client.lastLaunchContext?.gravityTools).toBe(gravityTools);
   expect(client.lastConfig?.mcpServers).toEqual({
     custom: {
       type: "stdio",
@@ -3155,7 +3291,7 @@ test("createAgent allows best-effort internal MCP when the provider session repo
   );
 
   expect(manager.getMcpAuthToken()).toBe("cap-token");
-  expect(client.lastConfig?.mcpServers?.paseo).toEqual({
+  expect(client.lastConfig?.mcpServers?.gravity).toEqual({
     type: "http",
     url: `http://127.0.0.1:6767/mcp/agents?callerAgentId=${snapshot.id}`,
     headers: { Authorization: "Bearer cap-token" },
@@ -3176,7 +3312,7 @@ test("uses each provider's current policy for new sessions and snapshots it by a
     override readonly capabilities = {
       ...TEST_CAPABILITIES,
       supportsMcpServers: true,
-      supportsNativePaseoTools: true,
+      supportsNativeGravityTools: true,
     };
     readonly launchContexts: AgentLaunchContext[] = [];
     readonly configs: AgentSessionConfig[] = [];
@@ -3193,8 +3329,8 @@ test("uses each provider's current policy for new sessions and snapshots it by a
 
   const codex = new CaptureClient("codex");
   const claude = new CaptureClient("claude");
-  const policyInputs: Array<{ callerAgentId?: string; paseoToolPolicy?: unknown }> = [];
-  const paseoTools: PaseoToolCatalog = {
+  const policyInputs: Array<{ callerAgentId?: string; gravityToolPolicy?: unknown }> = [];
+  const gravityTools: GravityToolCatalog = {
     tools: new Map(),
     getTool: () => undefined,
     executeTool: async () => {
@@ -3206,10 +3342,10 @@ test("uses each provider's current policy for new sessions and snapshots it by a
     registry: storage,
     logger,
     mcpBaseUrl: "http://127.0.0.1:6767/mcp/agents",
-    resolvePaseoToolPolicy: (provider) => policies.get(provider),
-    paseoToolCatalogFactory: async (context) => {
+    resolveGravityToolPolicy: (provider) => policies.get(provider),
+    gravityToolCatalogFactory: async (context) => {
       policyInputs.push(context);
-      return paseoTools;
+      return gravityTools;
     },
   });
 
@@ -3225,16 +3361,16 @@ test("uses each provider's current policy for new sessions and snapshots it by a
   );
 
   expect(policyInputs).toEqual([
-    { callerAgentId: codexAgent.id, paseoToolPolicy: { disabledTools: ["list_agents"] } },
+    { callerAgentId: codexAgent.id, gravityToolPolicy: { disabledTools: ["list_agents"] } },
   ]);
-  expect(codex.launchContexts[0]?.paseoTools).toBe(paseoTools);
-  expect(claude.launchContexts[0]?.paseoTools).toBeUndefined();
-  expect(codex.configs[0]?.mcpServers?.paseo).toBeUndefined();
+  expect(codex.launchContexts[0]?.gravityTools).toBe(gravityTools);
+  expect(claude.launchContexts[0]?.gravityTools).toBeUndefined();
+  expect(codex.configs[0]?.mcpServers?.gravity).toBeUndefined();
   expect(claude.configs[0]?.mcpServers).toBeUndefined();
-  expect(manager.getPaseoToolPolicy(codexAgent.id)).toEqual({
+  expect(manager.getGravityToolPolicy(codexAgent.id)).toEqual({
     disabledTools: ["list_agents"],
   });
-  expect(manager.getPaseoToolPolicy(claudeAgent.id)).toEqual({ enabled: false });
+  expect(manager.getGravityToolPolicy(claudeAgent.id)).toEqual({ enabled: false });
 
   policies.set("codex", { disabledTools: ["create_agent"] });
   const nextCodexAgent = await manager.createAgent(
@@ -3243,27 +3379,27 @@ test("uses each provider's current policy for new sessions and snapshots it by a
     { workspaceId: undefined },
   );
 
-  expect(manager.getPaseoToolPolicy(codexAgent.id)).toEqual({
+  expect(manager.getGravityToolPolicy(codexAgent.id)).toEqual({
     disabledTools: ["list_agents"],
   });
-  expect(manager.getPaseoToolPolicy(nextCodexAgent.id)).toEqual({
+  expect(manager.getGravityToolPolicy(nextCodexAgent.id)).toEqual({
     disabledTools: ["create_agent"],
   });
   expect(policyInputs).toEqual([
-    { callerAgentId: codexAgent.id, paseoToolPolicy: { disabledTools: ["list_agents"] } },
+    { callerAgentId: codexAgent.id, gravityToolPolicy: { disabledTools: ["list_agents"] } },
     {
       callerAgentId: nextCodexAgent.id,
-      paseoToolPolicy: { disabledTools: ["create_agent"] },
+      gravityToolPolicy: { disabledTools: ["create_agent"] },
     },
   ]);
 
   await manager.archiveAgent(claudeAgent.id);
-  expect(manager.getPaseoToolPolicy(claudeAgent.id)).toBeUndefined();
+  expect(manager.getGravityToolPolicy(claudeAgent.id)).toBeUndefined();
 
   rmSync(workdir, { recursive: true, force: true });
 });
 
-test("keeps the global Paseo-tools gate outside provider policy and MCP injection", async () => {
+test("keeps the global Gravity-tools gate outside provider policy and MCP injection", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
   const storage = new AgentStorage(join(workdir, "agents"), logger);
 
@@ -3286,7 +3422,7 @@ test("keeps the global Paseo-tools gate outside provider policy and MCP injectio
     registry: storage,
     logger,
     mcpBaseUrl: "http://127.0.0.1:6767/mcp/agents",
-    resolvePaseoToolPolicy: () => ({ disabledTools: ["list_agents"] }),
+    resolveGravityToolPolicy: () => ({ disabledTools: ["list_agents"] }),
   });
   const enabledAgent = await enabledManager.createAgent(
     { provider: "codex", cwd: workdir },
@@ -3294,7 +3430,7 @@ test("keeps the global Paseo-tools gate outside provider policy and MCP injectio
     { workspaceId: undefined },
   );
 
-  expect(enabledClient.lastConfig?.mcpServers?.paseo).toEqual({
+  expect(enabledClient.lastConfig?.mcpServers?.gravity).toEqual({
     type: "http",
     url: `http://127.0.0.1:6767/mcp/agents?callerAgentId=${enabledAgent.id}`,
   });
@@ -3306,11 +3442,11 @@ test("keeps the global Paseo-tools gate outside provider policy and MCP injectio
     registry: storage,
     logger,
     mcpBaseUrl: "http://127.0.0.1:6767/mcp/agents",
-    paseoToolsEnabled: false,
-    resolvePaseoToolPolicy: () => ({ enabled: true }),
-    paseoToolCatalogFactory: () => {
+    gravityToolsEnabled: false,
+    resolveGravityToolPolicy: () => ({ enabled: true }),
+    gravityToolCatalogFactory: () => {
       catalogFactoryCalls += 1;
-      return paseoTools;
+      return gravityTools;
     },
   });
   const disabledAgent = await disabledManager.createAgent(
@@ -3321,12 +3457,12 @@ test("keeps the global Paseo-tools gate outside provider policy and MCP injectio
 
   expect(disabledClient.lastConfig?.mcpServers).toBeUndefined();
   expect(catalogFactoryCalls).toBe(0);
-  expect(disabledManager.getPaseoToolPolicy(disabledAgent.id)).toEqual({ enabled: false });
+  expect(disabledManager.getGravityToolPolicy(disabledAgent.id)).toEqual({ enabled: false });
 
   rmSync(workdir, { recursive: true, force: true });
 });
 
-test("resumeAgentFromPersistence replaces stored internal paseo MCP with current runtime URL", async () => {
+test("resumeAgentFromPersistence replaces stored internal gravity MCP with current runtime URL", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
@@ -3351,7 +3487,7 @@ test("resumeAgentFromPersistence replaces stored internal paseo MCP with current
   const snapshot = await manager.resumeAgentFromPersistence(handle, {
     cwd: workdir,
     mcpServers: {
-      paseo: {
+      gravity: {
         type: "http",
         url: "http://127.0.0.1:6767/mcp/agents?callerAgentId=stale-agent",
       },
@@ -3363,7 +3499,7 @@ test("resumeAgentFromPersistence replaces stored internal paseo MCP with current
   });
 
   expect(client.resumeOverrides[0]?.mcpServers).toEqual({
-    paseo: {
+    gravity: {
       type: "http",
       url: `http://127.0.0.1:6768/mcp/agents?callerAgentId=${snapshot.id}`,
     },
@@ -3380,7 +3516,7 @@ test("resumeAgentFromPersistence replaces stored internal paseo MCP with current
   });
 });
 
-test("resumeAgentFromPersistence drops stored internal paseo MCP when runtime injection is disabled", async () => {
+test("resumeAgentFromPersistence drops stored internal gravity MCP when runtime injection is disabled", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
@@ -3403,7 +3539,7 @@ test("resumeAgentFromPersistence drops stored internal paseo MCP when runtime in
   const snapshot = await manager.resumeAgentFromPersistence(handle, {
     cwd: workdir,
     mcpServers: {
-      paseo: {
+      gravity: {
         type: "http",
         url: "http://127.0.0.1:6767/mcp/agents?callerAgentId=stale-agent",
       },
@@ -3414,7 +3550,7 @@ test("resumeAgentFromPersistence drops stored internal paseo MCP when runtime in
   expect(snapshot.config.mcpServers).toBeUndefined();
 });
 
-test("createAgent preserves a user-provided paseo MCP config", async () => {
+test("createAgent preserves a user-provided gravity MCP config", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-test-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
@@ -3444,9 +3580,9 @@ test("createAgent preserves a user-provided paseo MCP config", async () => {
       provider: "codex",
       cwd: workdir,
       mcpServers: {
-        paseo: {
+        gravity: {
           type: "http",
-          url: "https://example.com/custom-paseo",
+          url: "https://example.com/custom-gravity",
         },
       },
     },
@@ -3455,9 +3591,9 @@ test("createAgent preserves a user-provided paseo MCP config", async () => {
   );
 
   expect(snapshot.config.mcpServers).toEqual({
-    paseo: {
+    gravity: {
       type: "http",
-      url: "https://example.com/custom-paseo",
+      url: "https://example.com/custom-gravity",
     },
   });
   expect(client.lastConfig?.mcpServers).toEqual(snapshot.config.mcpServers);
@@ -4025,30 +4161,30 @@ test("resumeAgentFromPersistence keeps metadata config, applies overrides, and p
     cwd: workdir,
     systemPrompt: "new prompt",
     mcpServers: {
-      paseo: {
+      gravity: {
         type: "stdio",
         command: "node",
-        args: ["/tmp/mcp-bridge.mjs", "--socket", "/tmp/paseo.sock"],
+        args: ["/tmp/mcp-bridge.mjs", "--socket", "/tmp/gravity.sock"],
       },
     },
   });
 
   expect(resumed.config.systemPrompt).toBe("new prompt");
   expect(resumed.config.mcpServers).toEqual({
-    paseo: {
+    gravity: {
       type: "stdio",
       command: "node",
-      args: ["/tmp/mcp-bridge.mjs", "--socket", "/tmp/paseo.sock"],
+      args: ["/tmp/mcp-bridge.mjs", "--socket", "/tmp/gravity.sock"],
     },
   });
   expect(client.lastResumeOverrides).toMatchObject({
     model: "gpt-5.4",
     systemPrompt: "new prompt",
     mcpServers: {
-      paseo: {
+      gravity: {
         type: "stdio",
         command: "node",
-        args: ["/tmp/mcp-bridge.mjs", "--socket", "/tmp/paseo.sock"],
+        args: ["/tmp/mcp-bridge.mjs", "--socket", "/tmp/gravity.sock"],
       },
     },
   });
@@ -4056,8 +4192,8 @@ test("resumeAgentFromPersistence keeps metadata config, applies overrides, and p
   expect(client.lastResumeLaunchContext).toEqual({
     agentId: resumed.id,
     env: {
-      PASEO_AGENT_ID: resumed.id,
-      PASEO_AGENT_CWD: workdir,
+      GRAVITY_AGENT_ID: resumed.id,
+      GRAVITY_AGENT_CWD: workdir,
     },
   });
 });
@@ -4164,8 +4300,8 @@ test("importProviderSession imports the selected session without listing and pub
   expect(client.importLaunchContext).toEqual({
     agentId: imported.id,
     env: {
-      PASEO_AGENT_ID: imported.id,
-      PASEO_AGENT_CWD: workdir,
+      GRAVITY_AGENT_ID: imported.id,
+      GRAVITY_AGENT_CWD: workdir,
     },
   });
   expect(imported.lifecycle).toBe("idle");
@@ -4267,8 +4403,8 @@ test("reloadAgentSession passes daemon launch env through the provider launch co
   expect(client.lastCreateLaunchContext).toEqual({
     agentId: snapshot.id,
     env: {
-      PASEO_AGENT_ID: snapshot.id,
-      PASEO_AGENT_CWD: workdir,
+      GRAVITY_AGENT_ID: snapshot.id,
+      GRAVITY_AGENT_CWD: workdir,
     },
   });
 
@@ -4279,8 +4415,8 @@ test("reloadAgentSession passes daemon launch env through the provider launch co
   expect(client.lastResumeLaunchContext).toEqual({
     agentId: snapshot.id,
     env: {
-      PASEO_AGENT_ID: snapshot.id,
-      PASEO_AGENT_CWD: workdir,
+      GRAVITY_AGENT_ID: snapshot.id,
+      GRAVITY_AGENT_CWD: workdir,
     },
   });
 });
@@ -10759,7 +10895,7 @@ test("listImportableSessions searches every provider result before global rankin
   ]);
 });
 
-test("user_message events wrapping a paseo-system envelope are not added to the timeline", async () => {
+test("user_message events wrapping a gravity-system envelope are not added to the timeline", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-envelope-live-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
@@ -10794,7 +10930,7 @@ test("user_message events wrapping a paseo-system envelope are not added to the 
   expect(userMessages[0].text).toBe("plain user message");
 });
 
-test("user_message events wrapping a paseo-system envelope are not restored during history replay", async () => {
+test("user_message events wrapping a gravity-system envelope are not restored during history replay", async () => {
   const workdir = mkdtempSync(join(tmpdir(), "agent-manager-envelope-history-"));
   const storagePath = join(workdir, "agents");
   const storage = new AgentStorage(storagePath, logger);
@@ -11023,6 +11159,65 @@ test("concurrent native restores run once before resuming the same agent", async
     restoreAllowed.resolve();
     if (agentId) await manager.closeAgent(agentId);
     await storage.flush();
+    rmSync(workdir, { recursive: true, force: true });
+  }
+});
+
+test("restores context usage from storage when a closed agent is resumed by a new manager", async () => {
+  const workdir = mkdtempSync(join(tmpdir(), "agent-manager-usage-restart-"));
+  const storagePath = join(workdir, "agents");
+  const storage = new AgentStorage(storagePath, logger);
+  let capturedSession: TestAgentSession | null = null;
+
+  class LiveEventClient extends TestAgentClient {
+    override async createSession(config: AgentSessionConfig): Promise<AgentSession> {
+      capturedSession = new TestAgentSession(config);
+      return capturedSession;
+    }
+  }
+
+  const manager = new AgentManager({
+    clients: { codex: new LiveEventClient() },
+    registry: storage,
+    logger,
+    idFactory: () => "00000000-0000-4000-8000-000000000141",
+  });
+
+  const snapshot = await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+    workspaceId: undefined,
+  });
+
+  const usage = {
+    inputTokens: 10,
+    contextWindowMaxTokens: 200_000,
+    contextWindowUsedTokens: 175,
+  };
+  capturedSession!.pushEvent({ type: "usage_updated", provider: "codex", usage });
+  await vi.waitFor(() => {
+    expect(manager.getAgent(snapshot.id)?.lastUsage).toEqual(usage);
+  });
+  await manager.closeAgent(snapshot.id);
+  await storage.flush();
+
+  const stored = await storage.get(snapshot.id);
+  expect(stored?.lastUsage).toEqual(usage);
+
+  // Simulate a daemon restart: a fresh manager on the same storage.
+  const restarted = new AgentManager({
+    clients: { codex: new TestAgentClient() },
+    registry: new AgentStorage(storagePath, logger),
+    logger,
+  });
+  try {
+    const resumed = await restarted.resumeAgentFromPersistence(
+      stored!.persistence!,
+      { cwd: workdir },
+      snapshot.id,
+    );
+    expect(resumed.lastUsage).toEqual(usage);
+    expect(toAgentPayload(resumed).lastUsage).toEqual(usage);
+  } finally {
+    await restarted.closeAgent(snapshot.id).catch(() => undefined);
     rmSync(workdir, { recursive: true, force: true });
   }
 });

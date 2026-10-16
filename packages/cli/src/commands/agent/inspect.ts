@@ -1,6 +1,6 @@
 import type { Command } from "commander";
-import { PARENT_AGENT_ID_LABEL } from "@getpaseo/protocol/agent-labels";
-import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
+import { PARENT_AGENT_ID_LABEL } from "@gravity/protocol/agent-labels";
+import type { AgentSnapshotPayload } from "@gravity/protocol/messages";
 import { connectToDaemon } from "../../utils/client.js";
 import type { CommandOptions, ListResult, OutputSchema, CommandError } from "../../output/index.js";
 
@@ -149,7 +149,7 @@ function toInspectData(snapshot: AgentSnapshotPayload): AgentInspect {
       id: p.id,
       tool: p.name ?? "unknown",
     })),
-    Worktree: snapshot.labels?.["paseo.worktree"] ?? null,
+    Worktree: snapshot.labels?.["gravity.worktree"] ?? null,
     ParentAgentId: snapshot.labels?.[PARENT_AGENT_ID_LABEL] ?? null,
   };
 }
@@ -222,7 +222,7 @@ export async function runInspectCommand(
     const error: CommandError = {
       code: "MISSING_AGENT_ID",
       message: "Agent ID is required",
-      details: "Usage: paseo agent inspect <id>",
+      details: "Usage: gravity agent inspect <id>",
     };
     throw error;
   }
@@ -235,7 +235,7 @@ export async function runInspectCommand(
       const error: CommandError = {
         code: "AGENT_NOT_FOUND",
         message: `Agent not found: ${agentIdArg}`,
-        details: 'Use "paseo ls" to list available agents',
+        details: 'Use "gravity ls" to list available agents',
       };
       throw error;
     }

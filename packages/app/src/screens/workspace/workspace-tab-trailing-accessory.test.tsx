@@ -145,6 +145,8 @@ function renderAccessory(
     onCopyTerminalId: vi.fn(),
     onCopyFilePath: vi.fn(),
     onReloadAgent: vi.fn(),
+    onCopyConversation: vi.fn(),
+    onDownloadConversation: vi.fn(),
     onRenameTab,
     onCloseTab: vi.fn(),
     onCloseTabsBefore: vi.fn(),

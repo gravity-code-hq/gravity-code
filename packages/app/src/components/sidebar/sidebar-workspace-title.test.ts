@@ -5,28 +5,45 @@ import {
 } from "@/components/sidebar/sidebar-workspace-title";
 
 describe("resolveSidebarWorkspacePrimaryLabel", () => {
-  it("uses the workspace name in title mode", () => {
+  it.each([
+    "/worktrees/friendly-husky",
+    "/worktrees/friendly-husky/",
+    "C:\\worktrees\\friendly-husky\\",
+  ])("uses the worktree directory and branch for %s", (workspaceDirectory) => {
     const label = resolveSidebarWorkspacePrimaryLabel({
-      workspace: { name: "Investigate search", currentBranch: "fix/search" },
-      workspaceTitleSource: "title",
+      workspace: {
+        workspaceDirectory,
+        projectName: "gravity",
+        projectKind: "git",
+        currentBranch: "fix/search",
+      },
     });
 
-    expect(label).toBe("Investigate search");
+    expect(label).toBe("friendly-husky: fix/search");
   });
 
-  it("uses the branch name in branch mode", () => {
+  it("uses the worktree slug when the workspace is in a subdirectory", () => {
     const label = resolveSidebarWorkspacePrimaryLabel({
-      workspace: { name: "Investigate search", currentBranch: "fix/search" },
-      workspaceTitleSource: "branch",
+      workspace: {
+        workspaceDirectory: "/worktrees/friendly-husky/packages/app",
+        worktreeSlug: "friendly-husky",
+        projectName: "gravity",
+        projectKind: "git",
+        currentBranch: "fix/search",
+      },
     });
 
-    expect(label).toBe("fix/search");
+    expect(label).toBe("friendly-husky: fix/search");
   });
 
-  it("falls back to the workspace name in branch mode without a branch", () => {
+  it("uses the project name for a directory without Git", () => {
     const label = resolveSidebarWorkspacePrimaryLabel({
-      workspace: { name: "Local folder", currentBranch: null },
-      workspaceTitleSource: "branch",
+      workspace: {
+        workspaceDirectory: "/worktrees/friendly-husky",
+        projectName: "Local folder",
+        projectKind: "non_git",
+        currentBranch: null,
+      },
     });
 
     expect(label).toBe("Local folder");
@@ -36,22 +53,28 @@ describe("resolveSidebarWorkspacePrimaryLabel", () => {
 describe("resolveSidebarWorkspaceAccessibilityLabel", () => {
   it("includes the visible host badge with the workspace title", () => {
     const label = resolveSidebarWorkspaceAccessibilityLabel({
-      workspace: { name: "Investigate search", currentBranch: "fix/search", statusBucket: "done" },
-      workspaceTitleSource: "title",
+      workspace: {
+        workspaceDirectory: "/worktrees/friendly-husky",
+        projectName: "gravity",
+        projectKind: "git",
+        currentBranch: "fix/search",
+        statusBucket: "done",
+      },
       hostBadgeLabel: "Build host",
     });
 
-    expect(label).toBe("Investigate search, Build host");
+    expect(label).toBe("friendly-husky: fix/search, Build host");
   });
 
   it("owns every visual row contributor in one accessible label", () => {
     const label = resolveSidebarWorkspaceAccessibilityLabel({
       workspace: {
-        name: "Investigate search",
+        workspaceDirectory: "/worktrees/friendly-husky",
+        projectName: "gravity",
+        projectKind: "git",
         currentBranch: "fix/search",
         statusBucket: "running",
       },
-      workspaceTitleSource: "branch",
       leadingProjectName: "Search project",
       hostBadgeLabel: "Build host",
       pullRequestLabel: "Pull request 42",
@@ -59,18 +82,23 @@ describe("resolveSidebarWorkspaceAccessibilityLabel", () => {
     });
 
     expect(label).toBe(
-      "Search project, fix/search, Build host, Pull request 42, Service web running, Working",
+      "Search project, friendly-husky: fix/search, Build host, Pull request 42, Service web running, Working",
     );
   });
 
   it("omits the idle status from the workspace label", () => {
     const label = resolveSidebarWorkspaceAccessibilityLabel({
-      workspace: { name: "Investigate search", currentBranch: "fix/search", statusBucket: "done" },
-      workspaceTitleSource: "title",
+      workspace: {
+        workspaceDirectory: "/worktrees/friendly-husky",
+        projectName: "gravity",
+        projectKind: "git",
+        currentBranch: "fix/search",
+        statusBucket: "done",
+      },
       leadingProjectName: "Search project",
       hostBadgeLabel: "Build host",
     });
 
-    expect(label).toBe("Search project, Investigate search, Build host");
+    expect(label).toBe("Search project, friendly-husky: fix/search, Build host");
   });
 });

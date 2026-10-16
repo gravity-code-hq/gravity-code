@@ -1,6 +1,17 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { TextInput } from "react-native";
 import type { EditingTextInputHandle, EditingTextInputProps } from "./types";
+import { useCommandHighlights } from "./highlights.web";
+import type { InputCommand } from "./command-ranges";
+
+const NO_COMMANDS: readonly InputCommand[] = [];
 
 interface WebTextInputElement extends TextInput {
   value?: string;
@@ -13,6 +24,8 @@ export const EditingTextInput = forwardRef<EditingTextInputHandle, EditingTextIn
   function EditingTextInputWeb(allProps, ref) {
     const {
       initialValue = "",
+      commands = NO_COMMANDS,
+      commandHighlightColor,
       onChangeText,
       onPasteImages: _,
       onPasteError: __,
@@ -22,6 +35,13 @@ export const EditingTextInput = forwardRef<EditingTextInputHandle, EditingTextIn
       ...props
     } = allProps as EditingTextInputProps & { value?: unknown; defaultValue?: unknown };
     const inputRef = useRef<TextInput | null>(null);
+    const [highlightRevision, setHighlightRevision] = useState(0);
+    useCommandHighlights({
+      inputRef,
+      commands,
+      revision: highlightRevision,
+      color: commandHighlightColor,
+    });
     const initialTextRef = useRef(initialValue);
     const textRef = useRef(initialTextRef.current);
     const isComposingRef = useRef(false);
@@ -74,11 +94,13 @@ export const EditingTextInput = forwardRef<EditingTextInputHandle, EditingTextIn
         if (selection && typeof input?.setSelectionRange === "function") {
           input.setSelectionRange(selection.start, selection.end);
         }
+        setHighlightRevision((current) => current + 1);
       },
       reset: () => {
         textRef.current = "";
         const input = inputRef.current as WebTextInputElement | null;
         if (input && "value" in input) input.value = "";
+        setHighlightRevision((current) => current + 1);
       },
       getNativeRef: () => inputRef.current,
     }));

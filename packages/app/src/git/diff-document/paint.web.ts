@@ -1,3 +1,4 @@
+import { diffGutterLabels } from "./gutter";
 import { selectionRectangles } from "./hit-testing";
 import {
   DIFF_BODY_BORDER_HEIGHT,
@@ -12,7 +13,6 @@ import {
   DIFF_FILE_HEADER_ICON_SIZE,
   DIFF_FILE_HEADER_LEFT,
   DIFF_FILE_HEADER_RIGHT,
-  DIFF_FILE_HEADER_TEXT_GAP,
   allocateDiffHeaderTextWidths,
   diffFileChangeKind,
   directorySuffix,
@@ -138,6 +138,24 @@ export function paintWebFileHeader(input: {
   context.fillStyle = palette.headerBorder;
   context.fillRect(0, y + DIFF_FILE_HEADER_HEIGHT - 1, viewportWidth, 1);
 
+  context.save();
+  context.strokeStyle = palette.foregroundMuted;
+  context.lineWidth = 1.5;
+  context.lineCap = "round";
+  context.beginPath();
+  const chevronY = y + DIFF_FILE_HEADER_CONTENT_HEIGHT / 2;
+  if (file.isCollapsed) {
+    context.moveTo(15, chevronY - 4);
+    context.lineTo(19, chevronY);
+    context.lineTo(15, chevronY + 4);
+  } else {
+    context.moveTo(13, chevronY - 2);
+    context.lineTo(17, chevronY + 2);
+    context.lineTo(21, chevronY - 2);
+  }
+  context.stroke();
+  context.restore();
+
   const iconX = viewportWidth - DIFF_FILE_HEADER_RIGHT - DIFF_FILE_HEADER_ICON_SIZE;
   const statLabels = [
     `+${formatDiffCount(file.file.additions)}`,
@@ -164,24 +182,22 @@ export function paintWebFileHeader(input: {
   const textBaseline = centeredTextBaseline(context, y + DIFF_FILE_HEADER_CONTENT_HEIGHT / 2);
   const available = Math.max(0, statX - DIFF_FILE_HEADER_LEFT);
   const name = fileNameForPath(file.path);
-  // React Native Web collapses the leading separator space at the start of the
-  // directory Text node. Canvas does not, so paint only the visible glyphs.
-  const directory = directorySuffix(file.path).trimStart();
+  const directory = file.path.includes("/") ? `${directorySuffix(file.path).trimStart()}/` : "";
   const fitted = fitHeaderText(context, name, directory, available);
   context.save();
   context.beginPath();
   context.rect(DIFF_FILE_HEADER_LEFT, y, available, DIFF_FILE_HEADER_CONTENT_HEIGHT);
   context.clip();
-  context.fillStyle = palette.foreground;
-  context.fillText(fitted.name, DIFF_FILE_HEADER_LEFT, textBaseline);
   if (fitted.directory) {
     context.fillStyle = palette.foregroundMuted;
-    context.fillText(
-      fitted.directory,
-      DIFF_FILE_HEADER_LEFT + context.measureText(fitted.name).width + DIFF_FILE_HEADER_TEXT_GAP,
-      textBaseline,
-    );
+    context.fillText(fitted.directory, DIFF_FILE_HEADER_LEFT, textBaseline);
   }
+  context.fillStyle = palette.foreground;
+  context.fillText(
+    fitted.name,
+    DIFF_FILE_HEADER_LEFT + context.measureText(fitted.directory).width,
+    textBaseline,
+  );
   context.restore();
 }
 
@@ -286,12 +302,30 @@ function paintLine(
     if (!cell) return;
     input.context.fillStyle = input.palette.border;
     input.context.fillRect(x + file.gutterWidth, input.y, 1, reviewDividerHeight(input.row.height));
-    if (cell.lineNumber !== null) {
-      const label = String(cell.lineNumber);
-      input.context.fillStyle = lineNumberColor(cell, input.palette);
+    if (cell.type === "add" || cell.type === "remove") {
+      input.context.fillStyle = input.palette.surface;
+      input.context.fillRect(
+        x,
+        input.y,
+        file.gutterWidth,
+        input.row.height - input.row.reviewHeight,
+      );
+      input.context.fillStyle =
+        cell.type === "add"
+          ? input.palette.additionGutterBackground
+          : input.palette.deletionGutterBackground;
+      input.context.fillRect(
+        x,
+        input.y,
+        file.gutterWidth,
+        input.row.height - input.row.reviewHeight,
+      );
+    }
+    input.context.fillStyle = lineNumberColor(cell, input.palette);
+    for (const label of diffGutterLabels(cell, file.gutterWidth, input.model.layout)) {
       input.context.fillText(
-        label,
-        x + file.gutterWidth - 7 - input.measureText.measure(label),
+        label.text,
+        x + label.right - input.measureText.measure(label.text),
         input.y + input.model.lineHeight * 0.78,
       );
     }
@@ -393,7 +427,7 @@ function cellBackground(cell: DiffCell | null, palette: DiffPalette): string {
   if (!cell) return palette.emptyBackground;
   if (cell.type === "add") return palette.additionBackground;
   if (cell.type === "remove") return palette.deletionBackground;
-  if (cell.type === "header") return palette.headerSurface;
+  if (cell.type === "header") return palette.hunkBackground;
   return palette.surface;
 }
 

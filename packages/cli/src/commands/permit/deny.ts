@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { AgentPermissionRequest } from "@getpaseo/protocol/agent-types";
+import type { AgentPermissionRequest } from "@gravity/protocol/agent-types";
 import { connectToDaemon } from "../../utils/client.js";
 import type { CommandOptions, ListResult, CommandError } from "../../output/index.js";
 import { permitResponseSchema, type PermissionResponseItem } from "./allow.js";
@@ -24,7 +24,7 @@ export async function runDenyCommand(
     const error: CommandError = {
       code: "MISSING_ARGUMENT",
       message: "Request ID is required unless --all is specified",
-      details: "Usage: paseo permit deny <agent> <req_id> or paseo permit deny <agent> --all",
+      details: "Usage: gravity permit deny <agent> <req_id> or gravity permit deny <agent> --all",
     };
     throw error;
   }
@@ -38,7 +38,7 @@ export async function runDenyCommand(
       const error: CommandError = {
         code: "AGENT_NOT_FOUND",
         message: `Agent not found: ${agentIdOrPrefix}`,
-        details: 'Use "paseo ls" to list available agents',
+        details: 'Use "gravity ls" to list available agents',
       };
       throw error;
     }

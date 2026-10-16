@@ -1,5 +1,4 @@
 import type { ExplorerDirectory, ExplorerEntry } from "@/stores/session-store";
-import type { SortOption } from "@/stores/panel-store/state";
 import { filterVisibleExplorerEntries } from "./visibility";
 
 export const MAX_AUTO_EXPANDED_DIRECTORY_DEPTH = 5;
@@ -12,7 +11,6 @@ export interface ExplorerTreeRow {
 interface FlattenExplorerTreeInput {
   directories: ReadonlyMap<string, ExplorerDirectory>;
   expandedPaths: ReadonlySet<string>;
-  sortOption: SortOption;
   showHiddenFiles: boolean;
 }
 
@@ -45,7 +43,6 @@ interface SetExpandedDirectoryPathInput {
 export function flattenExplorerTree({
   directories,
   expandedPaths,
-  sortOption,
   showHiddenFiles,
 }: FlattenExplorerTreeInput): ExplorerTreeRow[] {
   const root = directories.get(".");
@@ -54,7 +51,7 @@ export function flattenExplorerTree({
   }
 
   const rows: ExplorerTreeRow[] = [];
-  const pending = rowsForDirectory(root, 0, sortOption, showHiddenFiles).toReversed();
+  const pending = rowsForDirectory(root, 0, showHiddenFiles).toReversed();
 
   while (pending.length > 0) {
     const row = pending.pop();
@@ -71,7 +68,7 @@ export function flattenExplorerTree({
     if (!childDirectory) {
       continue;
     }
-    const childRows = rowsForDirectory(childDirectory, row.depth + 1, sortOption, showHiddenFiles);
+    const childRows = rowsForDirectory(childDirectory, row.depth + 1, showHiddenFiles);
     for (let index = childRows.length - 1; index >= 0; index -= 1) {
       pending.push(childRows[index]);
     }
@@ -176,28 +173,20 @@ export function setExpandedDirectoryPath({
 function rowsForDirectory(
   directory: ExplorerDirectory,
   depth: number,
-  sortOption: SortOption,
   showHiddenFiles: boolean,
 ): ExplorerTreeRow[] {
   const visibleEntries = filterVisibleExplorerEntries(directory.entries, showHiddenFiles);
-  const sortedEntries = sortExplorerEntries(visibleEntries, sortOption);
-  return sortedEntries.map((entry) => ({ entry, depth }));
+  return sortExplorerEntries(visibleEntries).map((entry) => ({ entry, depth }));
 }
 
-function sortExplorerEntries(entries: ExplorerEntry[], sortOption: SortOption): ExplorerEntry[] {
-  const sorted = [...entries];
-  sorted.sort((a, b) => {
+const nameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+/** Folders first, then files, each in case-insensitive natural name order. */
+export function sortExplorerEntries(entries: readonly ExplorerEntry[]): ExplorerEntry[] {
+  return [...entries].sort((a, b) => {
     if (a.kind !== b.kind) {
       return a.kind === "directory" ? -1 : 1;
     }
-    switch (sortOption) {
-      case "name":
-        return a.name.localeCompare(b.name);
-      case "modified":
-        return new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime();
-      case "size":
-        return b.size - a.size;
-    }
+    return nameCollator.compare(a.name, b.name);
   });
-  return sorted;
 }

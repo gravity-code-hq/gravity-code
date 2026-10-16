@@ -8,7 +8,7 @@ import {
   encodeFileTransferFrame,
   FileTransferOpcode,
   type FileTransferFrame,
-} from "@getpaseo/protocol/binary-frames/index";
+} from "@gravity/protocol/binary-frames/index";
 import { FileUploadStore } from "./index.js";
 
 const tempDirs: string[] = [];
@@ -22,8 +22,8 @@ describe("file uploads", () => {
   });
 
   it("stores chunked upload bytes and returns an uploaded-file attachment", async () => {
-    const paseoHome = makePaseoHome();
-    const uploads = new FileUploadStore({ paseoHome });
+    const gravityHome = makeGravityHome();
+    const uploads = new FileUploadStore({ gravityHome });
 
     uploads.beginUpload({
       type: "file.upload.request",
@@ -37,7 +37,7 @@ describe("file uploads", () => {
     await expect(uploads.receiveFrame(uploadChunk("req-upload", "hello"))).resolves.toBeNull();
     await expect(uploads.receiveFrame(uploadChunk("req-upload", " world"))).resolves.toBeNull();
 
-    const path = uploadedPath(paseoHome, "notes.txt");
+    const path = uploadedPath(gravityHome, "notes.txt");
     await expect(uploads.receiveFrame(uploadEnds("req-upload"))).resolves.toEqual({
       type: "file.upload.response",
       payload: {
@@ -57,8 +57,8 @@ describe("file uploads", () => {
   });
 
   it("rejects chunks beyond the declared size and removes the partial file", async () => {
-    const paseoHome = makePaseoHome();
-    const uploads = new FileUploadStore({ paseoHome });
+    const gravityHome = makeGravityHome();
+    const uploads = new FileUploadStore({ gravityHome });
 
     uploads.beginUpload({
       type: "file.upload.request",
@@ -70,7 +70,7 @@ describe("file uploads", () => {
     });
     await expect(uploads.receiveFrame(uploadBegins("req-overflow"))).resolves.toBeNull();
 
-    const path = uploadedPath(paseoHome, "notes.txt");
+    const path = uploadedPath(gravityHome, "notes.txt");
     const uploadDir = dirname(path);
     await expect(uploads.receiveFrame(uploadChunk("req-overflow", "hello!"))).resolves.toEqual({
       type: "file.upload.response",
@@ -85,8 +85,8 @@ describe("file uploads", () => {
   });
 
   it("preserves chunk order when frames arrive before earlier disk writes finish", async () => {
-    const paseoHome = makePaseoHome();
-    const uploads = new FileUploadStore({ paseoHome });
+    const gravityHome = makeGravityHome();
+    const uploads = new FileUploadStore({ gravityHome });
 
     uploads.beginUpload({
       type: "file.upload.request",
@@ -106,14 +106,14 @@ describe("file uploads", () => {
 
     expect(results.slice(0, 3)).toEqual([null, null, null]);
     expect(results[3]?.payload.error).toBeNull();
-    expect(readFileSync(uploadedPath(paseoHome, "notes.txt"), "utf8")).toBe("hello world");
+    expect(readFileSync(uploadedPath(gravityHome, "notes.txt"), "utf8")).toBe("hello world");
   });
 
   it("replaces duplicate upload starts without letting the old stale timeout evict the replacement", async () => {
     vi.useFakeTimers();
 
-    const paseoHome = makePaseoHome();
-    const uploads = new FileUploadStore({ paseoHome, staleUploadTimeoutMs: 50 });
+    const gravityHome = makeGravityHome();
+    const uploads = new FileUploadStore({ gravityHome, staleUploadTimeoutMs: 50 });
 
     uploads.beginUpload({
       type: "file.upload.request",
@@ -139,7 +139,7 @@ describe("file uploads", () => {
 
     await expect(uploads.receiveFrame(uploadBegins("req-duplicate"))).resolves.toBeNull();
     await expect(uploads.receiveFrame(uploadChunk("req-duplicate", "new"))).resolves.toBeNull();
-    const path = uploadedPath(paseoHome, "new.txt");
+    const path = uploadedPath(gravityHome, "new.txt");
     await expect(uploads.receiveFrame(uploadEnds("req-duplicate"))).resolves.toEqual({
       type: "file.upload.response",
       payload: {
@@ -161,8 +161,8 @@ describe("file uploads", () => {
   it("keeps an active upload alive beyond the initial stale timeout", async () => {
     vi.useFakeTimers();
 
-    const paseoHome = makePaseoHome();
-    const uploads = new FileUploadStore({ paseoHome, staleUploadTimeoutMs: 50 });
+    const gravityHome = makeGravityHome();
+    const uploads = new FileUploadStore({ gravityHome, staleUploadTimeoutMs: 50 });
 
     uploads.beginUpload({
       type: "file.upload.request",
@@ -182,7 +182,7 @@ describe("file uploads", () => {
       uploads.receiveFrame(uploadChunk("req-slow-active", " world")),
     ).resolves.toBeNull();
 
-    const path = uploadedPath(paseoHome, "notes.txt");
+    const path = uploadedPath(gravityHome, "notes.txt");
     await expect(uploads.receiveFrame(uploadEnds("req-slow-active"))).resolves.toEqual({
       type: "file.upload.response",
       payload: {
@@ -202,7 +202,7 @@ describe("file uploads", () => {
   });
 });
 
-function makePaseoHome(): string {
+function makeGravityHome(): string {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "file-upload-test-")));
   tempDirs.push(root);
   return root;
@@ -251,8 +251,8 @@ function decodeUploadFrame(bytes: Uint8Array): FileTransferFrame {
   return frame;
 }
 
-function uploadedPath(paseoHome: string, fileName: string): string {
-  const root = join(paseoHome, "uploads");
+function uploadedPath(gravityHome: string, fileName: string): string {
+  const root = join(gravityHome, "uploads");
   const file = readdirSync(root)
     .map((id) => join(root, id, fileName))
     .find((candidate) => existsSync(candidate));

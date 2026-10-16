@@ -22,10 +22,11 @@ import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import { ArrowUp, Mic, MicOff, CornerDownLeft, Plus, Square } from "lucide-react-native";
+import { useCommandDictation } from "@/dictation/use-command-dictation";
 import { useDictation } from "@/hooks/use-dictation";
 import { DictationOverlay } from "@/components/dictation-controls";
 import { RealtimeVoiceOverlay } from "@/components/realtime-voice-overlay";
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
 import { useSessionStore } from "@/stores/session-store";
 import { useVoiceOptional } from "@/contexts/voice-context";
 import { useToast } from "@/contexts/toast-context";
@@ -66,6 +67,7 @@ import {
 
 const ComposerTextInput = withUnistyles(EditingTextInput, (theme) => ({
   placeholderTextColor: theme.colors.surface4,
+  commandHighlightColor: theme.colors.palette.amber[theme.colorScheme === "dark" ? 500 : 700],
 }));
 import {
   resolveSendTooltipLabel,
@@ -106,6 +108,7 @@ export interface ComposerKeyPressEvent {
 }
 
 export interface MessageInputProps {
+  commands?: EditingTextInputProps["commands"];
   value: string;
   onChangeText: (text: string) => void;
   onSubmit: (payload: MessagePayload) => void;
@@ -153,6 +156,9 @@ export interface MessageInputProps {
   defaultSendBehavior: "interrupt" | "steer" | "queue";
   /** Callback for queue button when agent is running */
   onQueue?: (payload: MessagePayload) => void;
+  /** Sends the oldest queued message when the default send action fires on an empty composer.
+   *  Returns true when one was sent. */
+  onSendOldestQueuedMessage?: () => boolean;
   /** Optional handler used when submit button is in loading state. */
   onSubmitLoadingPress?: () => void;
   /** Intercept key press events before default handling. Return true to prevent default. */
@@ -330,16 +336,27 @@ type ShortcutChord = NonNullable<React.ComponentProps<typeof Shortcut>["chord"]>
 function VoiceTooltipBody({
   voiceTooltipText,
   shortcut,
+  isDictation,
 }: {
   voiceTooltipText: string;
   shortcut: ShortcutChord | null | undefined;
+  isDictation: boolean;
 }) {
   return (
-    <View style={styles.tooltipRow}>
-      <Text style={styles.tooltipText}>{voiceTooltipText}</Text>
-      {shortcut ? <Shortcut chord={shortcut} /> : null}
+    <View>
+      <View style={styles.tooltipRow}>
+        <Text style={styles.tooltipText}>{voiceTooltipText}</Text>
+        {shortcut ? <Shortcut chord={shortcut} /> : null}
+      </View>
+      {isDictation ? <CommandDictationHint /> : null}
     </View>
   );
+}
+
+function CommandDictationHint() {
+  const { t } = useTranslation();
+  if (!isWeb || getShortcutOs() !== "mac") return null;
+  return <Text style={styles.tooltipText}>{t("message.dictation.doubleCommand")}</Text>;
 }
 
 function SendTooltipBody({
@@ -543,6 +560,7 @@ function MessageInputOverlay({
   voice,
   dictationVolume,
   dictationDuration,
+  dictationTranscript,
   isDictating,
   isDictationProcessing,
   dictationStatus,
@@ -566,6 +584,7 @@ function MessageInputOverlay({
     | undefined;
   dictationVolume: number;
   dictationDuration: number;
+  dictationTranscript: string;
   isDictating: boolean;
   isDictationProcessing: boolean;
   dictationStatus: React.ComponentProps<typeof DictationOverlay>["status"];
@@ -582,6 +601,7 @@ function MessageInputOverlay({
       <DictationOverlay
         volume={dictationVolume}
         duration={dictationDuration}
+        transcript={dictationTranscript}
         isRecording={isDictating}
         isProcessing={isDictationProcessing}
         status={dictationStatus}
@@ -626,6 +646,7 @@ function FocusHint({
 }
 
 interface ComposerTextSurfaceProps {
+  commands: EditingTextInputProps["commands"];
   readOnly: boolean;
   value: string;
   textInputRef: React.Ref<ComposerTextInputHandle>;
@@ -669,6 +690,7 @@ function ComposerTextSurface(props: ComposerTextSurfaceProps): React.ReactElemen
         ref={props.textInputRef}
         dataSet={COMPOSER_INPUT_DATASET}
         initialValue={props.value}
+        commands={props.commands}
         onChangeText={props.onChangeText}
         placeholder={props.placeholder}
         accessibilityLabel={props.accessibilityLabel}
@@ -730,7 +752,11 @@ function VoiceButtonTooltip({
         {renderVoiceButtonIcon}
       </TooltipTrigger>
       <TooltipContent side="top" align="center" offset={8}>
-        <VoiceTooltipBody voiceTooltipText={voiceTooltipText} shortcut={shortcut} />
+        <VoiceTooltipBody
+          voiceTooltipText={voiceTooltipText}
+          shortcut={shortcut}
+          isDictation={!isRealtimeVoiceForCurrentAgent}
+        />
       </TooltipContent>
     </Tooltip>
   );
@@ -1072,6 +1098,7 @@ interface ResolvedMessageInputProps {
   isAgentRunning: boolean;
   defaultSendBehavior: "interrupt" | "steer" | "queue";
   onQueue: ((payload: MessagePayload) => void) | undefined;
+  onSendOldestQueuedMessage: (() => boolean) | undefined;
   onSubmitLoadingPress: (() => void) | undefined;
   onKeyPressCallback: ((event: ComposerKeyPressEvent) => boolean) | undefined;
   onSelectionChangeCallback: ((selection: { start: number; end: number }) => void) | undefined;
@@ -1119,6 +1146,7 @@ function resolveMessageInputProps(props: MessageInputProps): ResolvedMessageInpu
     isAgentRunning: props.isAgentRunning ?? false,
     defaultSendBehavior: props.defaultSendBehavior,
     onQueue: props.onQueue,
+    onSendOldestQueuedMessage: props.onSendOldestQueuedMessage,
     onSubmitLoadingPress: props.onSubmitLoadingPress,
     onKeyPressCallback: props.onKeyPress,
     onSelectionChangeCallback: props.onSelectionChange,
@@ -1174,6 +1202,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
       isAgentRunning,
       defaultSendBehavior,
       onQueue,
+      onSendOldestQueuedMessage,
       onSubmitLoadingPress,
       onKeyPressCallback,
       onSelectionChangeCallback,
@@ -1364,7 +1393,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
       isRecording: isDictating,
       isRecordingActive: isDictationActive,
       isProcessing: isDictationProcessing,
-      partialTranscript: _dictationPartialTranscript,
+      partialTranscript: dictationPartialTranscript,
       volume: dictationVolume,
       duration: dictationDuration,
       error: dictationError,
@@ -1446,6 +1475,19 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
       sendAfterTranscriptRef.current = true;
       await confirmDictation();
     }, [confirmDictation]);
+
+    useCommandDictation({
+      canStart: canStartDictation,
+      isRecording: isDictationActive,
+      isProcessing: isDictationProcessing,
+      isVoiceActive: isRealtimeVoiceForCurrentAgent,
+      readOnly,
+      focus: () => textInputRef.current?.focus(),
+      start: startDictationIfAvailable,
+      insert: handleAcceptRecording,
+      cancel: handleCancelRecording,
+      onError: handleDictationError,
+    });
 
     const handleRetryFailedRecording = useCallback(() => {
       void retryFailedDictation();
@@ -1543,14 +1585,33 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
     );
 
     const handleDefaultSendAction = useCallback(() => {
+      const liveValue = textInputRef.current?.getText() ?? valueRef.current;
       runDefaultSendAction({
         defaultSendBehavior,
         isAgentRunning,
         onQueue,
         handleSendMessage,
         handleQueueMessage,
+        hasSendableContent:
+          allowEmptySubmit ||
+          hasSendableComposerContent({
+            hasText: liveValue.trim().length > 0,
+            attachments,
+            hasExternalContent,
+          }),
+        sendOldestQueuedMessage: () => onSendOldestQueuedMessage?.() ?? false,
       });
-    }, [defaultSendBehavior, isAgentRunning, onQueue, handleQueueMessage, handleSendMessage]);
+    }, [
+      allowEmptySubmit,
+      attachments,
+      defaultSendBehavior,
+      hasExternalContent,
+      isAgentRunning,
+      onQueue,
+      onSendOldestQueuedMessage,
+      handleQueueMessage,
+      handleSendMessage,
+    ]);
 
     const handleAlternateSendAction = useCallback(() => {
       runAlternateSendAction({
@@ -1724,9 +1785,10 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
         styles.inputWrapper,
         readOnly && styles.inputWrapperReadOnly,
         inputWrapperStyle,
+        showDictationOverlay && styles.inputWrapperHidden,
         { opacity: surfacePresentation.input.opacity },
       ],
-      [inputWrapperStyle, readOnly, surfacePresentation.input.opacity],
+      [inputWrapperStyle, readOnly, showDictationOverlay, surfacePresentation.input.opacity],
     );
     // `withUnistyles` maps this component's `style` into a `.hash > *` child
     // rule, which ties on specificity with react-native-web's own
@@ -1752,8 +1814,11 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
       [isSendButtonDisabled, submitLabel],
     );
     const overlayContainerStyle = useMemo(
-      () => [styles.overlayContainer, { opacity: surfacePresentation.overlay.opacity }],
-      [surfacePresentation.overlay.opacity],
+      () => [
+        showDictationOverlay ? styles.dictationOverlayContainer : styles.overlayContainer,
+        { opacity: surfacePresentation.overlay.opacity },
+      ],
+      [showDictationOverlay, surfacePresentation.overlay.opacity],
     );
 
     const renderAttachButtonIcon = useCallback(
@@ -1801,6 +1866,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
           {/* Text input */}
           <RenderProfile id="ComposerTextSurface">
             <ComposerTextSurface
+              commands={props.commands}
               readOnly={readOnly}
               value={value}
               textInputRef={textInputRef}
@@ -1890,6 +1956,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
             voice={voice}
             dictationVolume={dictationVolume}
             dictationDuration={dictationDuration}
+            dictationTranscript={dictationPartialTranscript}
             isDictating={isDictating}
             isDictationProcessing={isDictationProcessing}
             dictationStatus={dictationStatus}
@@ -1911,6 +1978,12 @@ const styles = StyleSheet.create((theme: Theme) => ({
   container: {
     flexShrink: 1,
     position: "relative",
+  },
+  inputWrapperHidden: {
+    display: "none",
+  },
+  dictationOverlayContainer: {
+    width: "100%",
   },
   inputWrapper: {
     flexShrink: 1,

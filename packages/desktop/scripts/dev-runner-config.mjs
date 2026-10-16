@@ -1,15 +1,27 @@
-export function createElectronSpawnOptions({ env, colorEnv, expoDevUrl, devBuildLabel }) {
+export function createElectronSpawnOptions({
+  env,
+  colorEnv,
+  expoDevUrl,
+  devBuildLabel,
+  platform = process.platform,
+}) {
+  const electronEnv = {
+    ...env,
+    ...colorEnv,
+    EXPO_DEV_URL: expoDevUrl,
+    ...(devBuildLabel ? { EXPO_PUBLIC_GRAVITY_DEV_BUILD_LABEL: devBuildLabel } : {}),
+  };
+  // Homebrew image libraries can crash macOS ImageIO when Electron renders emoji.
+  if (platform === "darwin") {
+    delete electronEnv.DYLD_LIBRARY_PATH;
+  }
+
   return {
-    // Electron must stay in the runner's process group. Paseo workspace scripts
+    // Electron must stay in the runner's process group. Gravity workspace scripts
     // own the terminal process group, so detaching Electron lets it survive a
     // service stop with broken stdout/stderr pipes and block the next launch.
     detached: false,
-    env: {
-      ...env,
-      ...colorEnv,
-      EXPO_DEV_URL: expoDevUrl,
-      ...(devBuildLabel ? { EXPO_PUBLIC_PASEO_DEV_BUILD_LABEL: devBuildLabel } : {}),
-    },
+    env: electronEnv,
   };
 }
 

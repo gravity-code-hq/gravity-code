@@ -1,19 +1,15 @@
-import { useCallback, useMemo, useRef, useState, type ReactElement } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, View } from "react-native";
-import { StyleSheet, useUnistyles } from "react-native-unistyles";
+import { Text } from "react-native";
+import { StyleSheet } from "react-native-unistyles";
 import { useShallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { type SheetHeader } from "@/components/adaptive-modal-sheet";
-import { Combobox, ComboboxItem, type ComboboxOption } from "@/components/ui/combobox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Shortcut } from "@/components/ui/shortcut";
-import { formatAgentModeLabel } from "@/agent-controls/labels";
-import { getAgentControlHintKey } from "@/composer/agent-controls/utils";
-import { useShortcutKeys } from "@/hooks/use-shortcut-keys";
+import { PlanModeIcon } from "@/agent-controls/icons";
+import { PLAN_MODE_FEATURE_ID } from "@/agent-controls/policy";
 import { useKeyboardActionHandler } from "@/hooks/use-keyboard-action-handler";
 import type { KeyboardActionDefinition } from "@/keyboard/keyboard-action-dispatcher";
-import { resolveNextAgentModeId } from "@/composer/agent-controls/mode";
+import { resolveNextAgentModeId, resolvePlanModeToggle } from "@/composer/agent-controls/mode";
 import { useComposerKeyboardScope } from "@/composer/keyboard-scope";
 import { useComposerControlLayout } from "@/composer/agent-controls/layout-context";
 import { AgentControlTrigger } from "@/composer/agent-controls/control";
@@ -24,43 +20,8 @@ import { resolveProviderDefinition } from "@/utils/provider-definitions";
 import { useToast } from "@/contexts/toast-context";
 import { toErrorMessage } from "@/utils/error-messages";
 import { showProviderNoticeToast } from "@/utils/provider-notice-toast";
-import type { AgentMode } from "@getpaseo/protocol/agent-types";
-import type { AgentProviderDefinition } from "@getpaseo/protocol/provider-manifest";
-import { getAgentModeIcon, getAgentModeOptionIcon } from "@/agent-controls/icons";
-interface ModeComboboxOptionProps {
-  option: ComboboxOption;
-  selected: boolean;
-  active: boolean;
-  onPress: () => void;
-  provider: string;
-  providerDefinitions: AgentProviderDefinition[];
-  iconColor: string;
-}
-
-function ModeComboboxOption({
-  option,
-  selected,
-  active,
-  onPress,
-  provider,
-  providerDefinitions,
-  iconColor,
-}: ModeComboboxOptionProps) {
-  const IconComponent = getAgentModeOptionIcon(provider, option.id, providerDefinitions);
-  const leadingSlot = useMemo(
-    () => (IconComponent ? <IconComponent size={16} color={iconColor} /> : null),
-    [IconComponent, iconColor],
-  );
-  return (
-    <ComboboxItem
-      label={option.label}
-      selected={selected}
-      active={active}
-      onPress={onPress}
-      leadingSlot={leadingSlot}
-    />
-  );
-}
+import type { AgentFeature, AgentMode } from "@gravity/protocol/agent-types";
+import type { AgentProviderDefinition } from "@gravity/protocol/provider-manifest";
 
 export interface AgentModeControlValue {
   provider: string;
@@ -71,168 +32,119 @@ export interface AgentModeControlValue {
   disabled?: boolean;
 }
 
-function normalizeSearchQuery(value: string): string {
-  return value.trim().toLowerCase();
+function resolveModePlanToggle(
+  control: AgentModeControlValue | null | undefined,
+  previousMode: string | null = null,
+) {
+  if (!control) return null;
+  const definition = control.providerDefinitions.find((entry) => entry.id === control.provider);
+  return resolvePlanModeToggle({
+    modeOptions: control.modeOptions,
+    selectedMode: control.selectedModeId,
+    previousMode,
+    defaultMode: definition?.defaultModeId ?? null,
+  });
 }
 
 export function AgentModeControl({
-  provider,
-  providerDefinitions,
-  modeOptions,
-  selectedModeId,
-  onSelectMode,
+  modeControl,
+  features,
+  onSetFeature,
   disabled = false,
-  surface = "toolbar",
-  onClose,
-}: AgentModeControlValue & { surface?: "toolbar" | "sheet"; onClose?: () => void }) {
-  const { theme } = useUnistyles();
-  const { presentation } = useComposerControlLayout();
+  onActionComplete,
+}: {
+  modeControl?: AgentModeControlValue | null;
+  features?: AgentFeature[];
+  onSetFeature?: (featureId: string, value: unknown) => void;
+  disabled?: boolean;
+  onActionComplete?: () => void;
+}) {
   const { t } = useTranslation();
+  const { presentation } = useComposerControlLayout();
   const { isActiveComposer } = useComposerKeyboardScope();
-  const cycleShortcutKeys = useShortcutKeys("cycle-agent-mode");
-  const anchorRef = useRef<View>(null);
   const keyboardHandlerIdRef = useRef(`mode-control:${Math.random().toString(36).slice(2)}`);
-  const openRef = useRef(false);
-  const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const selectedMode = useMemo(() => {
-    if (modeOptions.length === 0) return null;
-    return modeOptions.find((m) => m.id === selectedModeId) ?? modeOptions[0];
-  }, [modeOptions, selectedModeId]);
-
-  const Icon = getAgentModeIcon(provider, selectedMode?.id ?? "", providerDefinitions);
-  const iconColor = theme.colors.foregroundMuted;
-  const selectedModeLabel = selectedMode ? formatAgentModeLabel(selectedMode) : "";
-
-  const allOptions = useMemo<ComboboxOption[]>(
-    () => modeOptions.map((m) => ({ id: m.id, label: formatAgentModeLabel(m) })),
-    [modeOptions],
+  const previousModeRef = useRef<{ provider: string; modeId: string | null } | null>(null);
+  const planFeature = features?.find(
+    (feature) => feature.id === PLAN_MODE_FEATURE_ID && feature.type === "toggle",
   );
-  const options = useMemo<ComboboxOption[]>(() => {
-    const q = normalizeSearchQuery(searchQuery);
-    if (!q) return allOptions;
-    return allOptions.filter((o) => o.label.toLowerCase().includes(q));
-  }, [allOptions, searchQuery]);
+  const modeToggle = resolveModePlanToggle(modeControl);
+  const hasPlanFeature = planFeature?.type === "toggle";
+  const active = hasPlanFeature ? planFeature.value : modeToggle?.active === true;
+  const isDisabled = disabled || modeControl?.disabled === true;
+  const label = t("agentControls.plan");
+  const accessibilityState = useMemo(() => ({ selected: active }), [active]);
 
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      const wasOpen = openRef.current;
-      openRef.current = next;
-      setOpen(next);
-      if (!next) {
-        setSearchQuery("");
-        if (wasOpen) onClose?.();
+  const togglePlan = useCallback(() => {
+    if (planFeature?.type === "toggle") {
+      onSetFeature?.(planFeature.id, !planFeature.value);
+    } else if (modeControl && modeToggle) {
+      if (!modeToggle.active) {
+        previousModeRef.current = {
+          provider: modeControl.provider,
+          modeId: modeControl.selectedModeId ?? modeControl.modeOptions[0]?.id ?? null,
+        };
       }
-    },
-    [onClose],
-  );
-
-  const handlePress = useCallback(() => handleOpenChange(!open), [handleOpenChange, open]);
-  const handleSelect = useCallback(
-    (id: string) => {
-      onSelectMode(id);
-      handleOpenChange(false);
-    },
-    [onSelectMode, handleOpenChange],
-  );
+      const previousMode =
+        previousModeRef.current?.provider === modeControl.provider
+          ? previousModeRef.current.modeId
+          : null;
+      const nextToggle = resolveModePlanToggle(modeControl, previousMode);
+      if (nextToggle) modeControl.onSelectMode(nextToggle.nextModeId);
+    }
+    onActionComplete?.();
+  }, [modeControl, modeToggle, onActionComplete, onSetFeature, planFeature]);
 
   const handleKeyboardAction = useCallback(
     (action: KeyboardActionDefinition): boolean => {
-      if (action.id !== "message-input.mode-cycle") return false;
-      if (disabled || !isActiveComposer) return false;
-      const nextModeId = resolveNextAgentModeId({ modeOptions, selectedMode: selectedModeId });
+      if (
+        action.id !== "message-input.mode-cycle" ||
+        isDisabled ||
+        !isActiveComposer ||
+        !modeControl
+      )
+        return false;
+      const nextModeId = resolveNextAgentModeId({
+        modeOptions: modeControl.modeOptions,
+        selectedMode: modeControl.selectedModeId,
+      });
       if (!nextModeId) return false;
-      onSelectMode(nextModeId);
+      modeControl.onSelectMode(nextModeId);
       return true;
     },
-    [disabled, isActiveComposer, modeOptions, onSelectMode, selectedModeId],
+    [isActiveComposer, isDisabled, modeControl],
   );
-
+  const canCycle = Boolean(modeControl && modeControl.modeOptions.length > 1);
   useKeyboardActionHandler({
     handlerId: keyboardHandlerIdRef.current,
     actions: ["message-input.mode-cycle"],
-    enabled: isActiveComposer && !disabled && modeOptions.length > 1,
+    enabled: isActiveComposer && !isDisabled && canCycle,
     priority: 200,
     handle: handleKeyboardAction,
   });
 
-  const renderOption = useCallback(
-    (args: {
-      option: ComboboxOption;
-      selected: boolean;
-      active: boolean;
-      onPress: () => void;
-    }): ReactElement => (
-      <ModeComboboxOption
-        option={args.option}
-        selected={args.selected}
-        active={args.active}
-        onPress={args.onPress}
-        provider={provider}
-        providerDefinitions={providerDefinitions}
-        iconColor={theme.colors.foreground}
-      />
-    ),
-    [provider, providerDefinitions, theme.colors.foreground],
-  );
-
-  const sheetHeader = useMemo<SheetHeader>(
-    () => ({
-      title: t("agentControls.mode.title"),
-      search: {
-        onChange: setSearchQuery,
-        placeholder: t("agentControls.mode.searchPlaceholder"),
-        testID: "mode-search-input",
-      },
-    }),
-    [t],
-  );
-
-  if (!selectedMode) return null;
-
+  if (!hasPlanFeature && !modeToggle) return null;
   return (
-    <>
-      <Tooltip delayDuration={0} enabledOnDesktop enabledOnMobile={false}>
-        <TooltipTrigger asChild triggerRefProp="ref">
-          <AgentControlTrigger
-            ref={anchorRef}
-            icon={Icon}
-            iconColor={iconColor}
-            surface={surface}
-            label={t("agentControls.mode.title")}
-            value={selectedModeLabel}
-            showToolbarLabel={presentation.showModeLabel}
-            showCaret={surface === "toolbar" && presentation.showCarets}
-            open={open}
-            disabled={disabled}
-            onPress={handlePress}
-            accessibilityLabel={t("agentControls.mode.selectWithValue", {
-              value: selectedModeLabel,
-            })}
-            testID="mode-control"
-          />
-        </TooltipTrigger>
-        <TooltipContent side="top" align="center" offset={8}>
-          <View style={styles.tooltipRow}>
-            <Text style={styles.tooltipText}>{t(getAgentControlHintKey("mode"))}</Text>
-            {isActiveComposer && cycleShortcutKeys ? <Shortcut chord={cycleShortcutKeys} /> : null}
-          </View>
-        </TooltipContent>
-      </Tooltip>
-      <Combobox
-        options={options}
-        value={selectedMode.id}
-        onSelect={handleSelect}
-        open={open}
-        onOpenChange={handleOpenChange}
-        anchorRef={anchorRef}
-        desktopPlacement="top-start"
-        desktopMinWidth={260}
-        header={sheetHeader}
-        renderOption={renderOption}
-      />
-    </>
+    <Tooltip delayDuration={0} enabledOnDesktop enabledOnMobile={false}>
+      <TooltipTrigger asChild triggerRefProp="ref">
+        <AgentControlTrigger
+          icon={PlanModeIcon}
+          iconColor={active ? styles.active.color : undefined}
+          surface="toolbar"
+          label={label}
+          showToolbarLabel={presentation.showPlanLabel}
+          open={active}
+          disabled={isDisabled}
+          onPress={togglePlan}
+          accessibilityLabel={t("shell.commandCenter.planModeGroupLabel")}
+          accessibilityState={accessibilityState}
+          aria-pressed={active}
+          testID="agent-feature-plan_mode"
+        />
+      </TooltipTrigger>
+      <TooltipContent side="top" align="center" offset={8}>
+        <Text style={styles.tooltipText}>{t("shell.commandCenter.planModeGroupLabel")}</Text>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -310,11 +222,7 @@ export function useLiveAgentModeControl(
 }
 
 const styles = StyleSheet.create((theme) => ({
-  tooltipRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[2],
-  },
+  active: { color: theme.colors.accent },
   tooltipText: {
     color: theme.colors.foreground,
     fontSize: theme.fontSize.base,

@@ -3,12 +3,12 @@ import type {
   AgentPermissionResponse,
   AgentTimelineItem,
   AgentSessionConfig,
-} from "@getpaseo/protocol/agent-types";
-import type { PaseoApi } from "@getpaseo/client";
-import type { WorkspaceCreateRequest } from "@getpaseo/protocol/messages";
+} from "@gravity/protocol/agent-types";
+import type { GravityApi } from "@gravity/client";
+import type { WorkspaceCreateRequest } from "@gravity/protocol/messages";
 
 export interface PluginHookContext {
-  paseo: PaseoApi;
+  gravity: GravityApi;
   signal: AbortSignal;
 }
 

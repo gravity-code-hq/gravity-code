@@ -39,7 +39,7 @@ export function isLikelyNamespacedToolName(name: string): boolean {
   return false;
 }
 
-export function isPaseoToolName(name: string): boolean {
+export function isGravityToolName(name: string): boolean {
   const normalized = normalizeToolName(name);
   if (isSpeakToolName(normalized)) {
     return false;
@@ -49,24 +49,24 @@ export function isPaseoToolName(name: string): boolean {
     return (
       segments.length >= 3 &&
       segments[0] === "mcp" &&
-      (segments[1] === "paseo" || segments[1].startsWith("paseo_"))
+      (segments[1] === "gravity" || segments[1].startsWith("gravity_"))
     );
   }
   if (normalized.includes(".")) {
     const firstSegment = normalized.split(".")[0];
-    return firstSegment === "paseo" || firstSegment.startsWith("paseo_");
+    return firstSegment === "gravity" || firstSegment.startsWith("gravity_");
   }
   return false;
 }
 
-export function getPaseoToolLeafName(name: string): string | null {
+export function getGravityToolLeafName(name: string): string | null {
   const normalized = normalizeToolName(name);
   if (normalized.includes("__")) {
     const segments = normalized.split("__").filter((s) => s.length > 0);
     if (
       segments.length >= 3 &&
       segments[0] === "mcp" &&
-      (segments[1] === "paseo" || segments[1].startsWith("paseo_"))
+      (segments[1] === "gravity" || segments[1].startsWith("gravity_"))
     ) {
       return segments.slice(2).join("__");
     }
@@ -74,7 +74,7 @@ export function getPaseoToolLeafName(name: string): string | null {
   }
   if (normalized.includes(".")) {
     const firstSegment = normalized.split(".")[0];
-    if (firstSegment === "paseo" || firstSegment.startsWith("paseo_")) {
+    if (firstSegment === "gravity" || firstSegment.startsWith("gravity_")) {
       return normalized.split(".").slice(1).join(".");
     }
     return null;

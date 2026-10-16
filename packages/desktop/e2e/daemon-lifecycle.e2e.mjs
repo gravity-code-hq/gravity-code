@@ -12,19 +12,19 @@ import {
   startDaemonInstance,
   stopDaemonInstance,
   readDaemonInstance,
-} from "@getpaseo/server";
+} from "@gravity/server";
 
 const repo = fileURLToPath(new URL("../../..", import.meta.url));
-const root = await mkdtemp(path.join(tmpdir(), "paseo desktop lifecycle "));
+const root = await mkdtemp(path.join(tmpdir(), "gravity desktop lifecycle "));
 const home = path.join(root, "daemon");
 const env = Object.fromEntries(
   Object.entries(process.env).filter(
-    ([key]) => !key.startsWith("PASEO_") && key !== "ELECTRON_RUN_AS_NODE",
+    ([key]) => !key.startsWith("GRAVITY_") && key !== "ELECTRON_RUN_AS_NODE",
   ),
 );
 env.HOME = root;
 env.USERPROFILE = root;
-env.PASEO_HOME = home;
+env.GRAVITY_HOME = home;
 const server = net.createServer();
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const port = server.address().port;
@@ -53,9 +53,9 @@ async function openDesktop() {
     args: ["--no-sandbox", "--ozone-platform=headless", main],
     env: {
       ...env,
-      PASEO_LISTEN: "127.0.0.1:1",
-      PASEO_WEB_UI_ENABLED: "false",
-      PASEO_HOST: "unused:1",
+      GRAVITY_LISTEN: "127.0.0.1:1",
+      GRAVITY_WEB_UI_ENABLED: "false",
+      GRAVITY_HOST: "unused:1",
     },
   });
   await expect
@@ -202,8 +202,8 @@ try {
   if (captured)
     await stopDaemonInstance(home, { instance: captured, force: true, timeoutMs: 2_000 });
   const artifacts =
-    process.env.PASEO_DESKTOP_LIFECYCLE_ARTIFACT_DIR ??
-    (await mkdtemp(path.join(tmpdir(), "paseo-desktop-lifecycle-artifacts-")));
+    process.env.GRAVITY_DESKTOP_LIFECYCLE_ARTIFACT_DIR ??
+    (await mkdtemp(path.join(tmpdir(), "gravity-desktop-lifecycle-artifacts-")));
   await mkdir(artifacts, { recursive: true });
   for (const name of await readdir(root))
     if (name.endsWith(".png")) await copyFile(path.join(root, name), path.join(artifacts, name));

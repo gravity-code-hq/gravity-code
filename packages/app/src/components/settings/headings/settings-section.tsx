@@ -6,6 +6,8 @@ import { settingsStyles } from "@/styles/settings";
 
 interface SettingsSectionProps {
   title: string;
+  leading?: ReactNode;
+  titleAccessory?: ReactNode;
   /**
    * What this section is for. Renders as an info tooltip on the header; a
    * paragraph between the header and the card is wrong (docs/design.md §7).
@@ -29,6 +31,8 @@ interface SettingsSectionProps {
  */
 export function SettingsSection({
   title,
+  leading,
+  titleAccessory,
   info,
   trailing,
   testID,
@@ -44,7 +48,9 @@ export function SettingsSection({
     <View style={sectionStyle} testID={testID}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
+          {leading}
           <Text style={settingsStyles.sectionHeaderTitle}>{title}</Text>
+          {titleAccessory}
           {info ? (
             <SettingsInfoTip
               title={title}

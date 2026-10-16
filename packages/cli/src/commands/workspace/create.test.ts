@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { buildWorkspaceSource } from "./create.js";
 
 describe("workspace create source", () => {
-  it("maps local isolation to a directory workspace", () => {
+  it("creates a worktree workspace when no isolation is given", () => {
+    expect(buildWorkspaceSource({ path: "/tmp/project" })).toEqual({
+      kind: "worktree",
+      cwd: "/tmp/project",
+      action: "branch-off",
+    });
+  });
+
+  it("maps the hidden local isolation to a directory workspace", () => {
     expect(
       buildWorkspaceSource({ isolation: "local", path: "/tmp/project", project: "project-1" }),
     ).toEqual({ kind: "directory", path: "/tmp/project", projectId: "project-1" });

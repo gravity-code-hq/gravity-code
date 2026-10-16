@@ -7,14 +7,6 @@ export function generateDraftId(): string {
   return `draft_${generateMessageId()}`;
 }
 
-export function buildNewWorkspaceDraftKey(draftId?: string): string {
-  const explicitDraftId = draftId?.trim();
-  if (explicitDraftId) {
-    return `${NEW_WORKSPACE_FORK_DRAFT_PREFIX}${explicitDraftId}`;
-  }
-  return NEW_WORKSPACE_DRAFT_KEY;
-}
-
 export function isLegacyNewWorkspaceDraftKey(draftKey: string): boolean {
   return (
     draftKey.startsWith(`${NEW_WORKSPACE_DRAFT_KEY}:`) &&

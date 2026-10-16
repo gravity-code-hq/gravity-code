@@ -5,7 +5,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { settingsStyles } from "@/styles/settings";
-import { SettingsSection } from "@/components/settings/headings/settings-section";
+import { SettingsGroup } from "@/components/settings/headings/settings-group";
 import { providerUsageCopy } from "./copy";
 import { ProviderUsageList } from "./list";
 import type { ProviderUsageView } from "./types";
@@ -36,13 +36,13 @@ export function ProviderUsageSettingsSection({
   );
 
   return (
-    <SettingsSection
+    <SettingsGroup
       title={providerUsageCopy.title}
       testID="provider-usage-card"
       trailing={refreshButton}
     >
       <ProviderUsageBody view={view} onRefresh={onRefresh} />
-    </SettingsSection>
+    </SettingsGroup>
   );
 }
 

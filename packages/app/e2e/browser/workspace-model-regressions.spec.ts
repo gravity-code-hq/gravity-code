@@ -1,4 +1,7 @@
 import { test, expect } from "../support/fixtures";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
+import { connectDaemonClient } from "../support/helpers/daemon-client-loader";
+import { openAgentRoute } from "../support/helpers/mock-agent";
 import { expectWorkspaceTabVisible } from "../support/helpers/archive-tab";
 import {
   expectComposerEditable,
@@ -11,9 +14,7 @@ import {
   connectNewWorkspaceDaemonClient,
   expectNewWorkspaceProjectSelected,
   openGlobalNewWorkspaceComposer,
-  selectWorkspaceIsolation,
   submitNewWorkspaceEmpty,
-  submitNewWorkspacePrompt,
 } from "../support/helpers/new-workspace";
 import { getServerId } from "../support/helpers/server-id";
 import { selectSidebarStatusGrouping } from "../support/helpers/sidebar";
@@ -23,11 +24,88 @@ import {
   openSubagentsTrack,
   seedParentWithCrossWorkspaceSubagent,
 } from "../support/helpers/subagents";
-import { expectWorkspaceHeader, waitForSidebarHydration } from "../support/helpers/workspace-ui";
+import { waitForSidebarHydration } from "../support/helpers/workspace-ui";
 import { getVisibleWorkspaceAgentTabIds } from "../support/helpers/workspace-tabs";
 
 type NewWorkspaceDaemonClient = Awaited<ReturnType<typeof connectNewWorkspaceDaemonClient>>;
 type WorkspaceIndicator = "attention" | "done" | "failed" | "loading" | "needs_input" | "running";
+
+test.describe("Native context budget controls", () => {
+  test.describe.configure({ timeout: 120_000 });
+
+  for (const provider of ["codex", "claude"]) {
+    test(`saves and restores the ${provider} context budget`, async ({ page }) => {
+      const workspace = await seedWorkspace({ repoPrefix: "context-budget-" });
+      const client = await connectDaemonClient<DaemonClient>({ clientIdPrefix: "context-budget" });
+      try {
+        const agent = await client.createAgent({
+          provider,
+          cwd: workspace.repoPath,
+          workspaceId: workspace.workspaceId,
+          title: "Context budget",
+          featureValues: { context_budget: "250000" },
+        });
+        await openAgentRoute(page, { workspaceId: workspace.workspaceId, agentId: agent.id });
+        await page.getByTestId("agent-controls-settings").filter({ visible: true }).first().click();
+        await expect(page.getByTestId("agent-feature-context_budget")).toContainText("250K");
+        await page.getByTestId("agent-feature-context_budget").click();
+        await page.getByTestId("agent-feature-context_budget-500000").click();
+        await expect(page.getByTestId("agent-feature-context_budget-500000")).toHaveAttribute(
+          "aria-checked",
+          "true",
+        );
+        await page.screenshot({ path: test.info().outputPath(`${provider}-context-budget.png`) });
+        await page.reload();
+        await page.getByTestId("agent-controls-settings").filter({ visible: true }).first().click();
+        await expect(page.getByTestId("agent-feature-context_budget")).toContainText("500K");
+        await page.getByTestId("agent-feature-context_budget").click();
+        await page.getByTestId("agent-feature-context_budget-auto").click();
+        await expect(page.getByTestId("agent-feature-context_budget-auto")).toHaveAttribute(
+          "aria-checked",
+          "true",
+        );
+      } finally {
+        await client.close();
+        await workspace.cleanup();
+      }
+    });
+  }
+
+  test("keeps a rejected Claude context budget visible and lets the user recover", async ({
+    page,
+  }) => {
+    const workspace = await seedWorkspace({ repoPrefix: "context-budget-error-" });
+    const client = await connectDaemonClient<DaemonClient>({
+      clientIdPrefix: "context-budget-error",
+    });
+    try {
+      const agent = await client.createAgent({
+        provider: "claude",
+        cwd: workspace.repoPath,
+        workspaceId: workspace.workspaceId,
+        title: "Context budget error",
+        env: { CLAUDE_CODE_AUTO_COMPACT_WINDOW: "200000" },
+      });
+      await openAgentRoute(page, { workspaceId: workspace.workspaceId, agentId: agent.id });
+      await page.getByTestId("agent-controls-settings").filter({ visible: true }).first().click();
+      await page.getByTestId("agent-feature-context_budget").click();
+      await page.getByTestId("agent-feature-context_budget-250000").click();
+      await expect(page.getByTestId("agent-feature-error")).toContainText(
+        "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
+      );
+      await expect(page.getByTestId("agent-feature-context_budget-auto")).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await page.screenshot({ path: test.info().outputPath("claude-context-budget-error.png") });
+      await page.getByTestId("agent-feature-context_budget-auto").click();
+      await expect(page.getByTestId("agent-feature-error")).toHaveCount(0);
+    } finally {
+      await client.close();
+      await workspace.cleanup();
+    }
+  });
+});
 
 interface CreatedAgentAssertion {
   workspaceId: string;
@@ -56,14 +134,6 @@ async function fetchCreatedAgentForWorkspace(
     modeId: agent.currentModeId,
     model: agent.model,
   };
-}
-
-async function fetchWorkspaceName(
-  client: NewWorkspaceDaemonClient,
-  workspaceId: string,
-): Promise<string | null> {
-  const result = await client.fetchWorkspaces();
-  return result.entries.find((entry) => entry.id === workspaceId)?.name ?? null;
 }
 
 async function fetchWorkspaceStatuses(
@@ -216,7 +286,7 @@ test.describe("Workspace model regressions", () => {
 
       await page.addInitScript(() => {
         localStorage.setItem(
-          "@paseo:create-agent-preferences",
+          "@gravity:create-agent-preferences",
           JSON.stringify({
             provider: "mock",
             providerPreferences: {
@@ -247,62 +317,6 @@ test.describe("Workspace model regressions", () => {
           model: "five-minute-stream",
         });
     } finally {
-      await seeded.cleanup();
-    }
-  });
-
-  test("local same-directory workspace with an initial prompt shows a generated title", async ({
-    page,
-  }) => {
-    const serverId = getServerId();
-    const seeded: SeededWorkspace = await seedWorkspace({
-      repoPrefix: "workspace-generated-local-title-",
-    });
-    const previousConfig = await client.getDaemonConfig();
-
-    try {
-      await client.patchDaemonConfig({
-        metadataGeneration: {
-          providers: [{ provider: "mock", model: "ten-second-stream" }],
-        },
-      });
-
-      await gotoWorkspace(page, seeded.workspaceId);
-      await waitForSidebarHydration(page);
-      await openGlobalNewWorkspaceComposer(page);
-      await expectNewWorkspaceProjectSelected(page, seeded.projectDisplayName);
-      await selectWorkspaceIsolation(page, "local");
-      await submitNewWorkspacePrompt(page, "Fix login bug");
-
-      const createdWorkspace = await assertNewWorkspaceSidebarAndHeader(page, {
-        serverId,
-        client,
-        previousWorkspaceId: seeded.workspaceId,
-        projectDisplayName: seeded.projectDisplayName,
-      });
-      const createdRow = page.getByTestId(
-        `sidebar-workspace-row-${serverId}:${createdWorkspace.workspaceId}`,
-      );
-
-      await expect
-        .poll(() => fetchWorkspaceName(client, createdWorkspace.workspaceId), {
-          timeout: 30_000,
-        })
-        .toBe("Fix login bug");
-      await expectWorkspaceHeader(page, {
-        title: "Fix login bug",
-        subtitle: seeded.projectDisplayName,
-      });
-      await expect(createdRow).toContainText("Fix login bug", { timeout: 30_000 });
-      expect(createdWorkspace.workspaceDirectory).toBe(seeded.workspaceDirectory);
-    } finally {
-      await client
-        .patchDaemonConfig({
-          metadataGeneration: {
-            providers: previousConfig.config.metadataGeneration.providers,
-          },
-        })
-        .catch(() => undefined);
       await seeded.cleanup();
     }
   });
@@ -356,7 +370,6 @@ test.describe("Workspace model regressions", () => {
 
       await openGlobalNewWorkspaceComposer(page);
       await expectNewWorkspaceProjectSelected(page, seeded.projectDisplayName);
-      await selectWorkspaceIsolation(page, "local");
       await submitNewWorkspaceEmpty(page);
 
       const createdWorkspace = await assertNewWorkspaceSidebarAndHeader(page, {
@@ -472,7 +485,6 @@ test.describe("Workspace model regressions", () => {
 
       await openGlobalNewWorkspaceComposer(page);
       await expectNewWorkspaceProjectSelected(page, seeded.projectDisplayName);
-      await selectWorkspaceIsolation(page, "local");
       await submitNewWorkspaceEmpty(page);
 
       const createdWorkspace = await assertNewWorkspaceSidebarAndHeader(page, {

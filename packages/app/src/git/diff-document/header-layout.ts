@@ -43,7 +43,10 @@ export function resolveVisibleFileSections(input: {
   const sticky = stickyFile
     ? {
         file: stickyFile,
-        y: Math.min(0, stickyFile.bottom - input.scrollTop - stickyFile.headerHeight),
+        y: Math.max(
+          stickyFile.top - input.scrollTop,
+          Math.min(0, stickyFile.bottom - input.scrollTop - stickyFile.headerHeight),
+        ),
       }
     : null;
   return { files, sticky };

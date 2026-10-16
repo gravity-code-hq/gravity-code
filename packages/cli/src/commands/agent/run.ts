@@ -1,6 +1,6 @@
 import { Command, Option } from "commander";
-import { getStructuredAgentResponse, StructuredAgentResponseError } from "@getpaseo/server";
-import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
+import { getStructuredAgentResponse, StructuredAgentResponseError } from "@gravity/server";
+import type { AgentSnapshotPayload } from "@gravity/protocol/messages";
 import { connectToDaemon } from "../../utils/client.js";
 import type {
   CommandOptions,
@@ -342,7 +342,7 @@ function validateRunWorkspaceOptions(options: AgentRunOptions): void {
     throw {
       code: "INVALID_OPTIONS",
       message: "Worktree options require --new-workspace worktree",
-      details: "Usage: paseo run --new-workspace worktree [worktree options] <prompt>",
+      details: "Usage: gravity run --new-workspace worktree [worktree options] <prompt>",
     } satisfies CommandError;
   }
 
@@ -381,7 +381,7 @@ function validateRunOptions(prompt: string, options: AgentRunOptions, outputSche
     throw {
       code: "MISSING_PROMPT",
       message: "A prompt is required",
-      details: "Usage: paseo agent run [options] <prompt>",
+      details: "Usage: gravity agent run [options] <prompt>",
     } satisfies CommandError;
   }
 
@@ -521,10 +521,10 @@ export async function resolveExistingRunWorkspace(
   } satisfies CommandError;
 }
 
-// Workspace policy for `paseo run`. Precedence:
+// Workspace policy for `gravity run`. Precedence:
 //   1. --workspace <id>            -> run in that existing workspace
-//   2. $PASEO_AGENT_ID             -> daemon resolves the caller's workspace
-//   3. $PASEO_WORKSPACE_ID         -> exported by workspace terminals
+//   2. $GRAVITY_AGENT_ID             -> daemon resolves the caller's workspace
+//   3. $GRAVITY_WORKSPACE_ID         -> exported by workspace terminals
 //   4. --new-workspace <kind>      -> mint a new workspace explicitly
 //   5. bare run                    -> mint a new local-backed workspace for cwd
 async function resolveRunWorkspace(
@@ -543,7 +543,7 @@ async function resolveRunWorkspace(
     return { cwd };
   }
 
-  const ambientWorkspaceId = newWorkspace ? undefined : process.env.PASEO_WORKSPACE_ID?.trim();
+  const ambientWorkspaceId = newWorkspace ? undefined : process.env.GRAVITY_WORKSPACE_ID?.trim();
   if (ambientWorkspaceId) {
     console.error(`Using workspace ${ambientWorkspaceId}`);
     return resolveExistingRunWorkspace(client, ambientWorkspaceId);
@@ -566,7 +566,7 @@ async function resolveRunWorkspace(
   console.error(`Created workspace ${result.workspace.id} - ${label}`);
   if (result.setupSkippedReason) console.error(result.setupSkippedReason);
   console.error(
-    "Tip: pass --workspace <id> (or set PASEO_WORKSPACE_ID) to run in an existing workspace.",
+    "Tip: pass --workspace <id> (or set GRAVITY_WORKSPACE_ID) to run in an existing workspace.",
   );
   return { id: result.workspace.id, cwd: result.workspace.workspaceDirectory ?? cwd };
 }
@@ -595,7 +595,7 @@ export async function runRunCommand(
         code: "INVALID_THINKING_OPTION",
         message: "--thinking cannot be empty",
         details:
-          'Provide a thinking option ID. Use "paseo provider models <provider> --thinking" to list valid IDs.',
+          'Provide a thinking option ID. Use "gravity provider models <provider> --thinking" to list valid IDs.',
       };
       throw error;
     }
@@ -741,7 +741,7 @@ export async function runRunCommand(
 }
 
 export function resolveRunCallerAgentId(
-  env: { PASEO_AGENT_ID?: string } = process.env,
+  env: { GRAVITY_AGENT_ID?: string } = process.env,
 ): string | undefined {
-  return env.PASEO_AGENT_ID?.trim() || undefined;
+  return env.GRAVITY_AGENT_ID?.trim() || undefined;
 }

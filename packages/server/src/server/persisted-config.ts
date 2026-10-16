@@ -15,8 +15,8 @@ import {
   PluginIdSchema,
   PluginSourceSchema,
   TerminalProfileSchema,
-} from "@getpaseo/protocol/messages";
-import { PaseoServicePortAllocationSchema } from "@getpaseo/protocol/paseo-config-schema";
+} from "@gravity/protocol/messages";
+import { GravityServicePortAllocationSchema } from "@gravity/protocol/gravity-config-schema";
 
 export const LogLevelSchema = z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
 export const LogFormatSchema = z.enum(["pretty", "json"]);
@@ -84,7 +84,7 @@ const ProvidersSchema = z
 const WorktreesConfigSchema = z
   .object({
     root: z.string().min(1).optional(),
-    servicePorts: PaseoServicePortAllocationSchema.optional(),
+    servicePorts: GravityServicePortAllocationSchema.optional(),
   })
   .strict();
 
@@ -349,14 +349,14 @@ const DEFAULT_PERSISTED_CONFIG = PersistedConfigSchema.parse({
   daemon: {
     listen: "127.0.0.1:6767",
     cors: {
-      allowedOrigins: ["https://app.paseo.sh"],
+      allowedOrigins: ["https://app.gravity.example"],
     },
     relay: {
       enabled: false,
     },
   },
   app: {
-    baseUrl: "https://app.paseo.sh",
+    baseUrl: "https://app.gravity.example",
   },
 }) as PersistedConfig;
 
@@ -365,8 +365,8 @@ interface LoggerLike {
   info(...args: unknown[]): void;
 }
 
-function getConfigPath(paseoHome: string): string {
-  return path.join(paseoHome, CONFIG_FILENAME);
+function getConfigPath(gravityHome: string): string {
+  return path.join(gravityHome, CONFIG_FILENAME);
 }
 
 function getLogger(logger: LoggerLike | undefined): LoggerLike | undefined {
@@ -412,9 +412,9 @@ function stripRemovedConfigFields(parsed: unknown): unknown {
   return root;
 }
 
-export function loadPersistedConfig(paseoHome: string, logger?: LoggerLike): PersistedConfig {
+export function loadPersistedConfig(gravityHome: string, logger?: LoggerLike): PersistedConfig {
   const log = getLogger(logger);
-  const configPath = getConfigPath(paseoHome);
+  const configPath = getConfigPath(gravityHome);
 
   if (!existsSync(configPath)) {
     try {
@@ -465,12 +465,12 @@ export function loadPersistedConfig(paseoHome: string, logger?: LoggerLike): Per
 
 /** Observe the file without initializing a home, identity, or default configuration. */
 export function readPersistedConfig(
-  paseoHome: string,
+  gravityHome: string,
   options: { defaultsIfMissing?: boolean } = {},
 ): PersistedConfig {
   let raw: string;
   try {
-    raw = readFileSync(getConfigPath(paseoHome), "utf8");
+    raw = readFileSync(getConfigPath(gravityHome), "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT")
       return options.defaultsIfMissing ? structuredClone(DEFAULT_PERSISTED_CONFIG) : {};
@@ -511,7 +511,7 @@ export function getPersistedConfigValue(config: PersistedConfig, field: string):
 }
 
 export function editPersistedConfig(
-  paseoHome: string,
+  gravityHome: string,
   field: string,
   edit: { value: unknown } | { unset: true },
 ): PersistedConfig {
@@ -519,7 +519,7 @@ export function editPersistedConfig(
   if (field === "daemon.auth" || field.startsWith("daemon.auth.")) {
     throw new Error("Use daemon set-password to change the daemon password.");
   }
-  const config = readPersistedConfig(paseoHome, { defaultsIfMissing: true });
+  const config = readPersistedConfig(gravityHome, { defaultsIfMissing: true });
   let object = config as Record<string, unknown>;
   for (const part of parts.slice(0, -1)) {
     object[part] ??= {};
@@ -537,17 +537,17 @@ export function editPersistedConfig(
   }
   if ("unset" in edit) delete object[key];
   else object[key] = edit.value;
-  savePersistedConfig(paseoHome, config);
+  savePersistedConfig(gravityHome, config);
   return config;
 }
 
 export function savePersistedConfig(
-  paseoHome: string,
+  gravityHome: string,
   config: PersistedConfig,
   logger?: LoggerLike,
 ): void {
   const log = getLogger(logger);
-  const configPath = getConfigPath(paseoHome);
+  const configPath = getConfigPath(gravityHome);
 
   const result = PersistedConfigSchema.safeParse(config);
   if (!result.success) {

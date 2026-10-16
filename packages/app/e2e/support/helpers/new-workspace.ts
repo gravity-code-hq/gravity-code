@@ -1,6 +1,6 @@
 import { expect, type BrowserContext, type Page } from "@playwright/test";
-import type { CreateAgentRequestMessage, SessionInboundMessage } from "@getpaseo/protocol/messages";
-import type { DaemonClient as InternalDaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { CreateAgentRequestMessage, SessionInboundMessage } from "@gravity/protocol/messages";
+import type { DaemonClient as InternalDaemonClient } from "@gravity/client/internal/daemon-client";
 import { decodeWorkspaceIdFromPathSegment } from "@/utils/host-routes";
 import { connectDaemonClient, loadProtocolSchemas } from "./daemon-client-loader";
 import { daemonWsRoutePattern } from "./daemon-port";
@@ -10,16 +10,16 @@ import { withProjectOwnership } from "./project-ownership";
 
 type NewWorkspaceDaemonClient = Pick<
   InternalDaemonClient,
-  | "archivePaseoWorktree"
+  | "archiveGravityWorktree"
   | "archiveWorkspace"
   | "checkoutRefresh"
   | "close"
   | "connect"
-  | "createPaseoWorktree"
+  | "createGravityWorktree"
   | "createWorkspace"
   | "fetchAgents"
   | "fetchWorkspaces"
-  | "getPaseoWorktreeList"
+  | "getGravityWorktreeList"
   | "getDaemonConfig"
   | "installDirectoryPlugin"
   | "disablePlugin"
@@ -141,7 +141,7 @@ export async function archiveWorkspaceFromDaemon(
   workspaceDirectory: string,
   options?: { scope?: "workspace" | "worktree" },
 ): Promise<void> {
-  const payload = await client.archivePaseoWorktree({
+  const payload = await client.archiveGravityWorktree({
     worktreePath: workspaceDirectory,
     ...(options?.scope !== undefined ? { scope: options.scope } : {}),
   });
@@ -170,7 +170,7 @@ export async function createWorktreeViaDaemon(
   client: NewWorkspaceDaemonClient,
   input: { cwd: string; slug: string },
 ): Promise<OpenedProject> {
-  const payload = await client.createPaseoWorktree({
+  const payload = await client.createGravityWorktree({
     cwd: input.cwd,
     worktreeSlug: input.slug,
   });
@@ -324,37 +324,6 @@ export async function selectNewWorkspaceProject(
   await option.click();
 
   await expectNewWorkspaceProjectSelected(page, input.projectDisplayName);
-}
-
-// The isolation trigger renders the active isolation's label ("Local" / "New
-// worktree"), so asserting its text proves what the screen currently remembers.
-const ISOLATION_TRIGGER_LABEL: Record<"local" | "worktree", string> = {
-  local: "Local",
-  worktree: "New worktree",
-};
-
-export async function expectWorkspaceIsolationSelected(
-  page: Page,
-  isolation: "local" | "worktree",
-): Promise<void> {
-  const trigger = page.getByRole("button", { name: "Workspace isolation" });
-  await expect(trigger).toBeVisible({ timeout: 30_000 });
-  await expect(trigger).toContainText(ISOLATION_TRIGGER_LABEL[isolation]);
-}
-
-export async function selectWorkspaceIsolation(
-  page: Page,
-  isolation: "local" | "worktree",
-): Promise<void> {
-  const trigger = page.getByTestId("workspace-create-isolation-trigger");
-  await expect(trigger).toBeVisible({ timeout: 30_000 });
-  await trigger.click();
-
-  // Isolation options are derived from project capability. Wait for the option
-  // so this helper also covers route-to-project reconciliation.
-  const option = page.getByTestId(`workspace-create-isolation-${isolation}`);
-  await expect(option).toBeVisible({ timeout: 30_000 });
-  await option.click();
 }
 
 export async function submitNewWorkspaceEmpty(page: Page): Promise<void> {

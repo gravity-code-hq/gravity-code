@@ -40,6 +40,7 @@ import {
   useActiveWorkspaceSelection,
 } from "@/stores/navigation-active-workspace-store";
 import { dispatchTopWebOverlayKeyDown } from "@/lib/overlay-root";
+import { useZoomShortcuts } from "@/zoom/shortcuts";
 
 export function useKeyboardShortcuts({
   enabled,
@@ -58,6 +59,7 @@ export function useKeyboardShortcuts({
   exitFocusMode: () => void;
   cycleTheme?: () => void;
 }) {
+  useZoomShortcuts();
   const keyboardActionDispatcher = useKeyboardActionDispatcher();
   const pathname = usePathname();
   const router = useRouter();

@@ -57,8 +57,10 @@ test.describe("Settings sidebar navigation", () => {
     await gotoAppShell(page);
     await openSettings(page);
 
-    await openSettingsSection(page, "diagnostics");
-    await expectSettingsHeader(page, "Diagnostics");
+    await expectSettingsSidebarSections(page, ["general", "appearance", "about"]);
+    await openSettingsSection(page, "general");
+    await expectSettingsHeader(page, "General");
+    await expectGeneralContent(page);
     await expectDiagnosticsContent(page);
 
     await openSettingsSection(page, "about");
@@ -70,6 +72,101 @@ test.describe("Settings sidebar navigation", () => {
     await expectGeneralContent(page);
 
     await openSettingsSection(page, "appearance");
+    await expectSettingsHeader(page, "Appearance");
+    await expectAppearanceContent(page);
+  });
+
+  test("provider pages select their sidebar entry and support search, reload, and compact back", async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("@gravity:app-settings", JSON.stringify({ theme: "dark" }));
+    });
+    await gotoAppShell(page);
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(buildSettingsRoute());
+      const sidebar = page.getByTestId("settings-sidebar");
+      const hostItems = sidebar.locator('[data-testid^="settings-host-section-"]');
+      await expect(hostItems.nth(0)).toHaveText("Overview");
+      await expect(hostItems.nth(1)).toHaveText("Codex");
+      await expect(hostItems.nth(2)).toHaveText("Claude Code");
+      await expectSettingsSidebarSections(page, ["general", "appearance", "about"]);
+
+      for (const provider of ["codex", "claude"] as const) {
+        const title = provider === "codex" ? "Codex" : "Claude Code";
+        const route = buildSettingsHostSectionRoute(getServerId(), provider);
+        await page.getByTestId(`settings-host-section-${provider}`).click();
+        await expectAppRoute(page, route);
+        await expect(page.getByTestId("provider-settings-page")).toBeVisible();
+        await expect(page.getByTestId("provider-settings-sheet")).toHaveCount(0);
+        if (width === 1440) {
+          await expectSettingsHeader(page, title);
+          await page.mouse.move(1400, 0);
+          await expect(page.getByTestId(`settings-host-section-${provider}`)).toHaveCSS(
+            "background-color",
+            "rgb(31, 31, 31)",
+          );
+          const otherProvider = provider === "codex" ? "claude" : "codex";
+          await expect(page.getByTestId(`settings-host-section-${otherProvider}`)).toHaveCSS(
+            "background-color",
+            "rgba(0, 0, 0, 0)",
+          );
+        } else {
+          await expectSettingsSidebarHidden(page);
+          await expectSettingsBackButton(page);
+        }
+
+        const search = page.getByTestId("provider-settings-search");
+        await search.fill("no-matching-model-for-settings-test");
+        await expect(page.getByText("No models match your search", { exact: true })).toBeVisible();
+        await page.getByRole("button", { name: "Clear search", exact: true }).click();
+        await expect(search).toHaveValue("");
+        await page.screenshot({
+          path: testInfo.outputPath(`${provider}-${width}.png`),
+          fullPage: true,
+        });
+
+        await page.getByRole("button", { name: "Add model", exact: true }).click();
+        await expect(page.getByTestId("add-custom-model-sheet")).toBeVisible();
+        await page.getByRole("button", { name: "Cancel", exact: true }).click();
+        await expect(page.getByTestId("add-custom-model-sheet")).not.toBeVisible();
+        await expectAppRoute(page, route);
+
+        await page.reload();
+        await expectAppRoute(page, route);
+        await expect(page.getByTestId("provider-settings-page")).toBeVisible();
+        if (width === 1440) {
+          await page.mouse.move(1400, 0);
+          await expect(page.getByTestId(`settings-host-section-${provider}`)).toHaveCSS(
+            "background-color",
+            "rgb(31, 31, 31)",
+          );
+          const otherProvider = provider === "codex" ? "claude" : "codex";
+          await expect(page.getByTestId(`settings-host-section-${otherProvider}`)).toHaveCSS(
+            "background-color",
+            "rgba(0, 0, 0, 0)",
+          );
+        } else {
+          await goBackInSettings(page);
+          await expectCompactSettingsList(page);
+        }
+      }
+    }
+  });
+
+  test("merged section links open their new settings pages", async ({ page }) => {
+    await gotoAppShell(page);
+    for (const section of ["permissions", "diagnostics", "notifications"]) {
+      await page.goto(`/settings/${section}`);
+      await expectAppRoute(page, buildSettingsSectionRoute("general"));
+      await expectSettingsHeader(page, "General");
+      await expectGeneralContent(page);
+      await expectDiagnosticsContent(page);
+    }
+
+    await page.goto("/settings/layout");
+    await expectAppRoute(page, buildSettingsSectionRoute("appearance"));
     await expectSettingsHeader(page, "Appearance");
     await expectAppearanceContent(page);
   });
@@ -95,11 +192,14 @@ test.describe("Settings sidebar navigation", () => {
     await selectHostConnectionType(page, "direct");
 
     await toggleHostAdvanced(page);
-    await fillDirectHostUri(page, "tcp://example.paseo.test:7443?ssl=true&password=shared-secret");
+    await fillDirectHostUri(
+      page,
+      "tcp://example.gravity.test:7443?ssl=true&password=shared-secret",
+    );
     await toggleHostAdvanced(page);
 
     await expectDirectHostFormValues(page, {
-      host: "example.paseo.test",
+      host: "example.gravity.test",
       port: "7443",
       password: "shared-secret",
     });
@@ -109,7 +209,7 @@ test.describe("Settings sidebar navigation", () => {
     await toggleHostAdvanced(page);
     await expectDirectHostUriValue(
       page,
-      "tcp://example.paseo.test:7443?ssl=true&password=shared-secret",
+      "tcp://example.gravity.test:7443?ssl=true&password=shared-secret",
     );
     await toggleHostAdvanced(page);
     await expectDirectHostUriHidden(page);
@@ -165,7 +265,7 @@ test.describe("Settings — compact master-detail", () => {
     await gotoAppShell(page);
     await openCompactSettings(page, buildOpenProjectRoute());
 
-    await expectSettingsSidebarSections(page, ["general", "diagnostics", "about"]);
+    await expectSettingsSidebarSections(page, ["general", "appearance", "about"]);
     await expectCompactSettingsList(page);
 
     await expectSettingsBackButton(page);
@@ -177,8 +277,8 @@ test.describe("Settings — compact master-detail", () => {
     await gotoAppShell(page);
     await openCompactSettings(page, buildOpenProjectRoute());
 
-    await openSettingsSection(page, "diagnostics");
-    await expectAppRoute(page, buildSettingsSectionRoute("diagnostics"));
+    await openSettingsSection(page, "general");
+    await expectAppRoute(page, buildSettingsSectionRoute("general"));
     await expectDiagnosticsContent(page);
     await expectSettingsSidebarHidden(page);
     await expectSettingsBackButton(page);

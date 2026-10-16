@@ -1,1 +1,1 @@
-export { renderTerminalSnapshotToAnsi } from "@getpaseo/protocol/terminal-snapshot";
+export { renderTerminalSnapshotToAnsi } from "@gravity/protocol/terminal-snapshot";

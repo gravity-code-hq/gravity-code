@@ -1,3 +1,4 @@
+import { expectComposerMode } from "../support/helpers/composer-settings";
 import { expect, test, type Page } from "../support/fixtures";
 import { clickNewChat, gotoWorkspace } from "../support/helpers/launcher";
 import { seedWorkspace } from "../support/helpers/seed-client";
@@ -9,8 +10,8 @@ import {
 import { openCommandCenter } from "../support/helpers/command-center";
 import { selectModel } from "../support/helpers/app";
 
-const DISABLE_DEFAULT_SEED_ONCE_KEY = "@paseo:e2e-disable-default-seed-once";
-const SEED_NONCE_KEY = "@paseo:e2e-seed-nonce";
+const DISABLE_DEFAULT_SEED_ONCE_KEY = "@gravity:e2e-disable-default-seed-once";
+const SEED_NONCE_KEY = "@gravity:e2e-seed-nonce";
 
 async function openNewAgentTab(page: Page): Promise<void> {
   await clickNewChat(page);
@@ -30,12 +31,6 @@ async function expectThinkingSelected(page: Page, label: string): Promise<void> 
   ).toBeVisible({ timeout: 30_000 });
 }
 
-async function expectModeSelected(page: Page, label: string): Promise<void> {
-  await expect(
-    page.getByRole("button", { name: `Select agent mode (${label})` }).filter({ visible: true }),
-  ).toBeVisible({ timeout: 30_000 });
-}
-
 async function reloadWithPersistedPreferences(page: Page): Promise<void> {
   await page.evaluate(
     ({ disableKey, nonceKey }) => {
@@ -51,7 +46,7 @@ async function reloadWithPersistedPreferences(page: Page): Promise<void> {
 
 async function readRememberedThinking(page: Page, modelId: string): Promise<string | null> {
   return page.evaluate((selectedModelId) => {
-    const raw = localStorage.getItem("@paseo:create-agent-preferences");
+    const raw = localStorage.getItem("@gravity:create-agent-preferences");
     if (!raw) return null;
     const preferences = JSON.parse(raw) as {
       providerPreferences?: { mock?: { thinkingByModel?: Record<string, string> } };
@@ -62,7 +57,7 @@ async function readRememberedThinking(page: Page, modelId: string): Promise<stri
 
 async function seedLegacyModelPreference(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const storageKey = "@paseo:create-agent-preferences";
+    const storageKey = "@gravity:create-agent-preferences";
     const raw = localStorage.getItem(storageKey);
     const preferences = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
     localStorage.setItem(
@@ -151,18 +146,18 @@ test.describe("Workspace draft thinking preferences", () => {
         "Model › Mock Load Test › Five minute stream",
       );
       await chooseDraftControl(page, "approval test", "Mode › Approval test");
-      await expectModeSelected(page, "Approval test");
+      await expectComposerMode(page, "Approval test");
       await submitDraftAgent(page, "Remember this permission mode");
 
       await openNewAgentTab(page);
-      await expectModeSelected(page, "Approval test");
+      await expectComposerMode(page, "Approval test");
       await selectModel(page, "gpt-5.4-mini");
 
       await openNewAgentTab(page);
       await reloadWithPersistedPreferences(page);
       await selectModel(page, "Five minute stream");
 
-      await expectModeSelected(page, "Approval test");
+      await expectComposerMode(page, "Approval test");
     } finally {
       await workspace.cleanup();
     }

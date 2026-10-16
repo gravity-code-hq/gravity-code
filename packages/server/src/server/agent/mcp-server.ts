@@ -6,15 +6,18 @@ import type {
   ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import { addModelVisibleStructuredContent } from "./tools/paseo-tool-serialization.js";
-import { createPaseoToolCatalog, type PaseoToolHostDependencies } from "./tools/paseo-tools.js";
-import type { PaseoToolResult } from "./tools/types.js";
+import { addModelVisibleStructuredContent } from "./tools/gravity-tool-serialization.js";
+import {
+  createGravityToolCatalog,
+  type GravityToolHostDependencies,
+} from "./tools/gravity-tools.js";
+import type { GravityToolResult } from "./tools/types.js";
 
-export type AgentMcpServerOptions = PaseoToolHostDependencies;
+export type AgentMcpServerOptions = GravityToolHostDependencies;
 
 type McpToolContext = RequestHandlerExtra<ServerRequest, ServerNotification>;
 
-function toMcpToolResult(result: PaseoToolResult): CallToolResult {
+function toMcpToolResult(result: GravityToolResult): CallToolResult {
   const modelVisibleResult = addModelVisibleStructuredContent(result);
   return {
     content: modelVisibleResult.content as CallToolResult["content"],
@@ -29,7 +32,7 @@ function toMcpToolResult(result: PaseoToolResult): CallToolResult {
 }
 
 export async function createAgentMcpServer(options: AgentMcpServerOptions): Promise<McpServer> {
-  const catalog = await createPaseoToolCatalog(options);
+  const catalog = await createGravityToolCatalog(options);
   const server = new McpServer({
     name: "agent-mcp",
     version: "2.0.0",

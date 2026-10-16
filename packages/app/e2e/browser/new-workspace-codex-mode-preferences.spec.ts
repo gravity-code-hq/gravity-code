@@ -1,6 +1,7 @@
+import { expectComposerMode, selectComposerMode } from "../support/helpers/composer-settings";
 import { expect, type Page } from "../support/fixtures";
 import { test } from "../support/creation-fixtures";
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
 import { connectDaemonClient } from "../support/helpers/daemon-client-loader";
 import type { FormPreferences } from "@/create-agent-preferences/preferences";
 import { gotoAppShell } from "../support/helpers/app";
@@ -12,11 +13,10 @@ import {
   submitNewWorkspacePrompt,
 } from "../support/helpers/new-workspace";
 import { expectNoTruncation } from "../support/helpers/no-truncation";
-import { escapeRegex } from "../support/helpers/regex";
 import { seedWorkspace } from "../support/helpers/seed-client";
 import { waitForSidebarHydration } from "../support/helpers/workspace-ui";
 
-const CREATE_AGENT_PREFERENCES_KEY = "@paseo:create-agent-preferences";
+const CREATE_AGENT_PREFERENCES_KEY = "@gravity:create-agent-preferences";
 
 async function seedCodexDefaultPermissionPreferences(page: Page, cwd: string): Promise<string> {
   const client = await connectDaemonClient<DaemonClient>({
@@ -77,25 +77,6 @@ async function readCodexModePreference(page: Page): Promise<unknown> {
   }, CREATE_AGENT_PREFERENCES_KEY);
 }
 
-async function selectMode(page: Page, label: string): Promise<void> {
-  const modeControl = page.getByRole("button", { name: /^Select agent mode \(/ });
-  await expect(modeControl).toBeVisible({ timeout: 30_000 });
-  await modeControl.click();
-
-  const popup = page.getByTestId("combobox-desktop-container").last();
-  await expect(popup).toBeVisible({ timeout: 10_000 });
-  await expectNoTruncation(popup);
-
-  const searchInput = page.getByRole("textbox", { name: /search mode/i });
-  await expect(searchInput).toBeVisible({ timeout: 10_000 });
-  await searchInput.fill(label);
-
-  const option = popup.getByText(new RegExp(`^${escapeRegex(label)}$`, "i")).first();
-  await expect(option).toBeVisible({ timeout: 10_000 });
-  await option.click({ force: true });
-  await expect(searchInput).not.toBeVisible({ timeout: 5_000 });
-}
-
 async function expectThinkingOptionsFit(page: Page): Promise<void> {
   const thinkingControl = page.getByTestId("agent-thinking-selector").first();
   await expect(thinkingControl).toBeVisible({ timeout: 30_000 });
@@ -128,14 +109,10 @@ test.describe("New workspace Codex mode preferences", () => {
         projectDisplayName: seeded.projectDisplayName,
       });
 
-      await expect(
-        page.getByRole("button", { name: "Select agent mode (Default permissions)" }),
-      ).toBeVisible({ timeout: 30_000 });
+      await expectComposerMode(page, "Default permissions");
       await expectThinkingOptionsFit(page);
-      await selectMode(page, "Full access");
-      await expect(
-        page.getByRole("button", { name: "Select agent mode (Full access)" }),
-      ).toBeVisible();
+      await selectComposerMode(page, "Full access");
+      await expectComposerMode(page, "Full access");
 
       await submitNewWorkspacePrompt(page, "Keep Codex full access selected globally.");
       const createAgentRequest = await createAgentRecorder.waitForRequest();
@@ -175,14 +152,10 @@ test.describe("New workspace Codex mode preferences", () => {
         workspaceId: seeded.workspaceId,
         agentId: agent.id,
       });
-      await expect(
-        page.getByRole("button", { name: "Select agent mode (Default permissions)" }),
-      ).toBeVisible({ timeout: 30_000 });
+      await expectComposerMode(page, "Default permissions");
 
-      await selectMode(page, "Full access");
-      await expect(
-        page.getByRole("button", { name: "Select agent mode (Full access)" }),
-      ).toBeVisible({ timeout: 30_000 });
+      await selectComposerMode(page, "Full access");
+      await expectComposerMode(page, "Full access");
 
       await openGlobalNewWorkspaceComposer(page);
       await selectNewWorkspaceProject(page, {
@@ -190,9 +163,7 @@ test.describe("New workspace Codex mode preferences", () => {
         projectDisplayName: seeded.projectDisplayName,
       });
 
-      await expect(
-        page.getByRole("button", { name: "Select agent mode (Full access)" }),
-      ).toBeVisible({ timeout: 30_000 });
+      await expectComposerMode(page, "Full access");
     } finally {
       await seeded.cleanup();
     }

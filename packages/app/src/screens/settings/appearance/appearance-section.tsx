@@ -8,7 +8,7 @@ import {
   SYNTAX_THEME_OPTIONS,
   type SyntaxThemeId,
   type SyntaxThemeOption,
-} from "@getpaseo/highlight";
+} from "@gravity/highlight";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +22,11 @@ import { useContributedThemes } from "@/appearance/provider";
 import { EditingTextInput as TextInput } from "@/components/ui/text-input";
 import {
   MAX_CODE_FONT_SIZE,
+  MAX_TERMINAL_FONT_SIZE,
   MAX_CONTENT_FONT_SIZE,
   MAX_UI_BASE_FONT_SIZE,
   MIN_CODE_FONT_SIZE,
+  MIN_TERMINAL_FONT_SIZE,
   MIN_CONTENT_FONT_SIZE,
   MIN_UI_BASE_FONT_SIZE,
   parseClampedFontSize,
@@ -260,72 +262,20 @@ function ChatOutlineRow({ value, onChange }: ChatOutlineRowProps) {
   );
 }
 
-const TOOL_CALL_DETAIL_LEVELS: readonly AppSettings["toolCallDetailLevel"][] = [
-  "detailed",
-  "overview",
-];
-
-function getToolCallDetailLevelLabel(
-  t: TFunction,
-  value: AppSettings["toolCallDetailLevel"],
-): string {
-  return t(`settings.general.toolCallDetail.options.${value}`);
+interface CollapseToolCallsRowProps {
+  value: boolean;
+  onChange: (value: boolean) => void;
 }
 
-interface ToolCallDetailMenuItemProps {
-  value: AppSettings["toolCallDetailLevel"];
-  selected: boolean;
-  onChange: (value: AppSettings["toolCallDetailLevel"]) => void;
-}
-
-function ToolCallDetailMenuItem({ value, selected, onChange }: ToolCallDetailMenuItemProps) {
+function CollapseToolCallsRow({ value, onChange }: CollapseToolCallsRowProps) {
   const { t } = useTranslation();
-  const handleSelect = useCallback(() => onChange(value), [onChange, value]);
   return (
-    <DropdownMenuItem selected={selected} onSelect={handleSelect}>
-      {getToolCallDetailLevelLabel(t, value)}
-    </DropdownMenuItem>
-  );
-}
-
-interface ToolCallDetailRowProps {
-  value: AppSettings["toolCallDetailLevel"];
-  onChange: (value: AppSettings["toolCallDetailLevel"]) => void;
-}
-
-function ToolCallDetailRow({ value, onChange }: ToolCallDetailRowProps) {
-  const { t } = useTranslation();
-  const selectedLabel = getToolCallDetailLevelLabel(t, value);
-  return (
-    <View style={settingsStyles.row}>
-      <View style={settingsStyles.rowContent}>
-        <Text style={settingsStyles.rowTitle}>{t("settings.general.toolCallDetail.label")}</Text>
-        <Text style={settingsStyles.rowHint}>
-          {t("settings.general.toolCallDetail.description")}
-        </Text>
-      </View>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          style={dropdownTriggerStyle}
-          accessibilityLabel={t("settings.general.toolCallDetail.accessibilityLabel", {
-            value: selectedLabel,
-          })}
-        >
-          <Text style={styles.triggerText}>{selectedLabel}</Text>
-          <ThemedChevronDown size={ICON_SIZE.sm} uniProps={mutedColorMapping} />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="bottom" align="end" width={200}>
-          {TOOL_CALL_DETAIL_LEVELS.map((option) => (
-            <ToolCallDetailMenuItem
-              key={option}
-              value={option}
-              selected={value === option}
-              onChange={onChange}
-            />
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </View>
+    <SettingsSwitch
+      label={t("settings.general.collapseToolCalls.label")}
+      hint={t("settings.general.collapseToolCalls.description")}
+      value={value}
+      onValueChange={onChange}
+    />
   );
 }
 
@@ -523,6 +473,7 @@ export function AppearanceSection() {
   const [uiBaseSizeDraft, setUiBaseSizeDraft] = useState(String(settings.uiBaseFontSize));
   const [contentSizeDraft, setContentSizeDraft] = useState(String(settings.contentFontSize));
   const [codeSizeDraft, setCodeSizeDraft] = useState(String(settings.codeFontSize));
+  const [terminalSizeDraft, setTerminalSizeDraft] = useState(String(settings.terminalFontSize));
 
   // Resync numeric drafts when the committed value changes elsewhere.
   useEffect(() => {
@@ -534,6 +485,9 @@ export function AppearanceSection() {
   useEffect(() => {
     setCodeSizeDraft(String(settings.codeFontSize));
   }, [settings.codeFontSize]);
+  useEffect(() => {
+    setTerminalSizeDraft(String(settings.terminalFontSize));
+  }, [settings.terminalFontSize]);
 
   const handleThemeChange = useCallback(
     (theme: BuiltInThemePreference) => {
@@ -563,8 +517,9 @@ export function AppearanceSection() {
     [updateSettings],
   );
 
-  const handleToolCallDetailLevelChange = useCallback(
-    (toolCallDetailLevel: AppSettings["toolCallDetailLevel"]) => {
+  const handleCollapseToolCallsChange = useCallback(
+    (collapseToolCalls: boolean) => {
+      const toolCallDetailLevel = collapseToolCalls ? "overview" : "detailed";
       void updateSettings({ toolCallDetailLevel });
     },
     [updateSettings],
@@ -615,6 +570,10 @@ export function AppearanceSection() {
     setCodeSizeDraft(value.replace(/[^\d]/g, ""));
   }, []);
 
+  const handleTerminalSizeChange = useCallback((value: string) => {
+    setTerminalSizeDraft(value.replace(/[^\d]/g, ""));
+  }, []);
+
   const handleContentSizeChange = useCallback((value: string) => {
     setContentSizeDraft(value.replace(/[^\d]/g, ""));
   }, []);
@@ -642,6 +601,18 @@ export function AppearanceSection() {
       void updateSettings({ codeFontSize: next });
     }
   }, [codeSizeDraft, settings.codeFontSize, updateSettings]);
+
+  const commitTerminalSize = useCallback(() => {
+    const parsed = parseClampedFontSize(terminalSizeDraft, {
+      min: MIN_TERMINAL_FONT_SIZE,
+      max: MAX_TERMINAL_FONT_SIZE,
+    });
+    const next = parsed ?? settings.terminalFontSize;
+    setTerminalSizeDraft(String(next));
+    if (next !== settings.terminalFontSize) {
+      void updateSettings({ terminalFontSize: next });
+    }
+  }, [settings.terminalFontSize, terminalSizeDraft, updateSettings]);
 
   const commitContentSize = useCallback(() => {
     const parsed = parseClampedFontSize(contentSizeDraft, {
@@ -686,9 +657,9 @@ export function AppearanceSection() {
             value={settings.autoExpandReasoning}
             onChange={handleAutoExpandReasoningChange}
           />
-          <ToolCallDetailRow
-            value={settings.toolCallDetailLevel}
-            onChange={handleToolCallDetailLevelChange}
+          <CollapseToolCallsRow
+            value={settings.toolCallDetailLevel === "overview"}
+            onChange={handleCollapseToolCallsChange}
           />
           {!isNative ? (
             <ChatOutlineRow
@@ -749,6 +720,14 @@ export function AppearanceSection() {
             draft={codeSizeDraft}
             onChangeDraft={handleCodeSizeChange}
             onCommit={commitCodeSize}
+          />
+          <FontSizeRow
+            title={t("settings.appearance.fonts.terminalSize")}
+            hint={t("settings.appearance.fonts.terminalSizeHint")}
+            accessibilityLabel={t("settings.appearance.fonts.terminalSizeAccessibility")}
+            draft={terminalSizeDraft}
+            onChangeDraft={handleTerminalSizeChange}
+            onCommit={commitTerminalSize}
           />
         </View>
       </SettingsSection>

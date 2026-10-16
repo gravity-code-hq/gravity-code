@@ -1,4 +1,4 @@
-import type { MatchRange } from "@getpaseo/protocol/search/text-match";
+import type { MatchRange } from "@gravity/protocol/search/text-match";
 
 export interface HighlightSegment {
   /** Offset into the source text; unique per segment, so it doubles as a key. */

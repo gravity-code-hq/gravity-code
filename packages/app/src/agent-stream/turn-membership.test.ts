@@ -67,6 +67,31 @@ function completedFooterIds(layout: ReturnType<typeof layoutFor>["layout"]): str
 }
 
 describe("canonical turn membership", () => {
+  it("places the inherited response footer before the fork divider, including empty-prompt forks", () => {
+    const marker: StreamItem = {
+      kind: "notification",
+      sourceType: "notification",
+      id: "fork",
+      level: "info",
+      message: "Forked from Original",
+      forkSourceTitle: "Original",
+      timestamp: at(3),
+    };
+    const { layout } = layoutFor(
+      [
+        user("old prompt", 1, "old-turn"),
+        assistant("old reply", 2, "old-turn"),
+        marker,
+        assistant("new reply", 4, "new-turn"),
+      ],
+      false,
+    );
+    expect(layout.history.find((row) => row.item.id === "old reply")?.completedFooter?.itemId).toBe(
+      "old reply",
+    );
+    expect(layout.history.find((row) => row.item.id === "fork")?.completedFooter).toBeNull();
+    expect(completedFooterIds(layout)).toEqual(["old reply", "new reply"]);
+  });
   it("stops tagged traversal at every mismatching turn ID", () => {
     expect(continuesTurn(assistant("first", 1, "turn-1"), runningTool("next", 2, "turn-2"))).toBe(
       false,

@@ -1,4 +1,5 @@
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ForkMarker } from "./fork-marker";
 import React, {
   forwardRef,
   memo,
@@ -48,7 +49,7 @@ import type {
   AgentCapabilityFlags,
   AgentPermissionAction,
   AgentPermissionResponse,
-} from "@getpaseo/protocol/agent-types";
+} from "@gravity/protocol/agent-types";
 import type { AgentScreenAgent } from "@/hooks/use-agent-screen-state-machine";
 import { useSessionStore } from "@/stores/session-store";
 import { useRevealedText } from "@/hooks/use-revealed-text";
@@ -57,7 +58,7 @@ import { useLoadOlderAgentHistory } from "@/hooks/use-load-older-agent-history";
 import { useSettings } from "@/hooks/use-settings";
 import type { ToastApi } from "@/components/toast-host";
 import { returnToTimelineTail } from "./timeline-tail-navigation";
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
 import { ToolCallDetailsContent } from "@/components/tool-call-details";
 import { QuestionFormCard } from "@/components/question-form-card";
 import { ToolCallSheetProvider } from "@/components/tool-call-sheet";
@@ -322,6 +323,18 @@ function resolveBottomOverlayControlOffset(clearance: number | undefined): numbe
   return Math.max(16, clearance ?? 0);
 }
 
+/**
+ * Read-only panes (fork-preview drafts, provider subagents) show items that are
+ * not a daemon agent, so there is no prompt index to ask the host for.
+ */
+function resolveChatOutlineEnabled(input: {
+  supportsChatOutline: boolean;
+  chatOutlineEnabled: boolean;
+  readOnly: boolean;
+}): boolean {
+  return input.supportsChatOutline && input.chatOutlineEnabled && !input.readOnly;
+}
+
 const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamViewProps>(
   function AgentStreamView(
     {
@@ -500,12 +513,11 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
     });
 
     const handleForkAssistantTurn: AssistantTurnForkHandler = useStableEvent(
-      async ({ target, boundary }) => {
+      async ({ boundary }) => {
         await forkAgent({
           agentId,
           agent: context,
           workspaceId: context.workspaceId,
-          target,
           boundary,
         });
       },
@@ -515,12 +527,11 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
     // projects the whole timeline when neither boundary field is given, so the
     // fork carries everything up to now, including the response still streaming
     // in front of the user.
-    const handleForkInFlightTurn: InFlightTurnForkHandler = useStableEvent(async (target) => {
+    const handleForkInFlightTurn: InFlightTurnForkHandler = useStableEvent(async () => {
       await forkAgent({
         agentId,
         agent: context,
         workspaceId: context.workspaceId,
-        target,
       });
     });
 
@@ -617,7 +628,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
       timelineEpoch,
       tail: effectiveStreamItems,
       head: effectiveStreamHead,
-      enabled: supportsChatOutline && chatOutlineEnabled,
+      enabled: resolveChatOutlineEnabled({ supportsChatOutline, chatOutlineEnabled, readOnly }),
       viewportRef,
       onJumpError: handleTimelineHistoryLoadError,
       visibleItemIds: visibleHistoryItemIds,
@@ -684,6 +695,10 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
 
     const renderUserMessageItem = useCallback(
       (layoutItem: StreamLayoutItem, item: Extract<StreamItem, { kind: "user_message" }>) => {
+        const attachments = item.attachments?.filter(
+          (attachment) => attachment.type !== "text" || !attachment.forkHistory,
+        );
+        if (!item.text.trim() && !item.images?.length && !attachments?.length) return null;
         return (
           <UserMessage
             serverId={resolvedServerId}
@@ -691,9 +706,9 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             messageId={item.messageId}
             message={item.text}
             images={item.images}
-            attachments={item.attachments}
+            attachments={attachments}
             timestamp={item.timestamp.getTime()}
-            capabilities={context.capabilities}
+            capabilities={item.inherited ? undefined : context.capabilities}
             client={client}
             isFirstInGroup={layoutItem.isFirstInUserGroup}
             isLastInGroup={layoutItem.isLastInUserGroup}
@@ -821,6 +836,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         return (
           <OverviewToolCallGroupView
             group={group}
+            earlierCalls={toolCallDetailLevel === "detailed"}
             expanded={expanded}
             isLastInSequence={layoutItem.isLastInToolSequence}
             onExpandedChange={setToolCallGroupExpanded}
@@ -844,6 +860,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         getToolCallGroup,
         renderSingleToolCallItem,
         setToolCallGroupExpanded,
+        toolCallDetailLevel,
       ],
     );
 
@@ -864,6 +881,9 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             return renderToolCallItem(layoutItem, item);
 
           case "notification":
+            if (item.forkSourceTitle !== undefined) {
+              return <ForkMarker sourceTitle={item.forkSourceTitle} />;
+            }
             return <Notification level={item.level} message={item.message} />;
 
           case "todo_list":

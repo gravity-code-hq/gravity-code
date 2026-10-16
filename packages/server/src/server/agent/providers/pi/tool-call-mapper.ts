@@ -4,6 +4,7 @@ import type { ToolCallDetail } from "../../agent-sdk-types.js";
 
 interface BashToolInput {
   command: string;
+  description?: string;
   timeout?: number;
 }
 
@@ -194,6 +195,7 @@ function readNonEmptyString(value: unknown): string | undefined {
 
 const BashToolInputSchema: z.ZodType<BashToolInput> = z.object({
   command: z.string(),
+  description: z.unknown().transform(readNonEmptyString).optional(),
   timeout: z.number().optional(),
 });
 
@@ -350,6 +352,7 @@ export function mapToolDetail(toolCall: PiTrackedToolCall, result?: PiToolResult
       return {
         type: "shell",
         command: toolCall.args.command,
+        ...(toolCall.args.description ? { description: toolCall.args.description } : {}),
         output: summary.output,
         exitCode: summary.exitCode,
       };

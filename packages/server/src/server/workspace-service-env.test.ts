@@ -19,7 +19,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "daemon",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "main",
         daemonPort: 6767,
         daemonListenHost: null,
@@ -30,7 +30,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "daemon",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "main",
         daemonPort: 6767,
         daemonListenHost: "localhost",
@@ -43,7 +43,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "daemon",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "main",
         daemonPort: 6767,
         daemonListenHost: "100.64.0.20",
@@ -56,7 +56,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "daemon",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "main",
         daemonPort: 6767,
         daemonListenHost: null,
@@ -64,10 +64,10 @@ describe("buildWorkspaceServiceEnv", () => {
       }),
     ).toEqual({
       HOST: "127.0.0.1",
-      PASEO_PORT: "5173",
-      PASEO_URL: "http://daemon--paseo.localhost:6767",
-      PASEO_SERVICE_DAEMON_PORT: "5173",
-      PASEO_SERVICE_DAEMON_URL: "http://daemon--paseo.localhost:6767",
+      GRAVITY_PORT: "5173",
+      GRAVITY_URL: "http://daemon--gravity.localhost:6767",
+      GRAVITY_SERVICE_DAEMON_PORT: "5173",
+      GRAVITY_SERVICE_DAEMON_URL: "http://daemon--gravity.localhost:6767",
     });
   });
 
@@ -75,7 +75,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "daemon",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "feature-x",
         daemonPort: 6767,
         daemonListenHost: null,
@@ -83,24 +83,24 @@ describe("buildWorkspaceServiceEnv", () => {
       }),
     ).toEqual({
       HOST: "127.0.0.1",
-      PASEO_PORT: "5173",
-      PASEO_URL: "http://daemon--feature-x--paseo.localhost:6767",
-      PASEO_SERVICE_DAEMON_PORT: "5173",
-      PASEO_SERVICE_DAEMON_URL: "http://daemon--feature-x--paseo.localhost:6767",
+      GRAVITY_PORT: "5173",
+      GRAVITY_URL: "http://daemon--feature-x--gravity.localhost:6767",
+      GRAVITY_SERVICE_DAEMON_PORT: "5173",
+      GRAVITY_SERVICE_DAEMON_URL: "http://daemon--feature-x--gravity.localhost:6767",
     });
   });
 
-  it("omits PORT while keeping PASEO_PORT", () => {
+  it("omits PORT while keeping GRAVITY_PORT", () => {
     const env = buildWorkspaceServiceEnv({
       scriptName: "daemon",
-      projectSlug: "paseo",
+      projectSlug: "gravity",
       branchName: "main",
       daemonPort: 6767,
       daemonListenHost: null,
       peers: [{ scriptName: "daemon", port: 5173 }],
     });
 
-    expect(env.PASEO_PORT).toBe("5173");
+    expect(env.GRAVITY_PORT).toBe("5173");
     expect(env).not.toHaveProperty("PORT");
   });
 
@@ -108,7 +108,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "daemon",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "main",
         daemonPort: null,
         daemonListenHost: null,
@@ -116,8 +116,8 @@ describe("buildWorkspaceServiceEnv", () => {
       }),
     ).toEqual({
       HOST: "127.0.0.1",
-      PASEO_PORT: "5173",
-      PASEO_SERVICE_DAEMON_PORT: "5173",
+      GRAVITY_PORT: "5173",
+      GRAVITY_SERVICE_DAEMON_PORT: "5173",
     });
   });
 
@@ -125,7 +125,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "web",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "feature-x",
         daemonPort: 6767,
         daemonListenHost: null,
@@ -136,12 +136,12 @@ describe("buildWorkspaceServiceEnv", () => {
       }),
     ).toEqual({
       HOST: "127.0.0.1",
-      PASEO_PORT: "5173",
-      PASEO_URL: "http://web--feature-x--paseo.localhost:6767",
-      PASEO_SERVICE_API_PORT: "4000",
-      PASEO_SERVICE_API_URL: "http://api--feature-x--paseo.localhost:6767",
-      PASEO_SERVICE_WEB_PORT: "5173",
-      PASEO_SERVICE_WEB_URL: "http://web--feature-x--paseo.localhost:6767",
+      GRAVITY_PORT: "5173",
+      GRAVITY_URL: "http://web--feature-x--gravity.localhost:6767",
+      GRAVITY_SERVICE_API_PORT: "4000",
+      GRAVITY_SERVICE_API_URL: "http://api--feature-x--gravity.localhost:6767",
+      GRAVITY_SERVICE_WEB_PORT: "5173",
+      GRAVITY_SERVICE_WEB_URL: "http://web--feature-x--gravity.localhost:6767",
     });
   });
 
@@ -149,7 +149,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(
       buildWorkspaceServiceEnv({
         scriptName: "web",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "feature-x",
         daemonPort: 6767,
         daemonListenHost: null,
@@ -160,9 +160,9 @@ describe("buildWorkspaceServiceEnv", () => {
         ],
       }),
     ).toMatchObject({
-      PASEO_URL: "https://web--feature-x--paseo.services.example.com",
-      PASEO_SERVICE_API_URL: "https://api--feature-x--paseo.services.example.com",
-      PASEO_SERVICE_WEB_URL: "https://web--feature-x--paseo.services.example.com",
+      GRAVITY_URL: "https://web--feature-x--gravity.services.example.com",
+      GRAVITY_SERVICE_API_URL: "https://api--feature-x--gravity.services.example.com",
+      GRAVITY_SERVICE_WEB_URL: "https://web--feature-x--gravity.services.example.com",
     });
   });
 
@@ -170,7 +170,7 @@ describe("buildWorkspaceServiceEnv", () => {
     expect(() =>
       buildWorkspaceServiceEnv({
         scriptName: "app-server",
-        projectSlug: "paseo",
+        projectSlug: "gravity",
         branchName: "main",
         daemonPort: 6767,
         daemonListenHost: null,

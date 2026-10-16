@@ -7,7 +7,7 @@ import {
   readPersistedConfig,
   editPersistedConfig,
   resolveConfigFromPersisted,
-} from "@getpaseo/server";
+} from "@gravity/server";
 import { connectToDaemon } from "../../utils/client.js";
 import type { DaemonTarget } from "../../utils/daemon-target.js";
 import { addJsonAndDaemonHostOptions, withGlobalOptions } from "../../utils/command-options.js";
@@ -35,7 +35,7 @@ export interface PairingOffer {
 }
 
 const PAIRING_DAEMON_RPC_TIMEOUT_MS = 1500;
-const RELAY_DOCS_URL = "https://paseo.sh/docs/security";
+const RELAY_DOCS_URL = "https://github.com/gravity-code-hq/gravity/docs/security";
 
 function createProcessOutput(): PairCommandOutput {
   return {
@@ -66,25 +66,25 @@ export function pairCommand(): Command {
 }
 
 export async function resolveLocalPairingOffer(options: {
-  paseoHome: string;
+  gravityHome: string;
   enableRelay?: boolean;
 }): Promise<PairingOffer> {
-  const instance = await readDaemonInstance(options.paseoHome);
+  const instance = await readDaemonInstance(options.gravityHome);
   if (instance)
     return resolveDaemonPairingOffer(
-      { kind: "instance", home: options.paseoHome },
+      { kind: "instance", home: options.gravityHome },
       options.enableRelay,
     );
   if (options.enableRelay)
-    editPersistedConfig(options.paseoHome, "daemon.relay.enabled", { value: true });
+    editPersistedConfig(options.gravityHome, "daemon.relay.enabled", { value: true });
   const config = resolveConfigFromPersisted(
-    options.paseoHome,
-    readPersistedConfig(options.paseoHome, { defaultsIfMissing: true }),
+    options.gravityHome,
+    readPersistedConfig(options.gravityHome, { defaultsIfMissing: true }),
     { env: {} },
   );
 
   return generateLocalPairingOffer({
-    paseoHome: options.paseoHome,
+    gravityHome: options.gravityHome,
     relayEnabled: config.relayEnabled,
     relayEndpoint: config.relayEndpoint,
     relayPublicEndpoint: config.relayPublicEndpoint,
@@ -107,7 +107,7 @@ async function resolveDaemonPairingOffer(
   try {
     const serverInfo = client.getLastServerInfoMessage();
     if (serverInfo?.features?.daemonStatusRpc !== true) {
-      throw new Error("Update the Paseo daemon before pairing from this command.");
+      throw new Error("Update the Gravity daemon before pairing from this command.");
     }
 
     let offer = await client.getDaemonPairingOffer({
@@ -115,7 +115,7 @@ async function resolveDaemonPairingOffer(
     });
     if (!offer.relayEnabled && enableRelay) {
       if (serverInfo.features.relayConfig !== true) {
-        throw new Error("Update the Paseo daemon before enabling relay from this command.");
+        throw new Error("Update the Gravity daemon before enabling relay from this command.");
       }
       await client.patchDaemonConfig({ relay: { enabled: true } });
       try {
@@ -138,7 +138,9 @@ async function resolveDaemonPairingOffer(
 }
 
 export async function confirmRelayPairing(): Promise<boolean> {
-  log.message("Your connection is end-to-end encrypted. Paseo cannot read your code or messages.");
+  log.message(
+    "Your connection is end-to-end encrypted. Gravity cannot read your code or messages.",
+  );
   log.message(`Learn how it works: ${RELAY_DOCS_URL}`);
   const answer = await confirm({
     message: "Enable relay to pair a device?",
@@ -160,14 +162,14 @@ export async function runPairCommand(options: PairOptions): Promise<void> {
   const target = options.daemonTarget;
   const resolveOffer = (enableRelay: boolean) =>
     target.kind === "instance"
-      ? resolveLocalPairingOffer({ paseoHome: target.home, enableRelay })
+      ? resolveLocalPairingOffer({ gravityHome: target.home, enableRelay })
       : resolveDaemonPairingOffer(target, enableRelay);
   const offline = target.kind === "instance" && !(await readDaemonInstance(target.home));
   const pairing = await resolveOffer(options.relay === true);
 
   if (offline)
     output.writeStderr(
-      `Offline pairing offer. Start with: paseo daemon start --home ${JSON.stringify(target.kind === "instance" ? target.home : "")}\n`,
+      `Offline pairing offer. Start with: gravity daemon start --home ${JSON.stringify(target.kind === "instance" ? target.home : "")}\n`,
     );
 
   outputPairingResult(pairing, options, output);
@@ -184,12 +186,12 @@ function outputPairingResult(
         `${JSON.stringify({
           code: "RELAY_DISABLED",
           message: "Relay pairing is disabled for this daemon.",
-          action: "Run paseo daemon pair --relay --json to enable it explicitly.",
+          action: "Run gravity daemon pair --relay --json to enable it explicitly.",
         })}\n`,
       );
     } else {
       output.writeStderr(`${chalk.red("Relay pairing is disabled for this daemon.")}\n`);
-      output.writeStderr(`${chalk.yellow("Run paseo daemon pair --relay to enable it.")}\n`);
+      output.writeStderr(`${chalk.yellow("Run gravity daemon pair --relay to enable it.")}\n`);
     }
     output.setExitCode(1);
     return;

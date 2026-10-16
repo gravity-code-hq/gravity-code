@@ -1,4 +1,6 @@
-import { test, expect, type Page } from "../support/fixtures";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { test, expect } from "../support/fixtures";
 import { gotoAppShell } from "../support/helpers/app";
 import { seedWorkspace } from "../support/helpers/seed-client";
 import { getServerId } from "../support/helpers/server-id";
@@ -7,67 +9,65 @@ function workspaceRowTestId(workspaceId: string): string {
   return `sidebar-workspace-row-${getServerId()}:${workspaceId}`;
 }
 
-function workspaceRenameModalTestId(workspaceId: string, suffix: string): string {
-  return `sidebar-workspace-rename-modal-${getServerId()}:${workspaceId}-${suffix}`;
-}
-
-async function openRenameModal(page: Page, workspaceId: string) {
-  const serverId = getServerId();
-  const row = page.getByTestId(`sidebar-workspace-row-${serverId}:${workspaceId}`);
-  await expect(row).toBeVisible({ timeout: 30_000 });
-  await row.hover();
-
-  const kebab = page.getByTestId(`sidebar-workspace-kebab-${serverId}:${workspaceId}`);
-  await expect(kebab).toBeVisible({ timeout: 10_000 });
-  await kebab.click();
-
-  const renameItem = page.getByTestId(`sidebar-workspace-menu-rename-${serverId}:${workspaceId}`);
-  await expect(renameItem).toBeVisible({ timeout: 10_000 });
-  await renameItem.click();
-
-  const input = page.getByTestId(workspaceRenameModalTestId(workspaceId, "input"));
-  await expect(input).toBeVisible({ timeout: 10_000 });
-  return input;
-}
-
-// In Model B the workspace title is its identity: renaming sets a custom title
-// layered over the derived branch/directory name, and reconciliation never
-// touches it. The sidebar row shows the title verbatim — no branch mutation.
-test.describe("Sidebar workspace rename", () => {
-  test("renaming via kebab sets a custom title that survives reload", async ({ page }) => {
-    const workspace = await seedWorkspace({ repoPrefix: "sidebar-rename-" });
-
+test.describe("Workspace names follow repository and branch", () => {
+  test("ignores a saved chat title and follows branch changes in the sidebar and header", async ({
+    page,
+  }, testInfo) => {
+    const workspace = await seedWorkspace({ repoPrefix: "workspace-name-" });
     try {
-      expect(workspace.workspaceName).toBe("main");
-
-      await gotoAppShell(page);
-      await expect(page.getByTestId(workspaceRowTestId(workspace.workspaceId))).toBeVisible({
-        timeout: 30_000,
+      const created = await workspace.client.createWorkspace({
+        source: { kind: "directory", path: workspace.repoPath, projectId: workspace.projectId },
+        title: "Review uncommitted changes",
       });
-
-      const input = await openRenameModal(page, workspace.workspaceId);
-      await expect(input).toHaveValue("main");
-
-      const customTitle = "Payments Refactor";
-      await input.fill(customTitle);
-      await page.getByTestId(workspaceRenameModalTestId(workspace.workspaceId, "submit")).click();
-
-      await expect(input).toHaveCount(0, { timeout: 15_000 });
-      // The title is shown exactly as typed — not slugified into a branch name.
-      await expect(page.getByTestId(workspaceRowTestId(workspace.workspaceId))).toContainText(
-        customTitle,
-        { timeout: 15_000 },
-      );
-
-      // The custom title is backing metadata on the workspace: a full reload
-      // re-resolves the descriptor from persistence and must not lose it. This
-      // exercises the same descriptor resolution reconciliation re-runs against,
-      // so a reconcile pass cannot overwrite the user's title either.
+      if (!created.workspace) throw new Error(created.error ?? "Workspace missing");
+      const id = created.workspace.id;
+      const projectName = path.basename(workspace.repoPath);
+      await gotoAppShell(page);
+      const row = page.getByTestId(workspaceRowTestId(id));
+      await expect(row).toContainText(`${projectName}: main`);
+      await row.click();
+      const header = page.getByTestId("workspace-header-title");
+      await expect(header).toHaveText(`${projectName}: main`);
+      await expect(page.getByText("Review uncommitted changes", { exact: true })).toHaveCount(0);
+      await row.hover();
+      await page.getByTestId(`sidebar-workspace-kebab-${getServerId()}:${id}`).click();
+      await expect(
+        page.getByTestId(`sidebar-workspace-menu-rename-${getServerId()}:${id}`),
+      ).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      execFileSync("git", ["checkout", "-b", "feature/sidebar"], { cwd: workspace.repoPath });
+      await workspace.client.checkoutRefresh(workspace.repoPath);
+      await expect(row).toContainText(`${projectName}: feature/sidebar`);
+      await expect(header).toHaveText(`${projectName}: feature/sidebar`);
       await page.reload();
-      await expect(page.getByTestId(workspaceRowTestId(workspace.workspaceId))).toContainText(
-        customTitle,
-        { timeout: 30_000 },
-      );
+      await expect(header).toHaveText(`${projectName}: feature/sidebar`);
+      await page.screenshot({ path: testInfo.outputPath("repo-branch-name.png") });
+    } finally {
+      await workspace.cleanup();
+    }
+  });
+
+  test("a worktree inside a repository keeps the repository name and uses its own branch", async ({
+    page,
+  }, testInfo) => {
+    const workspace = await seedWorkspace({ repoPrefix: "workspace-worktree-name-" });
+    const worktreePath = path.join(workspace.repoPath, ".worktrees", "sidebar");
+    try {
+      execFileSync("git", ["worktree", "add", "-b", "feature/sidebar", worktreePath, "main"], {
+        cwd: workspace.repoPath,
+      });
+      const created = await workspace.client.createWorkspace({
+        source: { kind: "directory", path: worktreePath, projectId: workspace.projectId },
+        title: "Old generated worktree title",
+      });
+      if (!created.workspace) throw new Error(created.error ?? "Worktree workspace missing");
+      await gotoAppShell(page);
+      const row = page.getByTestId(workspaceRowTestId(created.workspace.id));
+      const label = `${path.basename(workspace.repoPath)}: feature/sidebar`;
+      await expect(row).toContainText(label);
+      await row.click();
+      await expect(page.getByTestId("workspace-header-title")).toHaveText(label);
+      await page.screenshot({ path: testInfo.outputPath("worktree-branch-name.png") });
     } finally {
       await workspace.cleanup();
     }

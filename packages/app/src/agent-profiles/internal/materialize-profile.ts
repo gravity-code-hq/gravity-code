@@ -1,4 +1,4 @@
-import type { AgentConfigApply, AgentProfile } from "@getpaseo/protocol/messages";
+import type { AgentConfigApply, AgentProfile } from "@gravity/protocol/messages";
 
 /**
  * A profile with its blank fields resolved away. Storage keeps every field

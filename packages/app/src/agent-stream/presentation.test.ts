@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
-import type { AgentStreamEventPayload } from "@getpaseo/protocol/messages";
+import type { AgentStreamEventPayload } from "@gravity/protocol/messages";
 import { runPluginClientBundle, type PluginClientRuntime } from "@/plugins/evaluate";
 import type { InstalledPlugin } from "@/plugins/types";
 import {
@@ -13,7 +13,7 @@ import { transformTimelineItem, type TimelineItemTransform } from "@/plugins/tim
 import { createStreamPresentation } from "./presentation";
 
 const runtime = {
-  paseo: {},
+  gravity: {},
   async rpc() {},
   openSettings() {},
   openSurface() {},

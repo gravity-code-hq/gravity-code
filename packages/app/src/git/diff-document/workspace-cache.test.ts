@@ -1,4 +1,4 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import { describe, expect, it } from "vitest";
 import { createDiffDocumentWorkspaceCache } from "./workspace-cache";
 import type {
@@ -10,6 +10,9 @@ import type {
 
 const palette: DiffPalette = {
   surface: "#000",
+  hunkBackground: "#123",
+  additionGutterBackground: "#142",
+  deletionGutterBackground: "#412",
   headerSurface: "#111",
   border: "#222",
   foreground: "#fff",

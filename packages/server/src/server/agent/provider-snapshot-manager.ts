@@ -1,4 +1,4 @@
-import { normalizeAgentModelCatalog } from "@getpaseo/protocol/agent-types";
+import { normalizeAgentModelCatalog } from "@gravity/protocol/agent-types";
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { homedir } from "node:os";
@@ -31,32 +31,33 @@ import type { OpenCodeBridge } from "./providers/opencode/bridge.js";
 import type {
   AgentProviderRuntimeSettingsMap,
   ProviderOverride,
+  ProviderRuntimeSettings,
 } from "./provider-launch-config.js";
 import {
   buildProviderRegistry,
   shutdownAgentClients,
   type ProviderDefinition,
 } from "./provider-registry.js";
-import { BUILTIN_PROVIDER_IDS } from "@getpaseo/protocol/provider-manifest";
+import { BUILTIN_PROVIDER_IDS } from "@gravity/protocol/provider-manifest";
 import { applyMutableProviderConfigToOverrides } from "../daemon-config-store.js";
 import {
   formatProviderDiagnostic,
   formatProviderDiagnosticError,
 } from "./providers/diagnostic-utils.js";
 import type { MutableDaemonConfig } from "../daemon-config-store.js";
-import type { HubExecutionAgentValidationIssue } from "@getpaseo/protocol/messages";
+import type { HubExecutionAgentValidationIssue } from "@gravity/protocol/messages";
 import {
   type AgentConfigurationValidationInput,
   validateAgentConfigurationAgainstProvider,
 } from "./agent-configuration-validator.js";
-import type { ProviderRegistration } from "@getpaseo/plugin/server/provider";
+import type { ProviderRegistration } from "@gravity/plugin/server/provider";
 import { PluginAgentClientRegistry } from "./plugin-provider.js";
 
 const DEFAULT_REFRESH_TIMEOUT_MS = 120_000;
 const MAX_REFRESH_TIMEOUT_MS = 2_147_483_647;
 const DEFAULT_DIAGNOSTIC_TIMEOUT_MS = 120_000;
-const PROVIDER_REFRESH_DEADLINE_ENV = "PASEO_PROVIDER_REFRESH_TIMEOUT_MS";
-export const GLOBAL_PROVIDER_SNAPSHOT_KEY = "paseo:global";
+const PROVIDER_REFRESH_DEADLINE_ENV = "GRAVITY_PROVIDER_REFRESH_TIMEOUT_MS";
+export const GLOBAL_PROVIDER_SNAPSHOT_KEY = "gravity:global";
 
 function validRefreshDeadline(value: unknown): number | undefined {
   return typeof value === "number" &&
@@ -547,6 +548,10 @@ export class ProviderSnapshotManager {
       unattended: input.unattended || parent?.isUnattended === true,
       availableModes: entry.modes ?? [],
     });
+  }
+
+  getProviderRuntimeSettings(provider: AgentProvider): ProviderRuntimeSettings | undefined {
+    return this.runtimeSettings?.[provider];
   }
 
   async getProviderDiagnostic(provider: AgentProvider): Promise<ProviderDiagnosticResult> {
@@ -1174,7 +1179,7 @@ export function isGlobalProviderSnapshotKey(cwd: string): boolean {
 function identifyEntry(entry: ProviderSnapshotEntry): ProviderSnapshotRecord {
   const { fetchedAt: _fetchedAt, ...content } = entry;
   const contentHash = createHash("sha256")
-    .update(JSON.stringify(["paseo.provider-result/1", content]))
+    .update(JSON.stringify(["gravity.provider-result/1", content]))
     .digest("base64url");
   return { entry, contentHash };
 }

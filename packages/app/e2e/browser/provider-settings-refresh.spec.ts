@@ -1,7 +1,13 @@
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
+import { gotoAppShell, openSettings } from "../support/helpers/app";
 import type { Locator } from "@playwright/test";
 import { expect, test, type Page } from "../support/fixtures";
 import { expectComposerVisible } from "../support/helpers/composer";
 import { openAgentRoute, seedMockAgentWorkspace } from "../support/helpers/mock-agent";
+import { connectDaemonClient } from "../support/helpers/daemon-client-loader";
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
@@ -210,4 +216,211 @@ test.describe("provider settings overlay stack", () => {
       await session.cleanup();
     }
   });
+});
+
+const customizationTest = test.extend<{}, { customizationRoot: string }>({
+  customizationRoot: [
+    async ({ browserName }, provide) => {
+      const root = await mkdtemp(path.join(tmpdir(), `gravity-provider-settings-${browserName}-`));
+      await mkdir(path.join(root, "codex", "prompts"), { recursive: true });
+      await mkdir(path.join(root, "claude", "commands"), { recursive: true });
+      for (const provider of ["codex", "claude"]) {
+        await mkdir(path.join(root, provider, "skills", "review-skill"), { recursive: true });
+        await writeFile(
+          path.join(root, provider, "skills", "review-skill", "SKILL.md"),
+          "---\nname: review-skill\ndescription: Review code carefully\n---\nRead the diff and review it.\n",
+        );
+      }
+      try {
+        await provide(root);
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+    { scope: "worker" },
+  ],
+  e2eDaemonEnvironment: [
+    async ({ customizationRoot }, provide) => {
+      await provide({
+        CODEX_HOME: path.join(customizationRoot, "codex"),
+        CLAUDE_CONFIG_DIR: path.join(customizationRoot, "claude"),
+      });
+    },
+    { scope: "worker" },
+  ],
+  e2eDaemonConfig: [
+    {
+      version: 1,
+      agents: { providers: { codex: { enabled: false }, claude: { enabled: false } } },
+    },
+    { scope: "worker" },
+  ],
+});
+
+customizationTest.describe("provider customization tabs", () => {
+  customizationTest(
+    "creates commands and keeps the prompt when a name already exists",
+    async ({ page, customizationRoot }, testInfo) => {
+      for (const provider of ["codex", "claude"] as const) {
+        await page.setViewportSize({ width: 1280, height: 900 });
+        const directory = path.join(
+          customizationRoot,
+          provider,
+          provider === "codex" ? "prompts" : "commands",
+        );
+        await writeFile(path.join(directory, "taken-command.md"), "Existing prompt");
+        await gotoAppShell(page);
+        await openSettings(page);
+        await page.getByTestId(`settings-host-section-${provider}`).click();
+        await page.setViewportSize(
+          provider === "claude" ? MOBILE_VIEWPORT : { width: 1280, height: 900 },
+        );
+        await page.getByTestId("provider-tab-commands").click();
+        await page.getByRole("button", { name: "Add command", exact: true }).click();
+        const sheet = page.getByTestId("create-command-sheet");
+        const name = sheet.getByRole("textbox", { name: "Command name", exact: true });
+        const prompt = sheet.getByRole("textbox", { name: "Prompt", exact: true });
+        const save = sheet.getByRole("button", { name: "Save", exact: true });
+        await expect(save).toBeDisabled();
+        await name.fill("../invalid");
+        await prompt.fill("Review the changes and suggest improvements.");
+        await expect(save).toBeDisabled();
+        await name.fill("taken-command");
+        await save.click();
+        await expect(
+          sheet.getByText("A command with this name already exists. Choose a different name."),
+        ).toBeVisible();
+        await expect(prompt).toHaveValue("Review the changes and suggest improvements.");
+        expect(await readFile(path.join(directory, "taken-command.md"), "utf8")).toBe(
+          "Existing prompt",
+        );
+        await name.fill("new-command");
+        await page.screenshot({ path: testInfo.outputPath(`${provider}-add-command.png`) });
+        await save.click();
+        await expect(sheet).not.toBeVisible();
+        await expect(page.getByRole("button", { name: /new-command/ })).toBeVisible();
+        expect(await readFile(path.join(directory, "new-command.md"), "utf8")).toBe(
+          "Review the changes and suggest improvements.",
+        );
+        await page.getByRole("button", { name: "Add command", exact: true }).click();
+        await expect(name).toHaveValue("");
+        await expect(prompt).toHaveValue("");
+        await sheet.getByRole("button", { name: "Cancel", exact: true }).click();
+        await expect(sheet).not.toBeVisible();
+      }
+    },
+  );
+
+  customizationTest(
+    "reads files without provider discovery even when a model is supplied",
+    async ({ customizationRoot }) => {
+      const client = await connectDaemonClient<DaemonClient>({
+        clientIdPrefix: "provider-customization-files",
+      });
+      try {
+        for (const provider of ["codex", "claude"] as const) {
+          const commandDirectory = provider === "codex" ? "prompts" : "commands";
+          await writeFile(
+            path.join(customizationRoot, provider, commandDirectory, "local-only.md"),
+            "---\ndescription: Local command\n---\nReview the diff",
+          );
+          const catalog = await client.listProviderCustomizations({
+            provider,
+            model: "unused-for-file-discovery",
+          });
+          expect(catalog.warnings).toEqual([]);
+          expect(catalog.entries).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                name: provider === "codex" ? "prompts:local-only" : "local-only",
+                kind: "command",
+                description: "Local command",
+              }),
+              expect.objectContaining({ name: "review-skill", kind: "skill" }),
+            ]),
+          );
+        }
+      } finally {
+        await client.close();
+      }
+    },
+  );
+
+  customizationTest(
+    "edits commands for both providers and preserves edits on conflicts",
+    async ({ page, customizationRoot }, testInfo) => {
+      for (const provider of ["codex", "claude"] as const) {
+        const file = path.join(
+          customizationRoot,
+          provider,
+          provider === "codex" ? "prompts" : "commands",
+          "review-command.md",
+        );
+        await writeFile(file, "---\ndescription: Review command\n---\nOriginal instructions\n");
+        await gotoAppShell(page);
+        await openSettings(page);
+        await page.getByTestId(`settings-host-section-${provider}`).click();
+        await page.getByTestId("provider-tab-commands").click();
+        await page.getByRole("button", { name: /review-command/ }).click();
+        const detail = page.getByTestId("provider-customization-detail");
+        const editor = detail.getByRole("textbox", { name: "Instructions", exact: true });
+        await expect(editor).toHaveValue(/Original instructions/);
+        await editor.fill("Updated instructions\n");
+        await detail.getByRole("button", { name: "Save", exact: true }).click();
+        await expect(detail.getByText("Saved", { exact: true })).toBeVisible();
+        expect(await readFile(file, "utf8")).toBe("Updated instructions\n");
+        await editor.fill("My unsaved changes");
+        await writeFile(file, "An external edit\n");
+        await detail.getByRole("button", { name: "Save", exact: true }).click();
+        await expect(detail.getByText(/This file changed on disk/)).toBeVisible();
+        await expect(editor).toHaveValue("My unsaved changes");
+        expect(await readFile(file, "utf8")).toBe("An external edit\n");
+        await page.screenshot({ path: testInfo.outputPath(`${provider}-command-conflict.png`) });
+        page.once("dialog", (dialog) => void dialog.accept());
+        await detail.getByRole("button", { name: "Close", exact: true }).last().click();
+        await expect(detail).not.toBeVisible();
+      }
+    },
+  );
+
+  customizationTest(
+    "opens a skill in a separate draft with the same provider",
+    async ({ page }, testInfo) => {
+      await gotoAppShell(page);
+      await openSettings(page);
+      await page.getByTestId("settings-host-section-codex").click();
+      await page.getByTestId("provider-tab-skills").click();
+      await page.getByPlaceholder("Search skills").fill("review-skill");
+      await page.getByRole("button", { name: /review-skill/ }).click();
+      await page.getByRole("button", { name: "Improve with agent", exact: true }).click();
+      await expect(page).toHaveURL(/\/new\?.*provider=codex/);
+      await expect(page.getByRole("textbox", { name: "Message agent..." }).first()).toHaveValue(
+        /Help me improve the skill "review-skill"/,
+      );
+      await page.screenshot({ path: testInfo.outputPath("skill-improvement-draft.png") });
+    },
+  );
+
+  customizationTest(
+    "shows underlined tabs on desktop and compact screens",
+    async ({ page }, testInfo) => {
+      await gotoAppShell(page);
+      await openSettings(page);
+      await page.getByTestId("settings-host-section-claude").click();
+      await page.setViewportSize(MOBILE_VIEWPORT);
+      const tabs = page.getByTestId("provider-settings-tabs");
+      await tabs.getByText("Skills", { exact: true }).click();
+      await page.getByPlaceholder("Search skills").fill("review-skill");
+      await expect(page.getByRole("button", { name: /review-skill/ })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath("compact-provider-skills.png") });
+      await page.setViewportSize({ width: 1440, height: 900 });
+      const skillsTab = page.getByTestId("provider-tab-skills");
+      await skillsTab.click();
+      await expect(skillsTab).toHaveAttribute("aria-selected", "true");
+      await expect(skillsTab).toHaveCSS("border-bottom-width", "2px");
+      await expect(skillsTab).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(page.getByRole("button", { name: /review-skill/ })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath("desktop-provider-skills.png") });
+    },
+  );
 });

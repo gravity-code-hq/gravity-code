@@ -5,8 +5,8 @@ import { LRUCache } from "lru-cache";
 import { CheckoutDiffCache } from "./checkout-diff-cache.js";
 import pLimit from "p-limit";
 import type pino from "pino";
-import type { ProjectCheckoutLitePayload } from "@getpaseo/protocol/messages";
-import { parseGitRemoteLocation } from "@getpaseo/protocol/git-remote";
+import type { ProjectCheckoutLitePayload } from "@gravity/protocol/messages";
+import { parseGitRemoteLocation } from "@gravity/protocol/git-remote";
 import type { CheckoutContext } from "../utils/checkout-git.js";
 import {
   type BranchCheckoutResolution,
@@ -53,7 +53,7 @@ import {
   type RunGitCommand,
 } from "../utils/run-git-command.js";
 import { branchNameFromRef } from "../utils/worktree-metadata.js";
-import { listPaseoWorktrees, type PaseoWorktreeInfo } from "../utils/worktree.js";
+import { listGravityWorktrees, type GravityWorktreeInfo } from "../utils/worktree.js";
 import { READ_ONLY_GIT_ENV } from "./checkout-git-utils.js";
 import { classifyGitMetadataPath, getPrunedGitMetadataPaths } from "./git-metadata-event-rules.js";
 import {
@@ -131,7 +131,7 @@ export interface WorkspaceGitRuntimeSnapshot {
     mainRepoRoot: string | null;
     currentBranch: string | null;
     remoteUrl: string | null;
-    isPaseoOwnedWorktree: boolean;
+    isGravityOwnedWorktree: boolean;
     isDirty: boolean | null;
     baseRef: string | null;
     aheadBehind: { ahead: number; behind: number } | null;
@@ -190,6 +190,7 @@ export interface WorkspaceGitService {
     cwd: string,
     options: CheckoutDiffCompare,
     readOptions?: WorkspaceGitReadOptions,
+    onProgress?: (value: CheckoutDiffResult) => void,
   ): Promise<CheckoutDiffResult>;
   validateBranchRef(
     cwd: string,
@@ -271,19 +272,19 @@ export interface WorkspaceGitBranchSuggestionsOptions {
 }
 
 export interface WorkspaceGitStashListOptions {
-  paseoOnly?: boolean;
+  gravityOnly?: boolean;
 }
 
 export interface WorkspaceGitStashEntry {
   index: number;
   message: string;
   branch: string | null;
-  isPaseo: boolean;
+  isGravity: boolean;
 }
 
 export type WorkspaceGitBranchValidationResult = BranchCheckoutResolution;
 export type WorkspaceGitBranchSuggestion = BranchSuggestion;
-export type WorkspaceGitWorktreeInfo = PaseoWorktreeInfo;
+export type WorkspaceGitWorktreeInfo = GravityWorktreeInfo;
 
 export type WorkspaceGitSnapshotOptions =
   | {
@@ -342,7 +343,7 @@ interface WorkspaceGitServiceDependencies {
   resolveBranchCheckout: typeof resolveBranchCheckout;
   resolveRepositoryDefaultBranch: typeof resolveRepositoryDefaultBranch;
   listBranchSuggestions: typeof listBranchSuggestions;
-  listPaseoWorktrees: typeof listPaseoWorktrees;
+  listGravityWorktrees: typeof listGravityWorktrees;
   /**
    * Adapter instances to bind by forge id instead of building from the registry
    * — the injection seam for the daemon's shared GitHub adapter and for test
@@ -364,7 +365,7 @@ interface WorkspaceGitServiceDependencies {
 
 interface WorkspaceGitServiceOptions {
   logger: pino.Logger;
-  paseoHome: string;
+  gravityHome: string;
   worktreesRoot?: string;
   fileObserver?: FileObserver;
   deps?: Partial<WorkspaceGitServiceDependencies>;
@@ -498,7 +499,7 @@ function buildDefaultWorkspaceGitServiceDeps(
     resolveBranchCheckout,
     resolveRepositoryDefaultBranch,
     listBranchSuggestions,
-    listPaseoWorktrees,
+    listGravityWorktrees,
     resolveAbsoluteGitDir,
     hasOriginRemote,
     runGitFetch: fetchWorkspaceGitRemote,
@@ -518,7 +519,7 @@ function resolveWorkspaceGitServiceDeps(
 
 export class WorkspaceGitServiceImpl implements WorkspaceGitService {
   private readonly logger: pino.Logger;
-  private readonly paseoHome: string;
+  private readonly gravityHome: string;
   private readonly worktreesRoot: string | undefined;
   private readonly fileObserver: FileObserver;
   private readonly deps: WorkspaceGitServiceDependencies;
@@ -569,7 +570,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
   private watcherErrorCallbackCount = 0;
   constructor(options: WorkspaceGitServiceOptions) {
     this.logger = options.logger.child({ module: "workspace-git-service" });
-    this.paseoHome = options.paseoHome;
+    this.gravityHome = options.gravityHome;
     this.worktreesRoot = options.worktreesRoot;
     this.fileObserver = options.fileObserver ?? createFileObserver();
     this.deps = resolveWorkspaceGitServiceDeps(
@@ -693,7 +694,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
     this.assertNotDisposed();
     const normalizedCwd = resolve(cwd);
     const status = await this.deps.getCheckoutStatus(normalizedCwd, {
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       worktreesRoot: this.worktreesRoot,
       logger: this.logger,
     });
@@ -703,7 +704,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
         currentBranch: null,
         remoteUrl: null,
         repoRoot: null,
-        isPaseoOwnedWorktree: false,
+        isGravityOwnedWorktree: false,
         mainRepoRoot: null,
       });
     }
@@ -712,7 +713,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       currentBranch: status.currentBranch,
       remoteUrl: status.remoteUrl,
       repoRoot: status.repoRoot,
-      isPaseoOwnedWorktree: status.isPaseoOwnedWorktree,
+      isGravityOwnedWorktree: status.isGravityOwnedWorktree,
       mainRepoRoot: status.mainRepoRoot,
     });
   }
@@ -726,6 +727,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
     cwd: string,
     options: CheckoutDiffCompare,
     readOptions?: WorkspaceGitReadOptions,
+    onProgress?: (value: CheckoutDiffResult) => void,
   ): Promise<CheckoutDiffResult> {
     this.assertNotDisposed();
     const normalizedCwd = resolve(cwd);
@@ -738,11 +740,17 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       cwd: normalizedCwd,
       compare: normalizedOptions,
       ...readOptions,
-      load: () =>
-        this.deps.getCheckoutDiff(normalizedCwd, normalizedOptions, {
-          paseoHome: this.paseoHome,
-          worktreesRoot: this.worktreesRoot,
-        }),
+      onProgress,
+      load: (publish) =>
+        this.deps.getCheckoutDiff(
+          normalizedCwd,
+          normalizedOptions,
+          {
+            gravityHome: this.gravityHome,
+            worktreesRoot: this.worktreesRoot,
+          },
+          publish,
+        ),
     });
   }
 
@@ -813,14 +821,14 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
   ): Promise<WorkspaceGitStashEntry[]> {
     this.assertNotDisposed();
     const normalizedCwd = resolve(cwd);
-    const paseoOnly = options?.paseoOnly !== false;
-    const key = JSON.stringify(["stashes", normalizedCwd, paseoOnly]);
+    const gravityOnly = options?.gravityOnly !== false;
+    const key = JSON.stringify(["stashes", normalizedCwd, gravityOnly]);
     return this.readAuxiliaryCache(this.stashListCache, key, readOptions, async () => {
       const { stdout } = await this.deps.runGitCommand(["stash", "list", "--format=%gd%x00%s"], {
         cwd: normalizedCwd,
         envOverlay: READ_ONLY_GIT_ENV,
       });
-      return parseWorkspaceGitStashList(stdout, { paseoOnly });
+      return parseWorkspaceGitStashList(stdout, { gravityOnly });
     });
   }
 
@@ -832,9 +840,9 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
     const repoRoot = await this.resolveRepoRoot(cwdOrRepoRoot, options);
     const key = JSON.stringify(["worktrees", repoRoot]);
     return this.readAuxiliaryCache(this.worktreeListCache, key, options, () =>
-      this.deps.listPaseoWorktrees({
+      this.deps.listGravityWorktrees({
         cwd: repoRoot,
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         worktreesRoot: this.worktreesRoot,
       }),
     );
@@ -846,7 +854,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       throw new Error("Create worktree requires a git repository");
     }
 
-    return snapshot.git.isPaseoOwnedWorktree
+    return snapshot.git.isGravityOwnedWorktree
       ? (snapshot.git.mainRepoRoot ?? snapshot.git.repoRoot ?? resolve(cwd))
       : (snapshot.git.repoRoot ?? resolve(cwd));
   }
@@ -1233,7 +1241,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       return target.latestFacts;
     }
     return this.loadCheckoutFacts(target, {
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       logger: this.logger,
     });
   }
@@ -2554,7 +2562,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       target.latestFacts?.isGit && target.latestFacts.currentBranch === git.currentBranch
         ? target.latestFacts.pullRequestLookupTarget
         : null;
-    if (target.latestFacts?.isGit && target.latestFacts.paseoWorktree.isPaseoOwnedWorktree) {
+    if (target.latestFacts?.isGit && target.latestFacts.gravityWorktree.isGravityOwnedWorktree) {
       return lookupTarget;
     }
     if (lookupTarget) {
@@ -2875,7 +2883,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       { aheadBehind: latestGit.aheadBehind, diffStat: latestGit.diffStat },
       movedRemoteRefs,
       {
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         worktreesRoot: this.worktreesRoot,
         logger: this.logger,
         facts,
@@ -2907,7 +2915,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
 
     target.lastShellOutAtMs = this.deps.now().getTime();
     const context: CheckoutContext = {
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       worktreesRoot: this.worktreesRoot,
       logger: this.logger,
       facts,
@@ -2934,7 +2942,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
     const cwd = target.cwd;
     const previousForgePrStatusPollKey = this.getForgePrStatusPollKey(target);
     const baseContext: CheckoutContext = {
-      paseoHome: this.paseoHome,
+      gravityHome: this.gravityHome,
       worktreesRoot: this.worktreesRoot,
       logger: this.logger,
       runGitCommand: runRefreshGitCommand,
@@ -2966,7 +2974,7 @@ export class WorkspaceGitServiceImpl implements WorkspaceGitService {
       mainRepoRoot: checkoutStatus.mainRepoRoot,
       currentBranch: checkoutStatus.currentBranch,
       remoteUrl: checkoutStatus.remoteUrl,
-      isPaseoOwnedWorktree: checkoutStatus.isPaseoOwnedWorktree,
+      isGravityOwnedWorktree: checkoutStatus.isGravityOwnedWorktree,
       isDirty: refreshWorktree
         ? checkoutStatus.isDirty
         : (target.latestGit?.isDirty ?? checkoutStatus.isDirty),
@@ -3435,7 +3443,7 @@ function buildForgeSnapshot(
 
 function parseWorkspaceGitStashList(
   stdout: string,
-  options: { paseoOnly: boolean },
+  options: { gravityOnly: boolean },
 ): WorkspaceGitStashEntry[] {
   const entries: WorkspaceGitStashEntry[] = [];
   const lines = stdout.trim().split("\n").filter(Boolean);
@@ -3454,16 +3462,16 @@ function parseWorkspaceGitStashList(
     }
 
     const index = Number(indexMatch[1]);
-    const prefix = "paseo-auto-stash:";
+    const prefix = "gravity-auto-stash:";
     const prefixIdx = subject.indexOf(prefix);
-    const isPaseo = prefixIdx >= 0;
-    const branch = isPaseo ? subject.slice(prefixIdx + prefix.length).trim() || null : null;
+    const isGravity = prefixIdx >= 0;
+    const branch = isGravity ? subject.slice(prefixIdx + prefix.length).trim() || null : null;
 
-    if (options.paseoOnly && !isPaseo) {
+    if (options.gravityOnly && !isGravity) {
       continue;
     }
 
-    entries.push({ index, message: subject, branch, isPaseo });
+    entries.push({ index, message: subject, branch, isGravity });
   }
 
   return entries;
@@ -3478,7 +3486,7 @@ function buildNotGitSnapshot(cwd: string): WorkspaceGitRuntimeSnapshot {
       mainRepoRoot: null,
       currentBranch: null,
       remoteUrl: null,
-      isPaseoOwnedWorktree: false,
+      isGravityOwnedWorktree: false,
       isDirty: null,
       baseRef: null,
       aheadBehind: null,

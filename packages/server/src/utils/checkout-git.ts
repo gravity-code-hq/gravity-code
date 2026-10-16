@@ -3,9 +3,9 @@ import { existsSync, realpathSync } from "fs";
 import { open as openFile, readFile, stat as statFile } from "fs/promises";
 import { setImmediate } from "node:timers/promises";
 import { TTLCache } from "@isaacs/ttlcache";
-import type { CheckoutCommit, CheckoutCommitFile } from "@getpaseo/protocol/messages";
-import { parseGitHubRemoteIdentity, parseGitRemoteLocation } from "@getpaseo/protocol/git-remote";
-import { maxBase64EncryptedPlaintextByteLength } from "@getpaseo/relay";
+import type { CheckoutCommit, CheckoutCommitFile } from "@gravity/protocol/messages";
+import { parseGitHubRemoteIdentity, parseGitRemoteLocation } from "@gravity/protocol/git-remote";
+import { maxBase64EncryptedPlaintextByteLength } from "@gravity/relay";
 import type { Logger } from "pino";
 import type { ParsedDiffFile } from "../server/utils/diff-highlighter.js";
 import {
@@ -31,13 +31,13 @@ import {
 import { parseGitRevParsePath, resolveGitRevParsePath } from "./git-rev-parse-path.js";
 import { runGitCommand, type RunGitCommand } from "./run-git-command.js";
 import { readGitFileContents } from "./git-file-contents.js";
-import { isPaseoOwnedWorktreeCwd, resolvePaseoWorktreesBaseRoot } from "./worktree.js";
+import { isGravityOwnedWorktreeCwd, resolveGravityWorktreesBaseRoot } from "./worktree.js";
 import {
   branchNameFromRef,
-  getPaseoWorktreeChangeRequestHintForBranch,
-  type PaseoWorktreeMetadata,
-  readPaseoWorktreeMetadata,
-  rebindPaseoWorktreeChangeRequestHint,
+  getGravityWorktreeChangeRequestHintForBranch,
+  type GravityWorktreeMetadata,
+  readGravityWorktreeMetadata,
+  rebindGravityWorktreeChangeRequestHint,
 } from "./worktree-metadata.js";
 const READ_ONLY_GIT_ENV = {
   GIT_OPTIONAL_LOCKS: "0",
@@ -511,13 +511,22 @@ async function listCheckoutFileChanges(
 ): Promise<CheckoutFileChange[]> {
   const changes: CheckoutFileChange[] = [];
 
-  const { stdout: nameStatusOut } = await runGitCommand(
-    buildGitDiffArgs({
-      ignoreWhitespace,
-      extra: ["--name-status", ...getCheckoutDiffRefArgs(refs)],
-    }),
-    { cwd, envOverlay: READ_ONLY_GIT_ENV },
-  );
+  const [nameStatus, untracked] = await Promise.all([
+    runGitCommand(
+      buildGitDiffArgs({
+        ignoreWhitespace,
+        extra: ["--name-status", ...getCheckoutDiffRefArgs(refs)],
+      }),
+      { cwd, envOverlay: READ_ONLY_GIT_ENV },
+    ),
+    refs.includeUntracked
+      ? runGitCommand(["ls-files", "--others", "--exclude-standard"], {
+          cwd,
+          envOverlay: READ_ONLY_GIT_ENV,
+        })
+      : null,
+  ]);
+  const nameStatusOut = nameStatus.stdout;
   for (const line of nameStatusOut
     .split("\n")
     .map((l) => l.trim())
@@ -553,14 +562,8 @@ async function listCheckoutFileChanges(
     });
   }
 
-  if (refs.includeUntracked) {
-    const { stdout: untrackedOut } = await runGitCommand(
-      ["ls-files", "--others", "--exclude-standard"],
-      {
-        cwd,
-        envOverlay: READ_ONLY_GIT_ENV,
-      },
-    );
+  if (untracked) {
+    const untrackedOut = untracked.stdout;
     for (const file of untrackedOut
       .split("\n")
       .map((l) => l.trim())
@@ -642,6 +645,7 @@ function buildGitDiffArgs(args: { ignoreWhitespace?: boolean; extra: string[] })
 
 const TRACKED_DIFF_NUMSTAT_MAX_BYTES = 2 * 1024 * 1024; // 2MB
 const TRACKED_DIFF_BATCH_SIZE = 64;
+const UNTRACKED_DIFF_BATCH_SIZE = 8;
 const EMPTY_TREE_OBJECT_ID = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 
 function isUnbornHeadDiffError(error: unknown): boolean {
@@ -834,7 +838,7 @@ export interface CheckoutStatus {
   isGit: false;
 }
 
-export interface CheckoutStatusGitNonPaseo {
+export interface CheckoutStatusGitNonGravity {
   isGit: true;
   repoRoot: string;
   mainRepoRoot: string | null;
@@ -850,10 +854,10 @@ export interface CheckoutStatusGitNonPaseo {
   behindOfOrigin: number | null;
   hasRemote: boolean;
   remoteUrl: string | null;
-  isPaseoOwnedWorktree: false;
+  isGravityOwnedWorktree: false;
 }
 
-export interface CheckoutStatusGitPaseo {
+export interface CheckoutStatusGitGravity {
   isGit: true;
   repoRoot: string;
   mainRepoRoot: string;
@@ -866,10 +870,10 @@ export interface CheckoutStatusGitPaseo {
   behindOfOrigin: number | null;
   hasRemote: boolean;
   remoteUrl: string | null;
-  isPaseoOwnedWorktree: true;
+  isGravityOwnedWorktree: true;
 }
 
-export type CheckoutStatusGit = CheckoutStatusGitNonPaseo | CheckoutStatusGitPaseo;
+export type CheckoutStatusGit = CheckoutStatusGitNonGravity | CheckoutStatusGitGravity;
 
 export type CheckoutStatusResult = CheckoutStatus | CheckoutStatusGit;
 
@@ -896,7 +900,7 @@ export interface MergeFromBaseOptions {
 }
 
 export interface CheckoutContext {
-  paseoHome?: string;
+  gravityHome?: string;
   worktreesRoot?: string;
   logger?: Pick<Logger, "trace" | "warn">;
   facts?: CheckoutSnapshotFacts | null;
@@ -914,7 +918,7 @@ export type CheckoutSnapshotFacts =
       remoteUrl: string | null;
       absoluteGitDir: string | null;
       gitCommonDir: string | null;
-      paseoWorktree: PaseoWorktreeForCwd;
+      gravityWorktree: GravityWorktreeForCwd;
       storedBaseRef: string | null;
       resolvedBaseRef: string | null;
       mainRepoRoot: string | null;
@@ -1085,17 +1089,19 @@ async function getMainRepoRootFromCommonDir(
     },
   );
   const worktrees = parseWorktreeList(worktreeOut);
-  const nonBareNonPaseo = worktrees.filter(
+  const nonBareNonGravity = worktrees.filter(
     (wt) =>
       !wt.isBare &&
-      !isPaseoWorktreePath(wt.path, {
-        paseoHome: context?.paseoHome,
+      !isGravityWorktreePath(wt.path, {
+        gravityHome: context?.gravityHome,
         worktreesRoot: context?.worktreesRoot,
       }),
   );
-  const childrenOfBareRepo = nonBareNonPaseo.filter((wt) => isDescendantPath(wt.path, normalized));
+  const childrenOfBareRepo = nonBareNonGravity.filter((wt) =>
+    isDescendantPath(wt.path, normalized),
+  );
   const mainChild = childrenOfBareRepo.find((wt) => basename(wt.path) === "main");
-  return mainChild?.path ?? childrenOfBareRepo[0]?.path ?? nonBareNonPaseo[0]?.path ?? normalized;
+  return mainChild?.path ?? childrenOfBareRepo[0]?.path ?? nonBareNonGravity[0]?.path ?? normalized;
 }
 
 export interface GitWorktreeEntry {
@@ -1104,15 +1110,15 @@ export interface GitWorktreeEntry {
   isBare?: boolean;
 }
 
-/** Check whether a path is under Paseo's worktree root. */
-export function isPaseoWorktreePath(
+/** Check whether a path is under Gravity's worktree root. */
+export function isGravityWorktreePath(
   p: string,
-  options?: { paseoHome?: string; worktreesRoot?: string },
+  options?: { gravityHome?: string; worktreesRoot?: string },
 ): boolean {
-  if (options?.worktreesRoot || options?.paseoHome) {
-    return isDescendantPath(p, resolvePaseoWorktreesBaseRoot(options));
+  if (options?.worktreesRoot || options?.gravityHome) {
+    return isDescendantPath(p, resolveGravityWorktreesBaseRoot(options));
   }
-  return /[/\\]\.paseo[/\\]worktrees[/\\]/.test(p);
+  return /[/\\]\.gravity[/\\]worktrees[/\\]/.test(p);
 }
 
 /** True when `child` is strictly inside `parent` (handles both `/` and `\`). */
@@ -1193,53 +1199,53 @@ export async function renameCurrentBranch(
 
   const currentBranch = await getCurrentBranch(cwd);
   if (currentBranch) {
-    rebindPaseoWorktreeChangeRequestHint(worktreeRoot, previousBranch, currentBranch);
+    rebindGravityWorktreeChangeRequestHint(worktreeRoot, previousBranch, currentBranch);
   }
   return { previousBranch, currentBranch };
 }
 
-type PaseoWorktreeForCwd =
-  | { isPaseoOwnedWorktree: false }
-  | { isPaseoOwnedWorktree: true; worktreeRoot: string };
+type GravityWorktreeForCwd =
+  | { isGravityOwnedWorktree: false }
+  | { isGravityOwnedWorktree: true; worktreeRoot: string };
 
-interface PaseoWorktreeLookupOptions {
+interface GravityWorktreeLookupOptions {
   context?: CheckoutContext;
   knownWorktreeRoot?: string | null;
   knownGitCommonDir?: string | null;
 }
 
-async function getPaseoWorktreeForCwd(
+async function getGravityWorktreeForCwd(
   cwd: string,
-  options: PaseoWorktreeLookupOptions = {},
-): Promise<PaseoWorktreeForCwd> {
+  options: GravityWorktreeLookupOptions = {},
+): Promise<GravityWorktreeForCwd> {
   // Fast-path reject: non-worktree paths do not need expensive ownership checks.
   if (!/[\\/]worktrees[\\/]/.test(cwd)) {
-    return { isPaseoOwnedWorktree: false };
+    return { isGravityOwnedWorktree: false };
   }
 
-  const ownership = await isPaseoOwnedWorktreeCwd(cwd, {
-    paseoHome: options.context?.paseoHome,
+  const ownership = await isGravityOwnedWorktreeCwd(cwd, {
+    gravityHome: options.context?.gravityHome,
     worktreesRoot: options.context?.worktreesRoot,
     knownGitCommonDir: options.knownGitCommonDir,
   });
   if (!ownership.allowed) {
-    return { isPaseoOwnedWorktree: false };
+    return { isGravityOwnedWorktree: false };
   }
 
   return {
-    isPaseoOwnedWorktree: true,
+    isGravityOwnedWorktree: true,
     worktreeRoot: options.knownWorktreeRoot ?? (await getWorktreeRoot(cwd, options.context)) ?? cwd,
   };
 }
 
 // Worktrees created before baseRef existed only stored the stripped name; it resolves
 // local-first, which is the base they were actually cut from.
-function storedBaseRefFromMetadata(metadata: PaseoWorktreeMetadata | null): string | null {
+function storedBaseRefFromMetadata(metadata: GravityWorktreeMetadata | null): string | null {
   return metadata?.baseRef ?? metadata?.baseRefName ?? null;
 }
 
-function readPaseoWorktreeBaseRef(worktreeRoot: string): string | null {
-  return storedBaseRefFromMetadata(readPaseoWorktreeMetadata(worktreeRoot));
+function readGravityWorktreeBaseRef(worktreeRoot: string): string | null {
+  return storedBaseRefFromMetadata(readGravityWorktreeMetadata(worktreeRoot));
 }
 
 async function getStoredBaseRefForCwd(
@@ -1249,12 +1255,12 @@ async function getStoredBaseRefForCwd(
   if (context?.facts?.isGit) {
     return context.facts.storedBaseRef;
   }
-  const paseoWorktree = await getPaseoWorktreeForCwd(cwd, { context });
-  if (!paseoWorktree.isPaseoOwnedWorktree) {
+  const gravityWorktree = await getGravityWorktreeForCwd(cwd, { context });
+  if (!gravityWorktree.isGravityOwnedWorktree) {
     return null;
   }
 
-  return readPaseoWorktreeBaseRef(paseoWorktree.worktreeRoot);
+  return readGravityWorktreeBaseRef(gravityWorktree.worktreeRoot);
 }
 
 async function getResolvedBaseRefForCwd(
@@ -1778,7 +1784,7 @@ interface CheckoutInspectionContext {
   remoteUrl: string | null;
   absoluteGitDir: string | null;
   gitCommonDir: string | null;
-  paseoWorktree: PaseoWorktreeForCwd;
+  gravityWorktree: GravityWorktreeForCwd;
 }
 
 async function inspectCheckoutContext(
@@ -1796,7 +1802,7 @@ async function inspectCheckoutContext(
     resolveAbsoluteGitDir(cwd, context),
     resolveGitCommonDir(cwd, context),
   ]);
-  const paseoWorktree = await getPaseoWorktreeForCwd(cwd, {
+  const gravityWorktree = await getGravityWorktreeForCwd(cwd, {
     context,
     knownWorktreeRoot: root,
     knownGitCommonDir: gitCommonDir,
@@ -1808,7 +1814,7 @@ async function inspectCheckoutContext(
     remoteUrl,
     absoluteGitDir,
     gitCommonDir,
-    paseoWorktree,
+    gravityWorktree,
   };
 }
 
@@ -1900,10 +1906,10 @@ function buildPullRequestLookupTargetFromPushConfig(
 }
 
 function buildPullRequestLookupTargetFromMetadata(
-  metadata: PaseoWorktreeMetadata | null,
+  metadata: GravityWorktreeMetadata | null,
   currentBranch: string,
 ): PullRequestStatusLookupTarget | null {
-  const target = getPaseoWorktreeChangeRequestHintForBranch(metadata, currentBranch);
+  const target = getGravityWorktreeChangeRequestHintForBranch(metadata, currentBranch);
   if (!target) {
     return null;
   }
@@ -1984,7 +1990,7 @@ async function resolvePullRequestLookupTargetFromPushConfig(
 async function resolveFactsPullRequestLookupTarget(input: {
   cwd: string;
   inspected: CheckoutInspectionContext;
-  metadata: PaseoWorktreeMetadata | null;
+  metadata: GravityWorktreeMetadata | null;
   branchRemoteName: string | null;
   branchMergeRef: string | null;
   branchRemoteUrl: string | null;
@@ -2037,10 +2043,10 @@ export async function getCheckoutSnapshotFacts(
     return { isGit: false };
   }
 
-  const paseoWorktreeMetadata = inspected.paseoWorktree.isPaseoOwnedWorktree
-    ? readPaseoWorktreeMetadata(inspected.paseoWorktree.worktreeRoot)
+  const gravityWorktreeMetadata = inspected.gravityWorktree.isGravityOwnedWorktree
+    ? readGravityWorktreeMetadata(inspected.gravityWorktree.worktreeRoot)
     : null;
-  const storedBaseRef = storedBaseRefFromMetadata(paseoWorktreeMetadata);
+  const storedBaseRef = storedBaseRefFromMetadata(gravityWorktreeMetadata);
   const resolvedBaseRef = storedBaseRef ?? (await resolveBaseRef(cwd, context));
   const mainRepoRoot = await getMainRepoRootFromCommonDir(
     cwd,
@@ -2082,7 +2088,7 @@ export async function getCheckoutSnapshotFacts(
   let pullRequestLookupTarget = await resolveFactsPullRequestLookupTarget({
     cwd,
     inspected,
-    metadata: paseoWorktreeMetadata,
+    metadata: gravityWorktreeMetadata,
     branchRemoteName,
     branchMergeRef,
     branchRemoteUrl,
@@ -2103,7 +2109,7 @@ export async function getCheckoutSnapshotFacts(
     remoteUrl: inspected.remoteUrl,
     absoluteGitDir: inspected.absoluteGitDir,
     gitCommonDir: inspected.gitCommonDir,
-    paseoWorktree: inspected.paseoWorktree,
+    gravityWorktree: inspected.gravityWorktree,
     storedBaseRef,
     resolvedBaseRef,
     mainRepoRoot,
@@ -2119,7 +2125,7 @@ const PER_FILE_DIFF_MAX_BYTES = 1024 * 1024; // 1MB
 const TOTAL_DIFF_MAX_BYTES = 2 * 1024 * 1024; // 2MB
 const RELAY_MAX_FRAME_BYTES = 32 * 1024 * 1024;
 const CHECKOUT_DIFF_FRAME_HEADROOM_BYTES = 1024 * 1024;
-// Temporary until diffs load lazily per file. The Paseo relay's 32 MiB frame limit is
+// Temporary until diffs load lazily per file. The Gravity relay's 32 MiB frame limit is
 // binding: string frames are encrypted and base64-encoded. Reserve 1 MiB plaintext for
 // the surrounding WebSocket JSON envelope after inverting that exact wire expansion.
 export const CHECKOUT_DIFF_MAX_STRUCTURED_BYTES =
@@ -2269,7 +2275,7 @@ export async function getCheckoutStatus(
   const worktreeRoot = facts.worktreeRoot;
   const currentBranch = facts.currentBranch;
   const remoteUrl = facts.remoteUrl;
-  const paseoWorktree = facts.paseoWorktree;
+  const gravityWorktree = facts.gravityWorktree;
   const isDirty = await isWorkingTreeDirty(cwd, context);
   const hasRemote = remoteUrl !== null;
   const baseRef = facts.resolvedBaseRef;
@@ -2288,7 +2294,7 @@ export async function getCheckoutStatus(
   const aheadOfOrigin = upstreamStatus?.aheadBehind.ahead ?? null;
   const behindOfOrigin = upstreamStatus?.aheadBehind.behind ?? null;
 
-  if (paseoWorktree.isPaseoOwnedWorktree && baseRef) {
+  if (gravityWorktree.isGravityOwnedWorktree && baseRef) {
     return {
       isGit: true,
       repoRoot: worktreeRoot,
@@ -2302,7 +2308,7 @@ export async function getCheckoutStatus(
       behindOfOrigin,
       hasRemote,
       remoteUrl,
-      isPaseoOwnedWorktree: true,
+      isGravityOwnedWorktree: true,
     };
   }
 
@@ -2320,7 +2326,7 @@ export async function getCheckoutStatus(
     behindOfOrigin,
     hasRemote,
     remoteUrl,
-    isPaseoOwnedWorktree: false,
+    isGravityOwnedWorktree: false,
   };
 }
 
@@ -3028,12 +3034,10 @@ export function warmCheckoutShortstatInBackground(
 }
 
 interface AppendStructuredTrackedDiffsInput {
-  cwd: string;
   trackedChanges: CheckoutFileChange[];
   trackedNumstatByPath: Map<string, FileStat>;
   trackedPlaceholderByPath: Map<string, { status: "binary" | "too_large"; stat: FileStat }>;
   trackedDiffText: string;
-  refsForDiff: CheckoutDiffRefs;
   ignoreWhitespace: boolean;
   structured: StructuredDiffAccumulator;
   appendTrackedPlaceholderComment: (
@@ -3104,16 +3108,12 @@ function readTrackedDiffContents(
   return readGitFileContents(cwd, specs);
 }
 
-async function appendStructuredTrackedDiffs(
-  input: AppendStructuredTrackedDiffsInput,
-): Promise<boolean> {
+function appendStructuredTrackedDiffs(input: AppendStructuredTrackedDiffsInput): boolean {
   const {
-    cwd,
     trackedChanges,
     trackedNumstatByPath,
     trackedPlaceholderByPath,
     trackedDiffText,
-    refsForDiff,
     ignoreWhitespace,
     structured,
     appendTrackedPlaceholderComment,
@@ -3122,86 +3122,110 @@ async function appendStructuredTrackedDiffs(
   const parsedTrackedFiles = trackedDiffText.length > 0 ? parseDiff(trackedDiffText) : [];
   const parsedTrackedByPath = new Map(parsedTrackedFiles.map((file) => [file.path, file]));
 
-  for (let start = 0; start < trackedChanges.length; start += TRACKED_DIFF_BATCH_SIZE) {
-    const changes = trackedChanges.slice(start, start + TRACKED_DIFF_BATCH_SIZE);
-    const contents = await readTrackedDiffContents(
-      cwd,
-      changes.filter(
-        (change) =>
-          !trackedPlaceholderByPath.has(change.path) && parsedTrackedByPath.has(change.path),
-      ),
-      refsForDiff,
-    );
-    for (const change of changes) {
-      const placeholder = trackedPlaceholderByPath.get(change.path);
-      if (placeholder) {
-        const file = buildPlaceholderParsedDiffFile(change, {
-          status: placeholder.status,
-          stat: placeholder.stat,
-        });
-        if (!appendStructuredFile(structured, file)) {
-          return false;
-        }
-        appendTrackedPlaceholderComment(change, placeholder.status);
-        continue;
+  for (const change of trackedChanges) {
+    const placeholder = trackedPlaceholderByPath.get(change.path);
+    if (placeholder) {
+      const file = buildPlaceholderParsedDiffFile(change, {
+        status: placeholder.status,
+        stat: placeholder.stat,
+      });
+      if (!appendStructuredFile(structured, file)) {
+        return false;
       }
+      appendTrackedPlaceholderComment(change, placeholder.status);
+      continue;
+    }
 
-      const stat = trackedNumstatByPath.get(change.path) ?? null;
-      const parsedFile = parsedTrackedByPath.get(change.path);
-      if (parsedFile) {
-        const file = await buildHighlightedTrackedDiffFile({
-          cwd,
-          change,
-          parsedFile,
-          refsForDiff,
-          contents: contents ?? undefined,
-        });
-        if (!appendStructuredFile(structured, file)) {
-          return false;
-        }
-        // Batched blobs remove the per-file I/O pause; keep serving other daemon work.
-        await setImmediate();
-        continue;
-      }
-
-      // `git diff -w --name-status` can still report a modified path even when the
-      // whitespace-filtered patch and numstat are both empty. Skip emitting a
-      // structured placeholder in that case so whitespace-only edits truly disappear.
-      if (isWhitespaceOnlyTrackedChange({ change, stat, ignoreWhitespace })) {
-        continue;
-      }
-
+    const stat = trackedNumstatByPath.get(change.path) ?? null;
+    const parsedFile = parsedTrackedByPath.get(change.path);
+    if (parsedFile) {
       const file = {
+        ...parsedFile,
         path: change.path,
         ...(change.oldPath ? { oldPath: change.oldPath } : {}),
         isNew: change.isNew,
         isDeleted: change.isDeleted,
-        additions: stat?.additions ?? 0,
-        deletions: stat?.deletions ?? 0,
-        hunks: [],
         status: "ok",
       } satisfies ParsedDiffFile;
       if (!appendStructuredFile(structured, file)) {
         return false;
       }
+      continue;
+    }
+
+    // `git diff -w --name-status` can still report a modified path even when the
+    // whitespace-filtered patch and numstat are both empty. Skip emitting a
+    // structured placeholder in that case so whitespace-only edits truly disappear.
+    if (isWhitespaceOnlyTrackedChange({ change, stat, ignoreWhitespace })) {
+      continue;
+    }
+
+    const file = {
+      path: change.path,
+      ...(change.oldPath ? { oldPath: change.oldPath } : {}),
+      isNew: change.isNew,
+      isDeleted: change.isDeleted,
+      additions: stat?.additions ?? 0,
+      deletions: stat?.deletions ?? 0,
+      hunks: [],
+      status: "ok",
+    } satisfies ParsedDiffFile;
+    if (!appendStructuredFile(structured, file)) {
+      return false;
     }
   }
 
   return true;
 }
 
-interface ProcessUntrackedChangeInput {
+async function highlightCheckoutDiff(input: {
   cwd: string;
+  files: ParsedDiffFile[];
+  changes: CheckoutFileChange[];
+  refsForDiff: CheckoutDiffRefs;
+}): Promise<ParsedDiffFile[] | null> {
+  const { cwd, files, changes, refsForDiff } = input;
+  const changesByPath = new Map(changes.map((change) => [change.path, change]));
+  const highlighted = createStructuredDiffAccumulator();
+  for (let start = 0; start < files.length; start += TRACKED_DIFF_BATCH_SIZE) {
+    const batch = files.slice(start, start + TRACKED_DIFF_BATCH_SIZE);
+    const trackedChanges = batch
+      .filter((file) => file.status === "ok" && file.hunks.length > 0)
+      .map((file) => changesByPath.get(file.path)!)
+      .filter((change) => !change.isUntracked);
+    const contents = await readTrackedDiffContents(cwd, trackedChanges, refsForDiff);
+    for (const file of batch) {
+      let highlightedFile = file;
+      if (file.status === "ok" && file.hunks.length > 0) {
+        const change = changesByPath.get(file.path)!;
+        highlightedFile = change.isUntracked
+          ? await highlightDiffWithFileContent(file, cwd)
+          : await buildHighlightedTrackedDiffFile({
+              cwd,
+              change,
+              parsedFile: file,
+              refsForDiff,
+              contents: contents ?? undefined,
+            });
+        await setImmediate();
+      }
+      if (!appendStructuredFile(highlighted, highlightedFile)) return null;
+    }
+  }
+  return highlighted.files;
+}
+
+interface ProcessUntrackedChangeInput {
   change: CheckoutFileChange;
-  ignoreWhitespace: boolean;
+  diff: Awaited<ReturnType<typeof getUntrackedDiffText>>;
   includeStructured: boolean;
   structured: StructuredDiffAccumulator;
   appendDiff: (text: string) => void;
 }
 
-async function processUntrackedChange(input: ProcessUntrackedChangeInput): Promise<boolean> {
-  const { cwd, change, ignoreWhitespace, includeStructured, structured, appendDiff } = input;
-  const { text, truncated, stat } = await getUntrackedDiffText(cwd, change, ignoreWhitespace);
+function processUntrackedChange(input: ProcessUntrackedChangeInput): boolean {
+  const { change, diff, includeStructured, structured, appendDiff } = input;
+  const { text, truncated, stat } = diff;
 
   if (!includeStructured) {
     if (stat?.isBinary) {
@@ -3241,7 +3265,7 @@ async function processUntrackedChange(input: ProcessUntrackedChangeInput): Promi
   }
 
   appendDiff(text);
-  const parsed = await parseAndHighlightDiff(text, cwd);
+  const parsed = parseDiff(text);
   const parsedFile =
     parsed[0] ??
     ({
@@ -3387,6 +3411,7 @@ export async function getCheckoutDiff(
   cwd: string,
   compare: CheckoutDiffCompare,
   context?: CheckoutContext,
+  onProgress?: (result: CheckoutDiffResult) => void,
 ): Promise<CheckoutDiffResult> {
   await requireGitRepo(cwd);
 
@@ -3453,13 +3478,11 @@ export async function getCheckoutDiff(
   };
 
   if (compare.includeStructured) {
-    const didAppendTrackedDiffs = await appendStructuredTrackedDiffs({
-      cwd,
+    const didAppendTrackedDiffs = appendStructuredTrackedDiffs({
       trackedChanges,
       trackedNumstatByPath: trackedDiff.trackedNumstatByPath,
       trackedPlaceholderByPath: trackedDiff.trackedPlaceholderByPath,
       trackedDiffText: trackedDiff.trackedDiffText,
-      refsForDiff: effectiveRefsForDiff,
       ignoreWhitespace,
       structured,
       appendTrackedPlaceholderComment,
@@ -3476,25 +3499,41 @@ export async function getCheckoutDiff(
     }
   }
 
-  for (const change of untrackedChanges) {
-    if (diffBytes >= TOTAL_DIFF_MAX_BYTES) {
-      break;
-    }
-    const didAppendUntrackedDiff = await processUntrackedChange({
-      cwd,
-      change,
-      ignoreWhitespace,
-      includeStructured: compare.includeStructured === true,
-      structured,
-      appendDiff,
-    });
-    if (!didAppendUntrackedDiff) {
-      return { diff: "", structured: [], diffTooLarge: true };
+  for (let start = 0; start < untrackedChanges.length; start += UNTRACKED_DIFF_BATCH_SIZE) {
+    if (diffBytes >= TOTAL_DIFF_MAX_BYTES) break;
+    const batch = untrackedChanges.slice(start, start + UNTRACKED_DIFF_BATCH_SIZE);
+    const diffs = await Promise.all(
+      batch.map((change) => getUntrackedDiffText(cwd, change, ignoreWhitespace)),
+    );
+    for (const [index, change] of batch.entries()) {
+      if (diffBytes >= TOTAL_DIFF_MAX_BYTES) break;
+      const didAppendUntrackedDiff = processUntrackedChange({
+        change,
+        diff: diffs[index],
+        includeStructured: compare.includeStructured === true,
+        structured,
+        appendDiff,
+      });
+      if (!didAppendUntrackedDiff) {
+        return { diff: "", structured: [], diffTooLarge: true };
+      }
     }
   }
 
   if (compare.includeStructured) {
-    return { diff: diffText, structured: structured.files };
+    if (onProgress && structured.files.length > 0) {
+      onProgress({ diff: diffText, structured: structured.files });
+      // Let the subscription response leave before starting CPU-heavy parsers.
+      await setImmediate();
+    }
+    const highlighted = await highlightCheckoutDiff({
+      cwd,
+      files: structured.files,
+      changes,
+      refsForDiff: effectiveRefsForDiff,
+    });
+    if (!highlighted) return { diff: "", structured: [], diffTooLarge: true };
+    return { diff: diffText, structured: highlighted };
   }
   return { diff: diffText };
 }
@@ -4190,7 +4229,7 @@ function getUnavailablePullRequestStatus(
   }
   if (
     facts?.isGit === true &&
-    facts.paseoWorktree.isPaseoOwnedWorktree &&
+    facts.gravityWorktree.isGravityOwnedWorktree &&
     facts.pullRequestLookupTarget === null
   ) {
     return buildPullRequestStatusResult(null, "authenticated");

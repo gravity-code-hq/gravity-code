@@ -1,6 +1,10 @@
 import type { KeyboardShortcutPayload, MessageInputKeyboardActionKind } from "@/keyboard/actions";
 import type { KeyboardActionDefinition } from "@/keyboard/keyboard-action-dispatcher";
-import { buildSettingsRoute, parseHostWorkspaceRouteFromPathname } from "@/utils/host-routes";
+import {
+  buildSessionsRoute,
+  buildSettingsRoute,
+  parseHostWorkspaceRouteFromPathname,
+} from "@/utils/host-routes";
 import {
   getRelativeSidebarShortcutTarget,
   type SidebarShortcutWorkspaceTarget,
@@ -43,6 +47,7 @@ const PASSTHROUGH_DISPATCH: Record<string, KeyboardActionDefinition> = {
   "workspace.tab.menu.open": { id: "workspace.tab.menu.open", scope: "workspace" },
   "workspace.tab.target.agent": { id: "workspace.tab.target.agent", scope: "workspace" },
   "workspace.tab.target.browser": { id: "workspace.tab.target.browser", scope: "workspace" },
+  "workspace.tab.target.diff": { id: "workspace.tab.target.diff", scope: "workspace" },
   "workspace.tab.target.changes": { id: "workspace.tab.target.changes", scope: "workspace" },
   "workspace.tab.target.files": { id: "workspace.tab.target.files", scope: "workspace" },
   "workspace.new": { id: "workspace.new", scope: "sidebar" },
@@ -207,6 +212,10 @@ export function routeKeyboardShortcut(
       return { kind: "open-project-picker" };
     case "settings.toggle":
       return routeSettingsToggle(ctx);
+    case "history.open":
+      // Already there: pushing again would stack a duplicate History screen.
+      if (ctx.pathname.startsWith(buildSessionsRoute())) return NONE;
+      return { kind: "router-push", route: buildSessionsRoute() };
     case "command-center.toggle":
       return { kind: "command-center-toggle", nextOpen: !ctx.commandCenterOpen };
     case "command-center.files":

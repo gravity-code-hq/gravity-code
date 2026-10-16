@@ -5,7 +5,7 @@ import {
   type PluginWorkspacePanelProps,
   useRpc,
   useWorkspace,
-} from "@getpaseo/plugin/client";
+} from "@gravity/plugin/client";
 import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { incrementRpc } from "../shared/increment";
@@ -40,7 +40,7 @@ export function contributeClient(client: PluginClientContext) {
     pills.get(agentId)?.remove();
     pills.delete(agentId);
   };
-  void client.paseo.agents
+  void client.gravity.agents
     .list({ subscribe: {}, signal: lifetime.signal })
     .then(({ subscription }) => {
       subscription.subscribe({

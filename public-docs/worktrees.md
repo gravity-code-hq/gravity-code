@@ -10,35 +10,35 @@ category: Workspaces
 
 Git worktrees are one kind of workspace.
 
-A [workspace](/docs/workspaces) is the place where a task happens. When that workspace is backed by a git worktree, Paseo creates a separate directory on a separate branch so parallel agents never step on each other.
+A [workspace](/docs/workspaces) is the place where a task happens. When that workspace is backed by a git worktree, Gravity creates a separate directory on a separate branch so parallel agents never step on each other.
 
-This page covers the git-specific details: where worktrees live, how branches are chosen, and how to configure setup hooks, scripts, terminals, and long-running services through `paseo.json`.
+This page covers the git-specific details: where worktrees live, how branches are chosen, and how to configure setup hooks, scripts, terminals, and long-running services through `gravity.json`.
 
 ## Layout and workflow
 
-Worktrees live under `$PASEO_HOME/worktrees/` by default, grouped by a hash of the source checkout path. You can change the base directory with `worktrees.root` in `config.json`. Each worktree gets a slug and a branch when its workspace is created.
+Worktrees live under `$GRAVITY_HOME/worktrees/` by default, grouped by a hash of the source checkout path. You can change the base directory with `worktrees.root` in `config.json`. Each worktree gets a slug and a branch when its workspace is created.
 
 ```
-~/.paseo/worktrees/
+~/.gravity/worktrees/
 └── 1vnnm9k3/               # hash of source checkout path
     ├── tidy-fox/           # worktree slug
     └── bold-owl/
 ```
 
-With a custom root, Paseo keeps the same hashed layout under that directory:
+With a custom root, Gravity keeps the same hashed layout under that directory:
 
 ```json
 {
   "worktrees": {
-    "root": "/mnt/fast/paseo-worktrees"
+    "root": "/mnt/fast/gravity-worktrees"
   }
 }
 ```
 
-1. Create a workspace with worktree isolation, Paseo creates the worktree and runs your setup hooks
+1. Create a workspace, Gravity creates the worktree and runs your setup hooks
 2. Launch one or more agents in that workspace
 3. Review the diff against the base branch
-4. Merge or archive the workspace; after the last workspace using it is archived, Paseo runs teardown and removes the worktree
+4. Merge or archive the workspace; after the last workspace using it is archived, Gravity runs teardown and removes the worktree
 
 ## Create a worktree-backed workspace
 
@@ -47,21 +47,19 @@ The examples below use the current directory as the source checkout. Pass `--pat
 Branch off from a base branch:
 
 ```bash
-paseo workspace create \
-  --isolation worktree \
+gravity workspace create \
   --mode branch-off \
   --new-branch feature/auth \
   --worktree-slug feature-auth \
   --base origin/main
 ```
 
-Use `origin/main` rather than `main`. Paseo fetches remote refs in the background, so the remote-tracking branch is current, while your local `main` is whatever you last pulled. An unqualified `main` resolves to that local branch first, and the worktree starts from stale history. Prefixing the remote names the fetched ref explicitly.
+Use `origin/main` rather than `main`. Gravity fetches remote refs in the background, so the remote-tracking branch is current, while your local `main` is whatever you last pulled. An unqualified `main` resolves to that local branch first, and the worktree starts from stale history. Prefixing the remote names the fetched ref explicitly.
 
 Check out an existing branch:
 
 ```bash
-paseo workspace create \
-  --isolation worktree \
+gravity workspace create \
   --mode checkout-branch \
   --branch feature/existing \
   --worktree-slug existing-copy
@@ -70,17 +68,16 @@ paseo workspace create \
 Or open a pull request in its own workspace:
 
 ```bash
-paseo workspace create \
-  --isolation worktree \
+gravity workspace create \
   --mode checkout-pr \
   --pr-number 2186
 ```
 
-Add `--forge <name>` when Paseo cannot infer the forge from the source checkout.
+Add `--forge <name>` when Gravity cannot infer the forge from the source checkout.
 
-## paseo.json
+## gravity.json
 
-Drop a `paseo.json` in your repo root. Paseo reads it from the committed version of the base branch you picked, so uncommitted changes in other branches don't apply.
+Drop a `gravity.json` in your repo root. Gravity reads it from the committed version of the base branch you picked, so uncommitted changes in other branches don't apply.
 
 ```json
 {
@@ -102,7 +99,7 @@ Drop a `paseo.json` in your repo root. Paseo reads it from the committed version
 ```json
 {
   "worktree": {
-    "setup": "npm ci\ncp \"$PASEO_SOURCE_CHECKOUT_PATH/.env\" .env\nnpm run db:migrate",
+    "setup": "npm ci\ncp \"$GRAVITY_SOURCE_CHECKOUT_PATH/.env\" .env\nnpm run db:migrate",
     "teardown": "npm run db:drop || true"
   }
 }
@@ -110,13 +107,13 @@ Drop a `paseo.json` in your repo root. Paseo reads it from the committed version
 
 Both fields accept a multiline shell script or an array of commands; commands run sequentially either way.
 
-Commands run with the worktree as `cwd`. Use `$PASEO_SOURCE_CHECKOUT_PATH` to reach files in the original checkout (untracked config, local caches, etc).
+Commands run with the worktree as `cwd`. Use `$GRAVITY_SOURCE_CHECKOUT_PATH` to reach files in the original checkout (untracked config, local caches, etc).
 
 ## Scripts and services
 
-`scripts` are named commands you can run inside a worktree on demand. Mark one as a _service_ and Paseo supervises it as a long-running process, assigns it a port, and routes HTTP traffic to it through the daemon's reverse proxy.
+`scripts` are named commands you can run inside a worktree on demand. Mark one as a _service_ and Gravity supervises it as a long-running process, assigns it a port, and routes HTTP traffic to it through the daemon's reverse proxy.
 
-Run them from the app, or manage them from automation with [`paseo script`](/docs/cli#workspace-scripts) and the [workspace-script MCP tools](/docs/mcp#workspace-scripts).
+Run them from the app, or manage them from automation with [`gravity script`](/docs/cli#workspace-scripts) and the [workspace-script MCP tools](/docs/mcp#workspace-scripts).
 
 ### Plain scripts
 
@@ -137,26 +134,26 @@ Run them from the app, or manage them from automation with [`paseo script`](/doc
   "scripts": {
     "web": {
       "type": "service",
-      "command": "npm run dev -- --port $PASEO_PORT",
+      "command": "npm run dev -- --port $GRAVITY_PORT",
       "port": 3000
     },
     "api": {
       "type": "service",
-      "command": "npm run api -- --port $PASEO_PORT"
+      "command": "npm run api -- --port $GRAVITY_PORT"
     }
   }
 }
 ```
 
-Omit `port` to let Paseo auto-assign one. Bind your process to `$PASEO_PORT` rather than hard-coding, each worktree gets a distinct port so multiple copies of the same service coexist.
+Omit `port` to let Gravity auto-assign one. Bind your process to `$GRAVITY_PORT` rather than hard-coding, each worktree gets a distinct port so multiple copies of the same service coexist.
 
 ### Dynamic port allocation
 
-By default, Paseo asks the OS for an available ephemeral port. Configure a range globally in
-`~/.paseo/config.json` or per project in `paseo.json`:
+By default, Gravity asks the OS for an available ephemeral port. Configure a range globally in
+`~/.gravity/config.json` or per project in `gravity.json`:
 
 ```json
-// ~/.paseo/config.json
+// ~/.gravity/config.json
 {
   "worktrees": {
     "servicePorts": { "range": "3000-4000" }
@@ -165,7 +162,7 @@ By default, Paseo asks the OS for an available ephemeral port. Configure a range
 ```
 
 ```json
-// paseo.json
+// gravity.json
 {
   "worktree": {
     "servicePorts": { "range": "3000-4000" }
@@ -186,12 +183,12 @@ For an external allocator, configure `portScript` instead:
 }
 ```
 
-Paseo runs the executable in the workspace directory with four arguments: service name, workspace
+Gravity runs the executable in the workspace directory with four arguments: service name, workspace
 ID, branch name, and worktree path. Since the script is executed directly without a shell, `portScript` must point to a real executable (such as a compiled binary or a script with a proper shebang line like `#!/bin/bash`) rather than an inline shell command or pipeline. If you need shell evaluation or pipelines, wrap them in a small executable script. A missing branch is passed as an empty string. The same values
-are available as `PASEO_SCRIPTNAME`, `PASEO_WORKSPACE_ID`, `PASEO_BRANCH_NAME`, and
-`PASEO_WORKTREE_PATH`. It must print one valid TCP port to stdout. `portScript` wins over `range` in
-the same block. Paseo trusts the external allocator, so the returned port may already be in use, for
-example by a service Paseo will attach to.
+are available as `GRAVITY_SCRIPTNAME`, `GRAVITY_WORKSPACE_ID`, `GRAVITY_BRANCH_NAME`, and
+`GRAVITY_WORKTREE_PATH`. It must print one valid TCP port to stdout. `portScript` wins over `range` in
+the same block. Gravity trusts the external allocator, so the returned port may already be in use, for
+example by a service Gravity will attach to.
 
 ### Reverse proxy
 
@@ -211,15 +208,15 @@ http://<script>--<project>.localhost:<daemon-port>
 Services launched from the same workspace see each other's ports and proxy URLs. Given `web` and `api` above, each process gets:
 
 ```
-PASEO_PORT=3000                         # this service's port
-PASEO_URL=http://web--my-app.localhost:6767  # this service's proxy URL
-PASEO_SERVICE_API_PORT=51732
-PASEO_SERVICE_API_URL=http://api--my-app.localhost:6767
-PASEO_SERVICE_WEB_PORT=3000
-PASEO_SERVICE_WEB_URL=http://web--my-app.localhost:6767
+GRAVITY_PORT=3000                         # this service's port
+GRAVITY_URL=http://web--my-app.localhost:6767  # this service's proxy URL
+GRAVITY_SERVICE_API_PORT=51732
+GRAVITY_SERVICE_API_URL=http://api--my-app.localhost:6767
+GRAVITY_SERVICE_WEB_PORT=3000
+GRAVITY_SERVICE_WEB_URL=http://web--my-app.localhost:6767
 ```
 
-Script names are upper-cased and non-alphanumerics become `_`. Point your frontend at `$PASEO_SERVICE_API_URL` instead of hard-coding a port.
+Script names are upper-cased and non-alphanumerics become `_`. Point your frontend at `$GRAVITY_SERVICE_API_URL` instead of hard-coding a port.
 
 ## Terminals
 
@@ -240,25 +237,25 @@ Open terminals automatically when a worktree is created. Useful for tailing logs
 
 Setup, teardown, scripts, and services all see:
 
-- `$PASEO_SOURCE_CHECKOUT_PATH`, the original repo root
-- `$PASEO_WORKTREE_PATH`, the worktree directory
-- `$PASEO_BRANCH_NAME`, the worktree's branch
-- `$PASEO_WORKTREE_PORT`, legacy per-worktree port (prefer `$PASEO_PORT` inside services)
+- `$GRAVITY_SOURCE_CHECKOUT_PATH`, the original repo root
+- `$GRAVITY_WORKTREE_PATH`, the worktree directory
+- `$GRAVITY_BRANCH_NAME`, the worktree's branch
+- `$GRAVITY_WORKTREE_PORT`, legacy per-worktree port (prefer `$GRAVITY_PORT` inside services)
 
 Services additionally get:
 
-- `$PASEO_PORT`, this service's assigned port
-- `$PASEO_URL`, this service's proxy URL
-- `$PASEO_SERVICE_<NAME>_PORT` / `_URL`, peer service ports and URLs
+- `$GRAVITY_PORT`, this service's assigned port
+- `$GRAVITY_URL`, this service's proxy URL
+- `$GRAVITY_SERVICE_<NAME>_PORT` / `_URL`, peer service ports and URLs
 - `$HOST`, `127.0.0.1` for local-only daemons, `0.0.0.0` when the daemon binds all interfaces
 
 ## Manage the workspace
 
 ```bash
-paseo workspace ls
-paseo run --workspace <workspace-id> "implement auth"
-paseo workspace rename <workspace-id> "Auth rework"
-paseo workspace archive <workspace-id>
+gravity workspace ls
+gravity run --workspace <workspace-id> "implement auth"
+gravity workspace rename <workspace-id> "Auth rework"
+gravity workspace archive <workspace-id>
 ```
 
-For the common case, `paseo run --new-workspace worktree --worktree-mode branch-off --new-branch feature/auth --base origin/main "implement auth"` creates both the workspace and its first agent.
+For the common case, `gravity run --new-workspace worktree --worktree-mode branch-off --new-branch feature/auth --base origin/main "implement auth"` creates both the workspace and its first agent.

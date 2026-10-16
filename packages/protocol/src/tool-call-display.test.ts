@@ -3,6 +3,36 @@ import { describe, expect, it } from "vitest";
 import { buildToolCallDisplayModel } from "./tool-call-display.js";
 
 describe("shared tool-call display mapping", () => {
+  it.each(["Bash", "exec_command", "execute", "bash", "custom_shell"])(
+    "uses an available shell description for %s",
+    (name) => {
+      const detail = {
+        type: "shell" as const,
+        command: "npm run dev",
+        description: "Start frontend server",
+      };
+      expect(buildToolCallDisplayModel({ name, status: "running", error: null, detail })).toEqual({
+        displayName: "Shell",
+        summary: "Start frontend server",
+      });
+      expect(detail.command).toBe("npm run dev");
+    },
+  );
+
+  it.each([undefined, "", " \n\t "])(
+    "falls back to the command for an absent or blank description: %j",
+    (description) => {
+      expect(
+        buildToolCallDisplayModel({
+          name: "Bash",
+          status: "completed",
+          error: null,
+          detail: { type: "shell", command: "npm run dev", description },
+        }),
+      ).toEqual({ displayName: "Shell", summary: "npm run dev" });
+    },
+  );
+
   it("builds summary from canonical detail", () => {
     const display = buildToolCallDisplayModel({
       name: "read_file",
@@ -59,19 +89,19 @@ describe("shared tool-call display mapping", () => {
 
   it("builds display model for worktree setup detail", () => {
     const display = buildToolCallDisplayModel({
-      name: "paseo_worktree_setup",
+      name: "gravity_worktree_setup",
       status: "running",
       error: null,
       detail: {
         type: "worktree_setup",
-        worktreePath: "/tmp/repo/.paseo/worktrees/repo/branch",
+        worktreePath: "/tmp/repo/.gravity/worktrees/repo/branch",
         branchName: "feature-branch",
         log: "==> [1/1] Running: npm install\n",
         commands: [
           {
             index: 1,
             command: "npm install",
-            cwd: "/tmp/repo/.paseo/worktrees/repo/branch",
+            cwd: "/tmp/repo/.gravity/worktrees/repo/branch",
             log: "==> [1/1] Running: npm install\n",
             status: "running",
             exitCode: null,
@@ -135,9 +165,9 @@ describe("shared tool-call display mapping", () => {
     });
   });
 
-  it("humanizes Paseo MCP tool names (Claude Code format)", () => {
+  it("humanizes Gravity MCP tool names (Claude Code format)", () => {
     const display = buildToolCallDisplayModel({
-      name: "mcp__paseo__create_agent",
+      name: "mcp__gravity__create_agent",
       status: "running",
       error: null,
       detail: { type: "unknown", input: null, output: null },
@@ -145,9 +175,9 @@ describe("shared tool-call display mapping", () => {
     expect(display.displayName).toBe("Create agent");
   });
 
-  it("humanizes Paseo MCP tool names (Codex format)", () => {
+  it("humanizes Gravity MCP tool names (Codex format)", () => {
     const display = buildToolCallDisplayModel({
-      name: "paseo.create_agent",
+      name: "gravity.create_agent",
       status: "running",
       error: null,
       detail: { type: "unknown", input: null, output: null },
@@ -155,9 +185,9 @@ describe("shared tool-call display mapping", () => {
     expect(display.displayName).toBe("Create agent");
   });
 
-  it("humanizes list_agents Paseo tool", () => {
+  it("humanizes list_agents Gravity tool", () => {
     const display = buildToolCallDisplayModel({
-      name: "mcp__paseo__list_agents",
+      name: "mcp__gravity__list_agents",
       status: "running",
       error: null,
       detail: { type: "unknown", input: null, output: null },

@@ -1,4 +1,4 @@
-import type { TerminalState } from "@getpaseo/protocol/messages";
+import type { TerminalState } from "@gravity/protocol/messages";
 
 export interface WorkspaceTerminalSnapshots {
   get: (input: { terminalId: string }) => TerminalState | null;

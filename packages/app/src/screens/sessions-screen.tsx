@@ -216,7 +216,6 @@ function SessionsScreenContent() {
           onRefresh={handleRefresh}
           listFooterComponent={listFooterComponent}
           showAttentionIndicator={false}
-          showHostColumn
           searchMatchesByAgentKey={isSearching ? searchMatchesByAgentKey : undefined}
           flat={isSearching}
         />

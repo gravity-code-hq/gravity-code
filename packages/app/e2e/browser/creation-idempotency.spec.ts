@@ -2,15 +2,11 @@ import type { createCreationScenario } from "../support/helpers/creation";
 import { expect } from "../support/fixtures";
 import { test } from "../support/creation-fixtures";
 
-for (const isolation of ["local", "worktree"] as const) {
-  test(`repeated Create clicks before a render create only one ${isolation} workspace`, async ({
-    creation,
-  }) => {
-    await creation.openWorkspaceForm(isolation);
-    await creation.submitRepeatedly("Create");
-    await creation.expectOneCreatedWorkspace();
-  });
-}
+test("repeated Create clicks before a render create only one workspace", async ({ creation }) => {
+  await creation.openWorkspaceForm();
+  await creation.submitRepeatedly("Create");
+  await creation.expectOneCreatedWorkspace();
+});
 
 test("repeated Send clicks before a render create only one agent", async ({ creation }) => {
   await creation.openAgentDraft();
@@ -67,7 +63,7 @@ test("a remounted draft reconciles its original creation after reconnect", async
 test("repeated new-workspace prompt submissions create one workspace and one agent", async ({
   creation,
 }) => {
-  await creation.openWorkspaceForm("local");
+  await creation.openWorkspaceForm();
   await creation.submitRepeatedly("Create", "Start one agent in one new workspace.");
   await creation.expectPromptVisible();
   await creation.expectOneCreatedWorkspace();
@@ -95,7 +91,7 @@ test("new workspace navigation and optimistic prompt precede agent initializatio
   startup,
   delayedCreation,
 }) => {
-  await creation.openWorkspaceForm("worktree");
+  await creation.openWorkspaceForm();
   await creation.submitPrompt("Show this prompt while the agent is starting.", "Create");
   await creation.expectAgentStillStarting();
   delayedCreation.expectSingleWorkspaceIntent();
@@ -117,7 +113,7 @@ for (const scenario of [
     creation,
     startup,
   }) => {
-    await creation.openWorkspaceForm("local");
+    await creation.openWorkspaceForm();
     await creation.submitPrompt("Retry this workspace and agent together.", "Create");
     await creation.expectAgentStillStarting();
     await startup.fail();

@@ -5,19 +5,19 @@ import {
   type PluginProcessRequest,
 } from "./plugin-process-protocol.js";
 import { createRequire } from "node:module";
-import * as pluginSharedRuntime from "@getpaseo/plugin";
-import * as pluginProviderRuntime from "@getpaseo/plugin/server/provider";
-import * as pluginAcpRuntime from "@getpaseo/plugin/server/acp";
-import type { SettingsDefinition, PluginRpcContract } from "@getpaseo/plugin";
-import type { PluginHandlerContext } from "@getpaseo/plugin/server";
+import * as pluginSharedRuntime from "@gravity/plugin";
+import * as pluginProviderRuntime from "@gravity/plugin/server/provider";
+import * as pluginAcpRuntime from "@gravity/plugin/server/acp";
+import type { SettingsDefinition, PluginRpcContract } from "@gravity/plugin";
+import type { PluginHandlerContext } from "@gravity/plugin/server";
 import type { ZodType } from "zod";
 import {
   ProviderEventSchema,
   type ProviderConnection,
   type ProviderRegistration,
-} from "@getpaseo/plugin/server/provider";
-import { createPaseoApi, type PaseoApi } from "@getpaseo/client";
-import { DaemonClient } from "@getpaseo/client/internal/daemon-client";
+} from "@gravity/plugin/server/provider";
+import { createGravityApi, type GravityApi } from "@gravity/client";
+import { DaemonClient } from "@gravity/client/internal/daemon-client";
 import { createPluginDaemonTransportFactory } from "./daemon-transport.js";
 import { isPluginClientOnlySdkSpecifier } from "./plugin-sdk-specifiers.js";
 import { createPluginClientId } from "./plugin-session-identity.js";
@@ -56,7 +56,7 @@ const providerConnections = new Map<
 const pendingProviderConnections = new Map<string, { tombstoned: boolean }>();
 let cleanup: (() => void | Promise<void>) | null = null;
 let daemonClient: DaemonClient | null = null;
-let paseo: PaseoApi | null = null;
+let gravity: GravityApi | null = null;
 let stopping = false;
 const nodeRequire = createRequire(import.meta.url);
 
@@ -214,12 +214,11 @@ function runtimeRequire(name: string): unknown {
   if (isPluginClientOnlySdkSpecifier(name)) {
     throw new Error(`${name} is available only in plugin client code`);
   }
-  if (name === "@getpaseo/plugin") return pluginSharedRuntime;
-  if (name === "@getpaseo/plugin/server") return {};
-  if (name === "@getpaseo/plugin/server/provider") return pluginProviderRuntime;
-  if (name === "@getpaseo/plugin/server/acp") return pluginAcpRuntime;
-  if (name === "@getpaseo/plugin/client/host")
-    throw new Error(`${name} is private to the app host`);
+  if (name === "@gravity/plugin") return pluginSharedRuntime;
+  if (name === "@gravity/plugin/server") return {};
+  if (name === "@gravity/plugin/server/provider") return pluginProviderRuntime;
+  if (name === "@gravity/plugin/server/acp") return pluginAcpRuntime;
+  if (name === "@gravity/plugin/client/host") throw new Error(`${name} is private to the app host`);
   return nodeRequire(name);
 }
 
@@ -263,7 +262,7 @@ async function initialize(message: Extract<PluginProcessRequest, { type: "initia
     reconnect: { enabled: false },
     transportFactory,
   });
-  paseo = createPaseoApi(daemonClient);
+  gravity = createGravityApi(daemonClient);
   await daemonClient.connect();
   settingsStore = message.settingsDirectory
     ? new PluginSettingsStore(message.settingsDirectory, (settingsId) =>
@@ -284,7 +283,7 @@ async function initialize(message: Extract<PluginProcessRequest, { type: "initia
 async function shutdown(): Promise<void> {
   if (stopping) return;
   stopping = true;
-  const releaseApi = paseo
+  const releaseApi = gravity
     ?.dispose()
     .catch((error) => console.error("Plugin API cleanup failed", error));
   hooks.close();
@@ -299,9 +298,9 @@ async function shutdown(): Promise<void> {
   await Promise.all([...providerConnections.keys()].map(closeProviderConnection));
   await releaseApi;
   await daemonClient?.close().catch(() => undefined);
-  await sendAndWait({ type: "paseo_close" });
+  await sendAndWait({ type: "gravity_close" });
   daemonClient = null;
-  paseo = null;
+  gravity = null;
   process.disconnect();
 }
 
@@ -327,7 +326,7 @@ process.on("message", (rawMessage: unknown) => {
   if (message.type === "initialize") {
     void initialize(message).catch(async (error) => {
       send({ type: "fatal", error: describeError(error) });
-      await paseo
+      await gravity
         ?.dispose()
         .catch((failure) => console.error("Plugin API cleanup failed", failure));
       await daemonClient?.close().catch(() => undefined);
@@ -405,7 +404,7 @@ process.on("message", (rawMessage: unknown) => {
     });
     return;
   }
-  if (message.type === "paseo_frame" || message.type === "paseo_close") return;
+  if (message.type === "gravity_frame" || message.type === "gravity_close") return;
   if (isHookMessage(message)) {
     handleHookMessage(message);
     return;
@@ -422,8 +421,8 @@ process.on("message", (rawMessage: unknown) => {
   void registered.contract.input
     .parseAsync(message.input)
     .then((input) => {
-      if (!paseo) throw new Error("Plugin Paseo API is unavailable");
-      return registered.handler(input, { paseo });
+      if (!gravity) throw new Error("Plugin Gravity API is unavailable");
+      return registered.handler(input, { gravity });
     })
     .then((output) => registered.contract.output.parseAsync(output))
     .then(
@@ -440,15 +439,15 @@ function handleHookMessage(
     return;
   }
   if (message.type === "hook") {
-    if (!paseo) {
+    if (!gravity) {
       send({
         type: "error",
         requestId: message.requestId,
-        error: "Plugin Paseo API is unavailable",
+        error: "Plugin Gravity API is unavailable",
       });
       return;
     }
-    void hooks.invoke(message.requestId, message.kind, message.name, message.input, paseo).then(
+    void hooks.invoke(message.requestId, message.kind, message.name, message.input, gravity).then(
       (output) => {
         return send({ type: "result", requestId: message.requestId, output });
       },

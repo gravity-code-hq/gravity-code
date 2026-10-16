@@ -40,7 +40,7 @@ export interface DaemonSessionHost {
 export interface DaemonSessionOptions {
   host: DaemonSessionHost;
   clientId: string;
-  paseoHome: string;
+  gravityHome: string;
   serverId: string | undefined;
   daemonVersion: string | undefined;
   daemonRuntimeConfig: DaemonRuntimeConfig | undefined;
@@ -65,7 +65,7 @@ export interface DaemonSessionOptions {
 export class DaemonSession {
   private readonly host: DaemonSessionHost;
   private readonly clientId: string;
-  private readonly paseoHome: string;
+  private readonly gravityHome: string;
   private readonly serverId: string | undefined;
   private readonly daemonVersion: string | undefined;
   private readonly daemonRuntimeConfig: DaemonRuntimeConfig | undefined;
@@ -83,7 +83,7 @@ export class DaemonSession {
   constructor(options: DaemonSessionOptions) {
     this.host = options.host;
     this.clientId = options.clientId;
-    this.paseoHome = options.paseoHome;
+    this.gravityHome = options.gravityHome;
     this.serverId = options.serverId;
     this.daemonVersion = options.daemonVersion;
     this.daemonRuntimeConfig = options.daemonRuntimeConfig;
@@ -173,7 +173,7 @@ export class DaemonSession {
     msg: Extract<SessionInboundMessage, { type: "daemon.get_status.request" }>,
   ): Promise<void> {
     try {
-      const pidInfo = await getPidLockInfo(this.paseoHome);
+      const pidInfo = await getPidLockInfo(this.gravityHome);
       const providers = (await this.listProviderAvailability()).map((p) => ({
         provider: p.provider,
         available: p.available,
@@ -218,7 +218,7 @@ export class DaemonSession {
     try {
       const relay = this.daemonRuntimeConfig?.getRelayConfig();
       const pairing = await generateLocalPairingOffer({
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         relayEnabled: relay?.enabled ?? false,
         relayEndpoint: relay?.endpoint,
         relayPublicEndpoint: relay?.publicEndpoint,
@@ -277,7 +277,7 @@ export class DaemonSession {
   ): Promise<void> {
     try {
       const diagnostic = await collectDaemonDiagnostics({
-        paseoHome: this.paseoHome,
+        gravityHome: this.gravityHome,
         serverId: this.serverId,
         daemonVersion: this.daemonVersion,
         daemonRuntimeConfig: this.daemonRuntimeConfig,
@@ -302,7 +302,7 @@ export class DaemonSession {
         type: "diagnostics.response",
         payload: {
           requestId: msg.requestId,
-          diagnostic: `Paseo diagnostics\n  Error: ${
+          diagnostic: `Gravity diagnostics\n  Error: ${
             error instanceof Error ? error.message : String(error)
           }`,
         },

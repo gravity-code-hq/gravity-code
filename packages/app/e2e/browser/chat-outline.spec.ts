@@ -122,8 +122,21 @@ test.describe("desktop chat outline", () => {
     });
 
     test("previews the prompt under the pointer, anywhere across its row", async ({ page }) => {
+      const railBox = await chatOutlineRail(page).boundingBox();
+      const timelineBox = await page
+        .getByTestId("agent-chat-scroll")
+        .filter({ visible: true })
+        .first()
+        .boundingBox();
+      if (!railBox || !timelineBox) throw new Error("Chat outline did not have a layout");
+      expect(railBox.width).toBe(44);
+      expect(railBox.x).toBeGreaterThan(timelineBox.x + timelineBox.width / 2);
       await hoverChatOutlinePrompt(page, 2);
       await expectChatOutlinePreview(page, agent.prompts[1]);
+      const previewBox = await page.getByTestId("chat-outline-preview").boundingBox();
+      if (!previewBox) throw new Error("Chat outline preview did not have a layout");
+      expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(railBox.x);
+      await page.screenshot({ path: test.info().outputPath("right-message-navigation.png") });
 
       await pointAtChatOutlineRowEdge(page, 7);
       await expectChatOutlinePreview(page, agent.prompts[6]);

@@ -1,0 +1,7 @@
+Added
+- Gravity for Linux as a .deb package for Ubuntu, Debian, and Mint (x64)
+- The download page picks the build for your platform and keeps the other one a click away
+- Rename and archive conversations from the sidebar, with a confirmation when the agent is still running
+- Caffeine mode: keep a Mac working with the lid closed, globally in Settings → General or per agent from the composer
+
+Full notes: https://github.com/gravity-code-hq/gravity/changelog

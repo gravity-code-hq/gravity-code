@@ -15,6 +15,19 @@ function canonicalBase() {
 }
 
 describe("shared messages tool_call schema", () => {
+  it.each([undefined, "Start frontend server"])(
+    "preserves shell commands with optional descriptions through the wire schema: %j",
+    (description) => {
+      const item = {
+        ...canonicalBase(),
+        status: "running",
+        error: null,
+        detail: { type: "shell", command: "npm run dev", description },
+      };
+      expect(AgentTimelineItemPayloadSchema.parse(item)).toEqual(item);
+    },
+  );
+
   it("parses each status-discriminated tool_call variant at runtime", () => {
     const running = AgentTimelineItemPayloadSchema.parse({
       ...canonicalBase(),

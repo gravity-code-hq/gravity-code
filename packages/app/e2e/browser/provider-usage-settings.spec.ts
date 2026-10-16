@@ -5,7 +5,7 @@ import { getServerId } from "../support/helpers/server-id";
 import { openSettingsHostSection } from "../support/helpers/settings";
 
 test.describe("provider usage settings", () => {
-  test("renders every provider returned by the daemon usage RPC", async ({ page }) => {
+  test("stacks provider sections and groups unavailable providers", async ({ page }, testInfo) => {
     test.setTimeout(120_000);
     const serverId = getServerId();
     const usageFixture = await installProviderUsageFixture(page, [
@@ -42,6 +42,30 @@ test.describe("provider usage settings", () => {
             ],
             details: [{ id: "valid", label: "Valid until", value: "2026-12-31" }],
           },
+          {
+            providerId: "cursor",
+            displayName: "Cursor",
+            planLabel: null,
+            status: "available",
+            windows: [],
+            balances: [
+              {
+                id: "plan",
+                label: "Plan usage",
+                used: 250.32,
+                limit: 20,
+                unit: "usd",
+                tone: "danger",
+              },
+            ],
+          },
+          {
+            providerId: "copilot",
+            displayName: "GitHub Copilot",
+            planLabel: null,
+            status: "unavailable",
+            windows: [],
+          },
         ],
       },
     ]);
@@ -67,6 +91,38 @@ test.describe("provider usage settings", () => {
     await expect(card.getByText("Valid until", { exact: true })).toBeVisible();
     await expect(card.getByText("2026-12-31", { exact: true })).toBeVisible();
     await expect(card.getByText(/OpenUsage 0\.6\.27/)).toBeVisible();
+    await expect(card.getByText("Above plan", { exact: true })).toBeVisible();
+
+    const disclosure = card.getByRole("button", { name: "Unavailable providers · 1" });
+    await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    await expect(card.getByText("GitHub Copilot", { exact: true })).toHaveCount(0);
+    await disclosure.click();
+    await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+    await expect(card.getByText("GitHub Copilot", { exact: true })).toBeVisible();
+    await disclosure.click();
+    await expect(card.getByText("GitHub Copilot", { exact: true })).toHaveCount(0);
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const claude = card.getByTestId("provider-usage-section-claude");
+      const codex = card.getByTestId("provider-usage-section-codex");
+      await expect(claude).toBeVisible();
+      await expect(codex).toBeVisible();
+      const claudeBox = await claude.boundingBox();
+      const codexBox = await codex.boundingBox();
+      expect(claudeBox).not.toBeNull();
+      expect(codexBox).not.toBeNull();
+      if (!claudeBox || !codexBox) throw new Error("Usage sections have no layout");
+      expect(codexBox.y).toBeGreaterThanOrEqual(claudeBox.y + claudeBox.height);
+      expect(codexBox.x).toBeCloseTo(claudeBox.x, 0);
+      expect(codexBox.width).toBeCloseTo(claudeBox.width, 0);
+      expect(claudeBox.x + claudeBox.width).toBeLessThanOrEqual(width);
+      await claude.scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: testInfo.outputPath(`usage-stacked-${width}.png`),
+        fullPage: true,
+      });
+    }
   });
 
   test("refresh invalidates and refetches usage", async ({ page }) => {

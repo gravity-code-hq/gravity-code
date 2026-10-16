@@ -455,7 +455,10 @@ export function KeyboardShortcutsSection() {
               {section.rows.map(function (row, index) {
                 const platform = { isMac, isDesktop: isDesktopApp };
                 const bindingId = getBindingIdForAction(row.id, platform);
-                const displayChord = resolveShortcutKeysForAction(row.id, overrides, platform);
+                const displayChord =
+                  bindingId === null
+                    ? row.chord
+                    : resolveShortcutKeysForAction(row.id, overrides, platform);
                 // `in`, not a truthiness check: an unassigned shortcut stores
                 // null, and Reset has to stay available to undo it.
                 const hasOverride = bindingId !== null && bindingId in overrides;
@@ -470,7 +473,7 @@ export function KeyboardShortcutsSection() {
                       displayChord={displayChord}
                       hasOverride={hasOverride}
                       hasDefault={hasDefault}
-                      isCapturing={capturingBindingId === bindingId}
+                      isCapturing={bindingId !== null && capturingBindingId === bindingId}
                       capturedCombos={
                         capturingBindingId === bindingId ? capturedCombos : EMPTY_CAPTURED_COMBOS
                       }

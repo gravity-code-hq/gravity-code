@@ -1,4 +1,4 @@
-import type { RpcInput } from "@getpaseo/plugin";
+import type { RpcInput } from "@gravity/plugin";
 import { incrementRpc } from "../shared/increment";
 
 export function increment(input: RpcInput<typeof incrementRpc>) {

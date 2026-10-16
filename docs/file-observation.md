@@ -2,7 +2,7 @@
 
 Use `packages/server/src/server/file-observer` for recursive filesystem observation. Create one observer service at the owning service boundary, subscribe roots through it, and close it during owner shutdown. Keep platform watchers, directory discovery, exclusion reconciliation, event batching, failure cleanup, diagnostics, and teardown inside the module. A consumer supplies a root and excluded subtrees; it must not branch on the platform or manage child watchers.
 
-Do not replace the Linux implementation with `fs.watch({ recursive: true })`. Node 22 implements Linux recursion in JavaScript by walking the tree and watching every file and directory. Paseo's directory-only Linux watcher already exhausted resources before ignored-tree pruning and a watcher cap were added in [#794](https://github.com/getpaseo/paseo/pull/794).
+Do not replace the Linux implementation with `fs.watch({ recursive: true })`. Node 22 implements Linux recursion in JavaScript by walking the tree and watching every file and directory. Gravity's directory-only Linux watcher already exhausted resources before ignored-tree pruning and a watcher cap were added in [#794](https://github.com/gravity-code-hq/gravity/pull/794).
 
 Closing an observation must remain safe after its root is renamed or removed. Workspace archive removes owned worktrees while releasing observation references, so teardown cannot assume the watched path still exists.
 
@@ -18,4 +18,4 @@ Git owns Git-ignore evaluation. The observer accepts absolute excluded roots and
 
 Workspace Git verifies each repository metadata subscription with a one-shot canary inside the Git directory. If the event does not round-trip through the subscription callback, treat the watcher as unavailable and enter degraded polling. Refresh working-tree Git-ignore exclusions from ignore-file events and watcher recovery, never from a healthy-watcher timer.
 
-The real-filesystem contracts and daemon auto-archive lifecycle run in the normal server test suite. Use the scripts only for manual performance and soak work: `npm run measure:file-observer --workspace=@getpaseo/server` measures burst and sustained-create behavior, and `npm run repro:file-observer-teardown --workspace=@getpaseo/server` runs the teardown soak.
+The real-filesystem contracts and daemon auto-archive lifecycle run in the normal server test suite. Use the scripts only for manual performance and soak work: `npm run measure:file-observer --workspace=@gravity/server` measures burst and sustained-create behavior, and `npm run repro:file-observer-teardown --workspace=@gravity/server` runs the teardown soak.

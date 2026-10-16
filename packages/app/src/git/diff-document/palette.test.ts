@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { darkTheme, lightTheme } from "@/styles/theme";
+import { darkPureBlackTheme, darkTheme, lightTheme } from "@/styles/theme";
 import { hexColorWithAlpha } from "@/utils/color";
 import { codeLineNumberTone, codeTextColor, createDiffPalette, retainDiffPalette } from "./palette";
 import type { DiffCell, DiffPalette } from "./types";
@@ -36,19 +36,43 @@ describe("diff palette retention", () => {
   });
 });
 
-describe.each([lightTheme, darkTheme])("semantic diff colors", (theme) => {
-  it("uses the app status palette for gutter text and derived row tints", () => {
+describe("diff colors", () => {
+  it("preserves light mode's semantic gutter text and row tints", () => {
+    const theme = lightTheme;
     const created = createDiffPalette(theme);
 
     expect(created.addition).toBe(theme.colors.statusSuccess);
     expect(created.deletion).toBe(theme.colors.statusDanger);
     expect(created.additionBackground).toBe(hexColorWithAlpha(theme.colors.statusSuccess, 0.15));
     expect(created.deletionBackground).toBe(hexColorWithAlpha(theme.colors.statusDanger, 0.1));
+    expect(created.surface).toBe(theme.colors.surface0);
+    expect(created.syntax).toBe(theme.colors.syntax);
   });
+
+  it.each([darkTheme, darkPureBlackTheme])(
+    "keeps dark diff fills opaque and gutters continuous with their rows",
+    (theme) => {
+      const created = createDiffPalette(theme);
+
+      expect(created.surface).toBe("#191919");
+      expect(created.additionBackground).toBe("#243e2e");
+      expect(created.deletionBackground).toBe("#41232d");
+      expect(created.additionGutterBackground).toBe(created.additionBackground);
+      expect(created.deletionGutterBackground).toBe(created.deletionBackground);
+      expect(created.emptyBackground).toBe(created.surface);
+      expect(created.syntax.keyword).toBe("#80cbc4");
+      expect(created.syntax.string).toBe("#d69bd2");
+      expect(created.statusSuccess).toBe(theme.colors.statusSuccess);
+      expect(created.statusDanger).toBe(theme.colors.statusDanger);
+    },
+  );
 });
 
 const palette: DiffPalette = {
   surface: "surface",
+  hunkBackground: "#123",
+  additionGutterBackground: "#142",
+  deletionGutterBackground: "#412",
   headerSurface: "header",
   border: "border",
   foreground: "foreground",

@@ -58,6 +58,7 @@ function inFlightTurn(page: Page) {
 
 async function openForkMenu(page: Page, trigger: ReturnType<Page["getByRole"]>): Promise<void> {
   await trigger.click();
+  await expect(page.getByRole("menuitem")).toHaveText(["Fork in a new tab"]);
   await expect(page.getByRole("menuitem", { name: "Fork in a new tab" })).toBeVisible({
     timeout: 10_000,
   });
@@ -95,20 +96,15 @@ export async function forkInFlightTurnToNewTab(page: Page): Promise<void> {
   await page.getByRole("menuitem", { name: "Fork in a new tab" }).click();
 }
 
-export async function forkMostRecentAssistantTurnToNewWorkspace(page: Page): Promise<void> {
-  await openMostRecentAssistantForkMenu(page);
-  await page.getByRole("menuitem", { name: "Fork in a new workspace" }).click();
-}
-
-export async function expectChatHistoryAttachment(page: Page): Promise<void> {
-  const attachment = page.getByRole("button", { name: "Open chat history attachment" }).first();
-  await expect(attachment).toBeVisible({ timeout: 30_000 });
-  await expect(attachment).toContainText("Chat history");
+export async function expectForkHistoryPreview(page: Page): Promise<void> {
+  await expect(page.getByTestId("fork-marker")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("composer-chat-history-attachment-pill")).toHaveCount(0);
+  await expect(page.getByTestId("composer-attachment-tray")).toHaveCount(0);
 }
 
 export async function expectLiveAssistantText(page: Page, text: string): Promise<void> {
   await expect(inFlightTurn(page)).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId("assistant-message").last()).toContainText(text, {
-    timeout: 60_000,
-  });
+  await expect(
+    page.locator('[data-testid="assistant-message"]:visible').filter({ hasText: text }).first(),
+  ).toBeVisible({ timeout: 60_000 });
 }

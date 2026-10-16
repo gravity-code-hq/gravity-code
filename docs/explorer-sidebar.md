@@ -3,10 +3,10 @@
 The Explorer sidebar and the side pane share panel implementations, but they have different shell
 contracts.
 
-| Surface          | Purpose                      | Lifecycle                                  |
-| ---------------- | ---------------------------- | ------------------------------------------ |
-| Explorer sidebar | Files and Changes navigation | Cmd+E shows or hides the dedicated dock    |
-| Side pane        | Ordinary workspace content   | Created and closed like any workspace pane |
+| Surface          | Purpose                               | Lifecycle                                  |
+| ---------------- | ------------------------------------- | ------------------------------------------ |
+| Explorer sidebar | Files, Search, and Changes navigation | Cmd+M shows or hides the dedicated dock    |
+| Side pane        | Ordinary workspace content            | Created and closed like any workspace pane |
 
 ## Panel host contract
 
@@ -44,12 +44,35 @@ launch catalog. Individual tab menus close instances or move compatible tabs to 
 can be reordered, but the dock cannot be split. Selecting an Explorer tab does not change workspace
 focus.
 
-Cmd+E shows or hides Explorer without changing its selected view. Compact layouts use the combined
+Cmd+M on macOS (Ctrl+E elsewhere) shows or hides Explorer without changing its selected view.
+
+The desktop Window menu leaves Minimize unbound so it cannot intercept Cmd+M.
+Compact layouts use the combined
 full-screen Explorer overlay for Changes, Files, and pull requests, and close it after a file opens. Compact Changes has no tree rail; its overview is the Jump to file action (`packages/app/src/git/jump-to-file/`), a sheet over the same changed-files tree the desktop rail renders.
 Wide native layouts without pane splits use the same combined content in a resizable inline dock;
 opening a file leaves that dock visible. Both presentations keep their selection in the panel store
 and reuse the layout store's per-workspace Explorer width. They do not create a second Explorer
 lifecycle.
+
+## Search
+
+Search lives in the Files pane header, not in a tab of its own:
+`packages/app/src/components/workspace-search-pane.tsx` supplies the field and the result list,
+and `file-explorer-pane.tsx` swaps its tree for the results while a query is present. Contents mode calls
+`fs.content.search.request` directly. Names mode reuses the
+`directory_suggestions_request` fuzzy file lookup the command center already uses. The pane owns
+its query, toggles, and collapse state locally; an empty field shows the tree again.
+
+The daemon engine is `packages/server/src/server/file-explorer/content-search.ts`, a port of VS
+Code's `RipgrepTextSearchEngine`: the same ripgrep arguments, JSON parser, byte-to-column mapping,
+one-line preview elision, and 20,000-result limit, so a query returns what VS Code's Search view
+would show. Helpers lifted verbatim sit in `content-search-vscode.ts` under the MIT notice in
+`NOTICE`. ripgrep comes from the optional `@vscode/ripgrep` dependency (the desktop build unpacks
+its binary from the asar), then PATH; without either the engine falls back to `git grep`, which
+sees only tracked and untracked-but-not-ignored files inside a repository. Include and exclude
+boxes read like VS Code's: comma-separated, `.ts` means `*.ts`, a bare name matches at any depth,
+`./dir` anchors to the root, and `**/node_modules` is always excluded on top of ignore files. The
+pane renders previews with VS Code's `lcut` rule so the match stays visible in a narrow dock.
 
 ## Side pane
 

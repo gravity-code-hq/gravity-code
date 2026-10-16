@@ -46,6 +46,10 @@ coverage/
 test-results/
 **/test-results/
 
+# Local screenshots, previews, and test attachments
+/output/
+**/.vitest-attachments/
+
 # Vercel
 .vercel/
 
@@ -65,7 +69,7 @@ CLAUDE.local.md
 .debug.conversations/
 .debug/
 .dev/
-.paseo/
+.gravity/
 .wrangler/
 **/.wrangler/
 **/.tanstack/
@@ -76,7 +80,7 @@ PLAN.md
 valknut-report.html/
 valknut-report.json/
 **/.playwright-mcp/
-**/.paseo-provider-history/
+**/.gravity-provider-history/
 .claude/settings.local.json
 **/.claude/settings.local.json
 .claude/scheduled_tasks.lock

@@ -8,37 +8,37 @@ describe("starter trigger connections", () => {
         {
           github: [
             {
-              slug: "github-getpaseo",
-              accountLogin: "getpaseo",
+              slug: "github-gravity-code-hq",
+              accountLogin: "gravity-code-hq",
               accountType: "Organization",
-              repositories: ["getpaseo/paseo"],
+              repositories: ["gravity-code-hq/gravity"],
             },
           ],
-          slack: [{ slug: "paseo", teamName: "Paseo" }],
-          discord: [{ slug: "paseo-discord", guildName: "Paseo Discord" }],
+          slack: [{ slug: "gravity", teamName: "Gravity" }],
+          discord: [{ slug: "gravity-discord", guildName: "Gravity Discord" }],
           daemons: [],
           linear: [],
         },
-        "getpaseo/paseo",
+        "gravity-code-hq/gravity",
       ),
     ).toEqual([
       {
-        id: "github:getpaseo/paseo",
-        label: "GitHub — getpaseo/paseo",
+        id: "github:gravity-code-hq/gravity",
+        label: "GitHub — gravity-code-hq/gravity",
         provider: "github",
-        filters: { connection: "github-getpaseo", repo: "getpaseo/paseo" },
+        filters: { connection: "github-gravity-code-hq", repo: "gravity-code-hq/gravity" },
       },
       {
-        id: "slack:paseo",
-        label: "Slack — Paseo",
+        id: "slack:gravity",
+        label: "Slack — Gravity",
         provider: "slack",
-        filters: { connection: "paseo" },
+        filters: { connection: "gravity" },
       },
       {
-        id: "discord:paseo-discord",
-        label: "Discord — Paseo Discord",
+        id: "discord:gravity-discord",
+        label: "Discord — Gravity Discord",
         provider: "discord",
-        filters: { connection: "paseo-discord" },
+        filters: { connection: "gravity-discord" },
       },
     ]);
   });
@@ -49,10 +49,10 @@ describe("starter trigger connections", () => {
         {
           github: [
             {
-              slug: "github-getpaseo",
-              accountLogin: "getpaseo",
+              slug: "github-gravity-code-hq",
+              accountLogin: "gravity-code-hq",
               accountType: "Organization",
-              repositories: ["getpaseo/hub"],
+              repositories: ["gravity-code-hq/hub"],
             },
           ],
           slack: [],
@@ -60,7 +60,7 @@ describe("starter trigger connections", () => {
           daemons: [],
           linear: [],
         },
-        "getpaseo/paseo",
+        "gravity-code-hq/gravity",
       ),
     ).toEqual([]);
   });

@@ -5,6 +5,7 @@
 // surfaces are not yet mounted and the locale files are being edited elsewhere.
 export const providerUsageCopy = {
   title: "Plan usage",
+  unavailableProviders: "Unavailable providers",
   refresh: "Refresh",
   refreshing: "Refreshing...",
   loading: "Loading usage...",

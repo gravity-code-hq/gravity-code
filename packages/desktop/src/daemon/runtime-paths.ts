@@ -15,7 +15,7 @@ import {
   type PackageInfo,
 } from "./package-paths.js";
 
-const SERVER_PACKAGE_NAME = "@getpaseo/server";
+const SERVER_PACKAGE_NAME = "@gravity/server";
 
 const esmRequire = createRequire(__filename);
 
@@ -45,8 +45,7 @@ export function resolveDaemonRunnerEntrypoint(): NodeEntrypointSpec {
         filePath: path.join(
           resolvePackagedAsarPath(),
           "node_modules",
-          "@getpaseo",
-          "server",
+          SERVER_PACKAGE_NAME,
           "dist",
           "scripts",
           "supervisor-entrypoint.js",

@@ -1,5 +1,5 @@
-import type { ProviderOptions } from "@getpaseo/protocol/agent-types";
-import type { HubExecutionAgentValidationIssue } from "@getpaseo/protocol/messages";
+import type { ProviderOptions } from "@gravity/protocol/agent-types";
+import type { HubExecutionAgentValidationIssue } from "@gravity/protocol/messages";
 
 import type { ProviderSnapshotEntry } from "./agent-sdk-types.js";
 import { filterSelectableAgentModels } from "./agent-sdk-types.js";

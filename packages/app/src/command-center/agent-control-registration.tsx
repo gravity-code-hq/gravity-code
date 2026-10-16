@@ -5,8 +5,8 @@ import type {
   AgentMode,
   AgentProvider,
   AgentSelectOption,
-} from "@getpaseo/protocol/agent-types";
-import type { AgentProviderDefinition } from "@getpaseo/protocol/provider-manifest";
+} from "@gravity/protocol/agent-types";
+import type { AgentProviderDefinition } from "@gravity/protocol/provider-manifest";
 import {
   getAgentFeatureIcon,
   getAgentModeIcon,

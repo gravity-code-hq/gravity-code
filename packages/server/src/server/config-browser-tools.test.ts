@@ -7,13 +7,13 @@ import { loadConfig } from "./config.js";
 
 const roots: string[] = [];
 
-async function createPaseoHome(config: unknown): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), "paseo-config-browser-tools-"));
+async function createGravityHome(config: unknown): Promise<string> {
+  const root = await mkdtemp(path.join(os.tmpdir(), "gravity-config-browser-tools-"));
   roots.push(root);
-  const paseoHome = path.join(root, ".paseo");
-  await mkdir(paseoHome, { recursive: true });
-  await writeFile(path.join(paseoHome, "config.json"), JSON.stringify(config, null, 2));
-  return paseoHome;
+  const gravityHome = path.join(root, ".gravity");
+  await mkdir(gravityHome, { recursive: true });
+  await writeFile(path.join(gravityHome, "config.json"), JSON.stringify(config, null, 2));
+  return gravityHome;
 }
 
 describe("daemon browser tools config", () => {
@@ -22,13 +22,13 @@ describe("daemon browser tools config", () => {
   });
 
   test("defaults browser tools off when config is absent", async () => {
-    const home = await createPaseoHome({ version: 1 });
+    const home = await createGravityHome({ version: 1 });
 
     expect(loadConfig(home, { env: {} }).browserToolsEnabled).toBe(false);
   });
 
   test("loads browser tools opt-in from persisted daemon config", async () => {
-    const home = await createPaseoHome({
+    const home = await createGravityHome({
       version: 1,
       daemon: { browserTools: { enabled: true } },
     });

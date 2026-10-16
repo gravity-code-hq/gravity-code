@@ -6,7 +6,7 @@ import path from "node:path";
 import { afterEach, expect, test } from "vitest";
 
 import { DaemonClient } from "../test-utils/daemon-client.js";
-import { createTestPaseoDaemon, type TestPaseoDaemon } from "../test-utils/paseo-daemon.js";
+import { createTestGravityDaemon, type TestGravityDaemon } from "../test-utils/gravity-daemon.js";
 import {
   createPersistedProjectRecord,
   createPersistedWorkspaceRecord,
@@ -15,7 +15,7 @@ import {
 } from "../workspace-registry.js";
 
 const cleanupPaths = new Set<string>();
-const cleanupDaemons = new Set<TestPaseoDaemon>();
+const cleanupDaemons = new Set<TestGravityDaemon>();
 const cleanupClients = new Set<DaemonClient>();
 
 afterEach(async () => {
@@ -30,23 +30,25 @@ afterEach(async () => {
 });
 
 test("openProject preserves a worktree's exact-root project without rehoming it", async () => {
-  const previousSupervised = process.env.PASEO_SUPERVISED;
-  process.env.PASEO_SUPERVISED = "0";
+  const previousSupervised = process.env.GRAVITY_SUPERVISED;
+  process.env.GRAVITY_SUPERVISED = "0";
   try {
-    const repoRoot = realpathSync(mkdtempSync(path.join(os.tmpdir(), "paseo-open-project-repo-")));
-    const worktreeRoot = realpathSync(
-      mkdtempSync(path.join(os.tmpdir(), "paseo-open-project-worktree-")),
+    const repoRoot = realpathSync(
+      mkdtempSync(path.join(os.tmpdir(), "gravity-open-project-repo-")),
     );
-    const paseoHomeRoot = realpathSync(
-      mkdtempSync(path.join(os.tmpdir(), "paseo-open-project-home-")),
+    const worktreeRoot = realpathSync(
+      mkdtempSync(path.join(os.tmpdir(), "gravity-open-project-worktree-")),
+    );
+    const gravityHomeRoot = realpathSync(
+      mkdtempSync(path.join(os.tmpdir(), "gravity-open-project-home-")),
     );
     cleanupPaths.add(repoRoot);
     cleanupPaths.add(worktreeRoot);
-    cleanupPaths.add(paseoHomeRoot);
+    cleanupPaths.add(gravityHomeRoot);
 
     execSync("git init -b main", { cwd: repoRoot, stdio: "pipe" });
-    execSync("git config user.email 'test@getpaseo.dev'", { cwd: repoRoot, stdio: "pipe" });
-    execSync("git config user.name 'Paseo Test'", { cwd: repoRoot, stdio: "pipe" });
+    execSync("git config user.email 'test@gravity.dev'", { cwd: repoRoot, stdio: "pipe" });
+    execSync("git config user.name 'Gravity Test'", { cwd: repoRoot, stdio: "pipe" });
     writeFileSync(path.join(repoRoot, "README.md"), "# repo\n", "utf8");
     execSync("git add README.md", { cwd: repoRoot, stdio: "pipe" });
     execSync("git -c commit.gpgSign=false commit -m 'initial'", { cwd: repoRoot, stdio: "pipe" });
@@ -56,9 +58,9 @@ test("openProject preserves a worktree's exact-root project without rehoming it"
       stdio: "pipe",
     });
 
-    const paseoHome = path.join(paseoHomeRoot, ".paseo");
-    const projectsPath = path.join(paseoHome, "projects", "projects.json");
-    const workspacesPath = path.join(paseoHome, "projects", "workspaces.json");
+    const gravityHome = path.join(gravityHomeRoot, ".gravity");
+    const projectsPath = path.join(gravityHome, "projects", "projects.json");
+    const workspacesPath = path.join(gravityHome, "projects", "workspaces.json");
     const timestamp = "2026-04-24T09:46:43.146Z";
 
     await mkdir(path.dirname(projectsPath), { recursive: true });
@@ -101,7 +103,7 @@ test("openProject preserves a worktree's exact-root project without rehoming it"
       }),
     ]);
 
-    const daemon = await createTestPaseoDaemon({ paseoHomeRoot, cleanup: false });
+    const daemon = await createTestGravityDaemon({ gravityHomeRoot, cleanup: false });
     cleanupDaemons.add(daemon);
     const client = new DaemonClient({ url: `ws://127.0.0.1:${daemon.port}/ws` });
     cleanupClients.add(client);
@@ -121,7 +123,7 @@ test("openProject preserves a worktree's exact-root project without rehoming it"
       persistedWorkspaces.find((workspace) => workspace.workspaceId === worktreeRoot)?.projectId,
     ).toBe(worktreeRoot);
   } finally {
-    process.env.PASEO_SUPERVISED = previousSupervised;
+    process.env.GRAVITY_SUPERVISED = previousSupervised;
   }
 }, 30_000);
 

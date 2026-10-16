@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Keyboard, ScrollView, Text, View, type PressableStateCallbackType } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { Bot } from "lucide-react-native";
-import type { AgentProvider } from "@getpaseo/protocol/agent-types";
+import type { AgentProvider } from "@gravity/protocol/agent-types";
 import type { AgentProfilePicker, AgentProfileSeed } from "@/agent-profiles";
 import { AdaptiveModalSheet } from "@/components/adaptive-modal-sheet";
 import { ComboboxTrigger } from "@/components/ui/combobox-trigger";
@@ -44,6 +44,7 @@ interface CompactModelSheetProps {
   serverId?: string | null;
   glyphSize: number;
   canSwitchProvider: boolean;
+  startAtSelectedProvider?: boolean;
   children: ReactNode;
 }
 
@@ -96,6 +97,7 @@ export function CompactModelSheet({
   serverId = null,
   glyphSize,
   canSwitchProvider,
+  startAtSelectedProvider = false,
   children,
 }: CompactModelSheetProps) {
   const { t } = useTranslation();
@@ -176,6 +178,7 @@ export function CompactModelSheet({
     Keyboard.dismiss();
     const destination = resolveModelSheetOpening({
       canSwitchProvider,
+      startAtSelectedProvider,
       providers: availableProviders,
       selectedProvider,
     });
@@ -185,7 +188,13 @@ export function CompactModelSheet({
       modelBrowser.drillDown(destination.providerId, destination.providerLabel);
     }
     setIsModelBrowserOpen(true);
-  }, [availableProviders, canSwitchProvider, modelBrowser, selectedProvider]);
+  }, [
+    availableProviders,
+    canSwitchProvider,
+    modelBrowser,
+    selectedProvider,
+    startAtSelectedProvider,
+  ]);
 
   const closeModelBrowser = useCallback(() => {
     setIsModelBrowserOpen(false);

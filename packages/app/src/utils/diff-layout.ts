@@ -1,4 +1,4 @@
-import type { ParsedDiffFile } from "@getpaseo/protocol/messages";
+import type { ParsedDiffFile } from "@gravity/protocol/messages";
 import type { DiffLine } from "@/git/use-diff-query";
 
 type ReviewSide = "old" | "new";

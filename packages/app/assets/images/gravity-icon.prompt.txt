@@ -1,0 +1,4 @@
+Tool: built-in image_gen (edit)
+Reference: Gravity command-spark icon generated earlier in this conversation.
+
+Edit this Gravity app icon. REMOVE the orange sparkle completely and fill its former area seamlessly with the existing charcoal background. The only symbol must be the warm ivory terminal chevron >. Recenter the chevron optically within the charcoal rounded-square tile now that sparkle is gone, maintaining its current size, bold stroke, rounded ends, and shape. Keep tile size, corner radius, palette and transparent alpha outside the tile. Tile interior solid opaque charcoal without holes or blemishes. Flat clean minimal professional icon. No sparkles, no stars, no orange, no other symbols, no text, no gradients, no glow, no shadows.

@@ -30,9 +30,9 @@ Workspace archive runs lifecycle teardown from the exact `cwd` but removes only 
 `worktreeRoot` after its last active reference disappears. Worktree recovery recreates that backing
 checkout from `mainRepoRoot`, then restores the relative path from `worktreeRoot` to `cwd`.
 
-Paseo uses **file-based JSON persistence** instead of a traditional database. All data is validated at runtime with Zod schemas. Most stores write atomically (write to temp file, then rename); a few still use plain `writeFile` — see each section. There is no schema-versioning/migration framework — schemas rely on optional fields with defaults for forward compatibility, with a small amount of inline normalization in `persisted-config.ts` for legacy provider/speech entries.
+Gravity uses **file-based JSON persistence** instead of a traditional database. All data is validated at runtime with Zod schemas. Most stores write atomically (write to temp file, then rename); a few still use plain `writeFile` — see each section. There is no schema-versioning/migration framework — schemas rely on optional fields with defaults for forward compatibility, with a small amount of inline normalization in `persisted-config.ts` for legacy provider/speech entries.
 
-All server-side stores live under `$PASEO_HOME` (defaults to `~/.paseo`).
+All server-side stores live under `$GRAVITY_HOME` (defaults to `~/.gravity`).
 
 ## Store Surface Rules
 
@@ -43,11 +43,11 @@ Store APIs own persistence atomicity and should not make services coordinate raw
 ## Directory layout
 
 ```
-$PASEO_HOME/
+$GRAVITY_HOME/
 ├── config.json                          # Daemon configuration
 ├── server-id                            # Stable daemon identifier (plain text, "srv_<base64url>")
 ├── daemon-keypair.json                  # E2EE keypair for relay (mode 0600)
-├── paseo.pid                            # Daemon PID lock file
+├── gravity.pid                            # Daemon PID lock file
 ├── daemon.log                           # Default log file (path configurable)
 ├── agents/
 │   └── {sanitized-cwd}/
@@ -62,10 +62,12 @@ $PASEO_HOME/
 │   └── icons/                           # Host-local custom project icon images
 ├── runtime/
 │   └── managed-processes/
-│       └── {recordId}.json              # Helper processes owned by Paseo; reconciled on daemon bootstrap
+│       └── {recordId}.json              # Helper processes owned by Gravity; reconciled on daemon bootstrap
 ├── plugins/
 │   ├── sources.json                      # Git origin, ref, commit, and managed checkout ownership
 │   └── {pluginId}/{version}/checkout/    # Source checkout for one installed Git commit
+├── provider-accounts/
+│   └── {providerId}/{accountId}.json     # Saved provider logins (mode 0600); see docs/provider-accounts.md
 └── push-tokens.json                     # Expo push notification tokens
 ```
 
@@ -75,7 +77,7 @@ The `agents/{sanitized-cwd}/` directory name is derived from the agent's `cwd` b
 
 ## 1. Agent Record
 
-**Path:** `$PASEO_HOME/agents/{project-dir}/{agentId}.json`
+**Path:** `$GRAVITY_HOME/agents/{project-dir}/{agentId}.json`
 
 Each agent is stored as a separate JSON file, grouped by project directory.
 
@@ -90,7 +92,7 @@ Each agent is stored as a separate JSON file, grouped by project directory.
 | `lastActivityAt`     | `string?` (ISO 8601)                     | Last activity timestamp                                                                                                                                                                                                                                                                                                                                                             |
 | `lastUserMessageAt`  | `string?` (ISO 8601)                     | Last user message timestamp                                                                                                                                                                                                                                                                                                                                                         |
 | `title`              | `string?`                                | User-visible title                                                                                                                                                                                                                                                                                                                                                                  |
-| `labels`             | `Record<string, string>`                 | Key-value labels (default `{}`). Paseo uses `paseo.parent-agent-id` for parentage and client-scoped `paseo.open-agent-tab.*` labels while managed subagent tabs are open — see [agent-lifecycle.md](./agent-lifecycle.md)                                                                                                                                                           |
+| `labels`             | `Record<string, string>`                 | Key-value labels (default `{}`). Gravity uses `gravity.parent-agent-id` for parentage and client-scoped `gravity.open-agent-tab.*` labels while managed subagent tabs are open — see [agent-lifecycle.md](./agent-lifecycle.md)                                                                                                                                                     |
 | `lastStatus`         | `AgentStatus`                            | One of: `"initializing"`, `"idle"`, `"running"`, `"error"`, `"closed"`. `closed` means the record is resumable but has no live provider runtime; archive remains represented separately by `archivedAt`.                                                                                                                                                                            |
 | `lastModeId`         | `string?`                                | Last active mode ID                                                                                                                                                                                                                                                                                                                                                                 |
 | `config`             | `SerializableConfig?`                    | Agent session configuration (see below)                                                                                                                                                                                                                                                                                                                                             |
@@ -176,7 +178,7 @@ Terminal activity contributes to the workspace status bucket **per `workspaceId`
 
 ## 2. Daemon Configuration
 
-**Path:** `$PASEO_HOME/config.json`
+**Path:** `$GRAVITY_HOME/config.json`
 
 Single file, validated with `PersistedConfigSchema`.
 
@@ -184,7 +186,7 @@ Single file, validated with `PersistedConfigSchema`.
 `{ mode: "all" }`. Installed state is not persisted; the daemon derives it from its three managed
 skill directories and keeps config plus filesystem convergence behind one serialized owner.
 
-`paseo reload` reads and validates this file once inside the daemon. That snapshot drives resolution,
+`gravity reload` reads and validates this file once inside the daemon. That snapshot drives resolution,
 classification, application, and reload bookkeeping. `DaemonConfigStore` owns applying runtime-safe
 fields and their removal/default semantics; session handlers and the CLI only relay the structured
 result. Normal config patches persist only the requested fields, so launch overrides and resolved
@@ -211,7 +213,7 @@ snapshot so a mixed edit can apply its live subset and still name the paths that
     baseUrl: string
   },
   worktrees?: {
-    root?: string            // optional root for new worktrees; defaults to $PASEO_HOME/worktrees
+    root?: string            // optional root for new worktrees; defaults to $GRAVITY_HOME/worktrees
     servicePorts?: {         // optional dynamic service port allocation policy
       range?: string         // inclusive range, e.g. "3000-4000"
       portScript?: string    // executable that receives service/workspace context and prints one TCP port
@@ -257,7 +259,7 @@ All fields are optional with sensible defaults.
 Git-managed plugins still appear as directory sources in `config.json`. This keeps the plugin
 runtime and protocol config compatible with directory-only clients. `plugins/sources.json` owns the
 Git-specific origin, tracking ref, installed commit, repository subdirectory, and checkout root.
-Paseo writes it atomically. An update creates and validates a new version directory before changing
+Gravity writes it atomically. An update creates and validates a new version directory before changing
 the configured directory path; successful activation removes the old version.
 
 ### Profile lists
@@ -275,13 +277,13 @@ rather than storing something it cannot describe. That is why the client gates t
 UI on `server_info.features.agentProfiles` instead of letting a save appear to succeed against an
 older daemon.
 
-### Agent provider Paseo tools
+### Agent provider Gravity tools
 
 `agents.providers` is keyed by the exact provider ID used to launch the agent. The built-in IDs are
 `claude`, `codex`, `copilot`, `opencode`, `pi`, and `omp`. Custom provider IDs are their literal
 configuration keys, such as `my-claude` or `zai`, not the provider named by `extends`.
 
-Each entry may include a Paseo-tool policy:
+Each entry may include a Gravity-tool policy:
 
 ```json
 {
@@ -290,7 +292,7 @@ Each entry may include a Paseo-tool policy:
       "my-claude": {
         "extends": "claude",
         "label": "My Claude",
-        "paseoTools": {
+        "gravityTools": {
           "enabled": true,
           "disabledTools": ["browser_evaluate"]
         }
@@ -300,19 +302,19 @@ Each entry may include a Paseo-tool policy:
 }
 ```
 
-Absent `paseoTools`, or absent fields within it, means Paseo tools are enabled and all tools are
-allowed. `enabled: false` disables the provider's Paseo catalog; `disabledTools` lists exact tool
+Absent `gravityTools`, or absent fields within it, means Gravity tools are enabled and all tools are
+allowed. `enabled: false` disables the provider's Gravity catalog; `disabledTools` lists exact tool
 IDs to omit. The policy covers the core and browser catalog, not the voice-only `speak` tool.
 Browser tools also require `daemon.browserTools.enabled` and a connected browser host.
 This policy controls the catalog presented to an agent. It is not an authorization boundary for
 agents that can access the host through a shell.
 
 `daemon.mcp.injectIntoAgents` is the global override. When it is `false`, no provider receives
-Paseo tools; otherwise the provider policy applies. Provider and global policy are resolved when a
+Gravity tools; otherwise the provider policy applies. Provider and global policy are resolved when a
 session is created, resumed, imported, or reloaded, so configuration changes affect the next
 session rather than an already-running one.
 
-`agents.metadataGeneration.providers` controls the preferred structured-generation fallback order for daemon-side metadata tasks such as commit messages, PR text, branch names, and generated agent titles. Entries are tried first in the configured order, then Paseo falls through to dynamically discovered defaults and finally the current selection when available.
+`agents.metadataGeneration.providers` controls the preferred structured-generation fallback order for daemon-side metadata tasks such as commit messages, PR text, branch names, and generated agent titles. Entries are tried first in the configured order, then Gravity falls through to dynamically discovered defaults and finally the current selection when available.
 
 ### Git process limits
 
@@ -338,27 +340,27 @@ requests.
 
 Environment variables override `config.json`:
 
-| Environment variable                 | Setting                  |
-| ------------------------------------ | ------------------------ |
-| `PASEO_GIT_MAX_PROCESSES_PER_SECOND` | `maxProcessesPerSecond`  |
-| `PASEO_GIT_MAX_PROCESS_CONCURRENCY`  | `maxProcessConcurrency`  |
-| `PASEO_GIT_CONCURRENCY`              | Legacy concurrency alias |
+| Environment variable                   | Setting                  |
+| -------------------------------------- | ------------------------ |
+| `GRAVITY_GIT_MAX_PROCESSES_PER_SECOND` | `maxProcessesPerSecond`  |
+| `GRAVITY_GIT_MAX_PROCESS_CONCURRENCY`  | `maxProcessConcurrency`  |
+| `GRAVITY_GIT_CONCURRENCY`              | Legacy concurrency alias |
 
-`PASEO_GIT_MAX_PROCESS_CONCURRENCY` wins when it and the legacy alias are both set. Run `paseo reload`
+`GRAVITY_GIT_MAX_PROCESS_CONCURRENCY` wins when it and the legacy alias are both set. Run `gravity reload`
 after changing `config.json`. Environment changes require a daemon restart; the launch environment
 remains authoritative during reload.
 
-`agents.metadataGeneration.providers` controls the preferred structured-generation fallback order for daemon-side metadata tasks such as commit messages, PR text, branch names, and generated agent titles. Entries are tried first in the configured order, then Paseo falls through to dynamically discovered defaults and finally the current selection when available.
+`agents.metadataGeneration.providers` controls the preferred structured-generation fallback order for daemon-side metadata tasks such as commit messages, PR text, branch names, and generated agent titles. Entries are tried first in the configured order, then Gravity falls through to dynamically discovered defaults and finally the current selection when available.
 
 Local speech model ids are intentionally narrow: STT uses `parakeet-tdt-0.6b-v2-int8`, TTS uses `kokoro-en-v0_19`, and turn detection uses the bundled Silero VAD model.
 
 Set these to select OpenAI instead of local speech:
 
-| Env var                        | Applies to                      |
-| ------------------------------ | ------------------------------- |
-| `PASEO_VOICE_STT_PROVIDER`     | Voice mode STT provider         |
-| `PASEO_DICTATION_STT_PROVIDER` | Composer dictation STT provider |
-| `PASEO_VOICE_TTS_PROVIDER`     | Voice mode TTS provider         |
+| Env var                          | Applies to                      |
+| -------------------------------- | ------------------------------- |
+| `GRAVITY_VOICE_STT_PROVIDER`     | Voice mode STT provider         |
+| `GRAVITY_DICTATION_STT_PROVIDER` | Composer dictation STT provider |
+| `GRAVITY_VOICE_TTS_PROVIDER`     | Voice mode TTS provider         |
 
 OpenAI speech can be configured under `providers.openai`. STT and TTS resolve independently, so they can point at different endpoints:
 
@@ -379,9 +381,9 @@ OpenAI speech can be configured under `providers.openai`. STT and TTS resolve in
 }
 ```
 
-`providers.openai.stt` is used for both composer dictation and voice mode speech-to-text; `providers.openai.tts` is used for voice mode text-to-speech. The equivalent env vars are `OPENAI_STT_API_KEY`/`OPENAI_STT_BASE_URL` and `OPENAI_TTS_API_KEY`/`OPENAI_TTS_BASE_URL`. Each feature falls back to `providers.openai.apiKey`/`providers.openai.baseUrl`, then `OPENAI_API_KEY`/`OPENAI_BASE_URL`, when its own fields are unset. These settings apply only to Paseo OpenAI speech features, not to Codex or other OpenAI-backed tools.
+`providers.openai.stt` is used for both composer dictation and voice mode speech-to-text; `providers.openai.tts` is used for voice mode text-to-speech. The equivalent env vars are `OPENAI_STT_API_KEY`/`OPENAI_STT_BASE_URL` and `OPENAI_TTS_API_KEY`/`OPENAI_TTS_BASE_URL`. Each feature falls back to `providers.openai.apiKey`/`providers.openai.baseUrl`, then `OPENAI_API_KEY`/`OPENAI_BASE_URL`, when its own fields are unset. These settings apply only to Gravity OpenAI speech features, not to Codex or other OpenAI-backed tools.
 
-Paseo uses these paths under the configured OpenAI base URL:
+Gravity uses these paths under the configured OpenAI base URL:
 
 - dictation STT: `/v1/audio/transcriptions`
 - voice mode STT: `/v1/audio/transcriptions`
@@ -391,9 +393,11 @@ Paseo uses these paths under the configured OpenAI base URL:
 
 ## 3. Schedule
 
-**Path:** `$PASEO_HOME/schedules/{id}.json`
+**Path:** `$GRAVITY_HOME/schedules/{id}.json`
 
 One file per schedule. ID is 8 hex characters.
+
+The daemon seeds the default automations (`packages/protocol/src/schedule/templates.ts`) as paused schedules the first time it starts with a provider installed, then writes `schedules/.defaults-seeded`. The marker, not the schedule files, is what stops reseeding, so a user who deletes a default does not get it back. Delete the marker to seed again.
 
 | Field       | Type                                  | Description                      |
 | ----------- | ------------------------------------- | -------------------------------- |
@@ -439,7 +443,7 @@ One file per schedule. ID is 8 hex characters.
 
 ## 4. Project Registry
 
-**Path:** `$PASEO_HOME/projects/projects.json`
+**Path:** `$GRAVITY_HOME/projects/projects.json`
 
 Array of project records.
 
@@ -474,7 +478,9 @@ workspace together with its owning project.
 
 ## 5. Workspace Registry
 
-**Path:** `$PASEO_HOME/projects/workspaces.json`
+Workspace labels use `project: branch` for Git checkouts, including worktrees. Non-Git workspaces use the project name. The first chat never supplies a workspace title. Persisted `title` values remain readable for older clients; the current app ignores them.
+
+**Path:** `$GRAVITY_HOME/projects/workspaces.json`
 
 Array of workspace records. A workspace is a specific working directory within a project.
 
@@ -484,12 +490,12 @@ Array of workspace records. A workspace is a specific working directory within a
 | `projectId`                    | `string`                                                     | FK to Project.projectId; the workspace's stable project membership                                                                                                                            |
 | `cwd`                          | `string`                                                     | Exact execution directory selected for agents, files, scripts, and setup                                                                                                                      |
 | `kind`                         | `"local_checkout" \| "worktree" \| "directory"`              | Mutable checkout classification                                                                                                                                                               |
-| `displayName`                  | `string`                                                     | The human name (the generated/derived title). Decoupled from `branch` by construction.                                                                                                        |
+| `displayName`                  | `string`                                                     | Persisted derived display name. Clients use the project name and current branch for workspace labels.                                                                                         |
 | `title`                        | `string \| null`                                             | User-set name override layered over `displayName`. Null means "use `displayName`".                                                                                                            |
 | `branch`                       | `string \| null`                                             | The current Git branch for git-backed workspaces. Separate from `displayName`/`title`; a background branch refresh never rewrites the name.                                                   |
 | `worktreeRoot`                 | `string \| null`                                             | Backing checkout/worktree root. May differ from `cwd` for exact subprojects and remains persisted after the worktree is deleted so restore can reproduce the placement.                       |
-| `baseBranch`                   | `string \| null`                                             | Normalized branch the Paseo worktree was created from; null for directories, local checkouts, and checkout-branch worktrees                                                                   |
-| `isPaseoOwnedWorktree`         | `boolean`                                                    | Whether Paseo owns and may remove/recreate the backing `worktreeRoot`                                                                                                                         |
+| `baseBranch`                   | `string \| null`                                             | Normalized branch the Gravity worktree was created from; null for directories, local checkouts, and checkout-branch worktrees                                                                 |
+| `isGravityOwnedWorktree`       | `boolean`                                                    | Whether Gravity owns and may remove/recreate the backing `worktreeRoot`                                                                                                                       |
 | `mainRepoRoot`                 | `string \| null`                                             | Main repository root for worktree checkouts, independent of both exact `cwd` and backing `worktreeRoot`                                                                                       |
 | `createdAt`                    | `string` (ISO 8601)                                          |                                                                                                                                                                                               |
 | `updatedAt`                    | `string` (ISO 8601)                                          |                                                                                                                                                                                               |
@@ -503,7 +509,7 @@ Array of workspace records. A workspace is a specific working directory within a
 
 ### Workspace label catalog
 
-**Path:** `$PASEO_HOME/projects/workspace-labels.json`
+**Path:** `$GRAVITY_HOME/projects/workspace-labels.json`
 
 The catalog is shared by every workspace on one host. A definition contains a display name and one
 of the ten identity colour names (`WORKSPACE_LABEL_COLORS` in
@@ -534,7 +540,7 @@ than treating it as valid.
 
 ## 6. Push Token Store
 
-**Path:** `$PASEO_HOME/push-tokens.json`
+**Path:** `$GRAVITY_HOME/push-tokens.json`
 
 ```json
 {
@@ -548,13 +554,13 @@ Simple set of Expo push notification tokens. Loaded with permissive parsing (fil
 
 ## 7. Daemon meta files
 
-These small files are not validated as full Zod schemas but are persisted under `$PASEO_HOME` for daemon identity and runtime coordination.
+These small files are not validated as full Zod schemas but are persisted under `$GRAVITY_HOME` for daemon identity and runtime coordination.
 
 | Path                  | Format                                                         | Notes                                                                             |
 | --------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `server-id`           | Plain text, e.g. `srv_<base64url>`                             | Stable per-`$PASEO_HOME` daemon ID. Overridable via `PASEO_SERVER_ID` env.        |
+| `server-id`           | Plain text, e.g. `srv_<base64url>`                             | Stable per-`$GRAVITY_HOME` daemon ID. Overridable via `GRAVITY_SERVER_ID` env.    |
 | `daemon-keypair.json` | `{ v: 2, publicKeyB64, secretKeyB64 }` (libsodium box keypair) | E2EE relay identity. Written with mode `0600`. Regenerated if file is unreadable. |
-| `paseo.pid`           | JSON `{ pid, startedAt, ... }`                                 | PID lock; prevents two daemons sharing one `$PASEO_HOME`.                         |
+| `gravity.pid`         | JSON `{ pid, startedAt, ... }`                                 | PID lock; prevents two daemons sharing one `$GRAVITY_HOME`.                       |
 | `daemon.log`          | Pino log output                                                | Default location; path/rotation configurable via `log.file` in `config.json`.     |
 
 ---
@@ -568,7 +574,7 @@ These live in React Native `AsyncStorage` or browser `IndexedDB`, not on the dae
 Right-sidebar client state splits on whether it is determined by the directory or owned by the workspace (two workspaces can share one `cwd`). The split is enforced by the cache key, so changing a key changes the sharing semantics — see [architecture.md](architecture.md#right-sidebar-boundary-directory-backed-vs-workspace-owned) for the full table.
 
 - **Directory-backed** (shared by same-`cwd` workspaces): keyed by `(serverId, cwd)`. Git status/diff, GitHub PR status, PR timeline, file preview content. These are TanStack Query caches, not persisted stores.
-- **Workspace-owned** (independent per workspace): keyed by `workspaceId`, with `cwd` used only as a fallback when no `workspaceId` is present. Review draft comments (`@paseo:review-draft-store`), diff-mode overrides (in-memory), workspace composer attachments, and file-explorer nav/expand state. The `workspaceId` part of these keys is **opaque** — never parse it back into a path.
+- **Workspace-owned** (independent per workspace): keyed by `workspaceId`, with `cwd` used only as a fallback when no `workspaceId` is present. Review draft comments (`@gravity:review-draft-store`), diff-mode overrides (in-memory), workspace composer attachments, and file-explorer nav/expand state. The `workspaceId` part of these keys is **opaque** — never parse it back into a path.
 
 ### Replica row store
 
@@ -592,7 +598,7 @@ source code, prompts, and tool output; encrypted-at-rest storage is a separate s
 
 ### Draft Store
 
-**AsyncStorage key:** `paseo-drafts` (version 2)
+**AsyncStorage key:** `gravity-drafts` (version 2)
 
 ```typescript
 {
@@ -608,7 +614,7 @@ source code, prompts, and tool output; encrypted-at-rest storage is a separate s
 
 ### Attachment Store (Web)
 
-**IndexedDB database:** `paseo-attachment-bytes`, object store: `attachments`
+**IndexedDB database:** `gravity-attachment-bytes`, object store: `attachments`
 
 Stores binary attachment blobs keyed by attachment ID.
 

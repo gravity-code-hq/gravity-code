@@ -8,12 +8,14 @@ import {
 
 describe("desktop dev process ownership", () => {
   test("makes the signal-handling runner the workspace terminal process", () => {
-    const paseoConfig = JSON.parse(
-      readFileSync(new URL("../../../paseo.json", import.meta.url), "utf8"),
+    const gravityConfig = JSON.parse(
+      readFileSync(new URL("../../../gravity.json", import.meta.url), "utf8"),
     );
     const devScript = readFileSync(new URL("./dev.sh", import.meta.url), "utf8");
 
-    expect(paseoConfig.scripts.desktop.command).toContain("exec ./packages/desktop/scripts/dev.sh");
+    expect(gravityConfig.scripts.desktop.command).toContain(
+      "exec ./packages/desktop/scripts/dev.sh",
+    );
     expect(devScript).toContain('npm --prefix "$DESKTOP_DIR" run build:main');
     expect(devScript).toContain('exec node "$SCRIPT_DIR/dev-runner.mjs"');
   });
@@ -39,6 +41,25 @@ describe("desktop dev process ownership", () => {
     expect(resolveChildKillTarget(42, true)).toBe(-42);
     expect(resolveChildKillTarget(42, false)).toBe(42);
   });
+
+  test.each(["darwin", "linux", "win32"])(
+    "isolates macOS library overrides from Electron on %s",
+    (platform) => {
+      const env = { PATH: "/usr/bin", DYLD_LIBRARY_PATH: "/opt/homebrew/lib" };
+      const options = createElectronSpawnOptions({
+        env,
+        colorEnv: {},
+        expoDevUrl: "http://localhost:8082",
+        platform,
+      });
+
+      expect(options.env.DYLD_LIBRARY_PATH).toBe(
+        platform === "darwin" ? undefined : "/opt/homebrew/lib",
+      );
+      expect(env.DYLD_LIBRARY_PATH).toBe("/opt/homebrew/lib");
+      expect(options.env.PATH).toBe("/usr/bin");
+    },
+  );
 
   test("stops children when the owning terminal hangs up", () => {
     const listeners = new Map();

@@ -2,6 +2,74 @@ import { en, type TranslationResources } from "./en";
 import { pluginSettings } from "./plugin-settings";
 
 export const ru: TranslationResources = {
+  visualization: {
+    previous: "Предыдущий вариант",
+    next: "Следующий вариант",
+    controls: "Настройки",
+  },
+
+  providerCustomizations: {
+    addCommand: "Добавить команду",
+    commandName: "Имя команды",
+    prompt: "Инструкции",
+    invalidName:
+      "Используйте латинские буквы, цифры, дефисы или подчёркивания. Начните с буквы или цифры.",
+    commandExists: "Команда с таким именем уже существует. Выберите другое имя.",
+    models: "Модели",
+    commands: "Команды",
+    skills: "Навыки",
+    mcpServers: "Серверы MCP",
+    mcp: {
+      updated: "Проверено {{time}}",
+      checking: "Проверка серверов…",
+      notHealthChecked:
+        "Codex не проверяет соединения. «Настроен» означает, что сервер есть в конфигурации, а не что он работает.",
+      empty: "Серверы MCP не настроены.",
+      connectTitle: "Подключить ещё",
+      claudeConnectors:
+        "Slack, Gmail, Google Drive, Calendar и другие — это коннекторы, которые включаются на claude.ai. Они следуют за вашей учётной записью на всех хостах, здесь ничего настраивать не нужно.",
+      claudeConnectorsLink: "Открыть коннекторы claude.ai",
+      claudeLocal: "Для любого другого сервера выполните на хосте:",
+      codexAdd:
+        "Codex читает серверы из config.toml на этом хосте. Добавьте сервер через CLI Codex:",
+      codexLogin: "Серверам с OAuth также нужен вход на хосте:",
+      thenRefresh: "Затем нажмите «Обновить» здесь.",
+      status: {
+        connected: "Подключён",
+        failed: "Ошибка",
+        pending_approval: "Нужно одобрение",
+        disabled: "Отключён",
+        configured: "Настроен",
+        unknown: "Неизвестно",
+      },
+      scope: {
+        claude_ai: "Учётная запись claude.ai",
+        user: "Личный",
+        project: "Проект",
+      },
+    },
+    scope: "Область",
+    personal: "Личное",
+    project: "Проект",
+    plugin: "Плагин",
+    provider: "Провайдер",
+    searchCommands: "Поиск команд",
+    searchSkills: "Поиск навыков",
+    noCommands: "Команды не найдены.",
+    noSkills: "Навыки не найдены.",
+    updateHost: "Обновите хост для управления командами и навыками.",
+    readOnly:
+      "Управляется провайдером или плагином. Установленные файлы доступны здесь только для чтения.",
+    instructions: "Инструкции",
+    improve: "Улучшить с агентом",
+    save: "Сохранить",
+    saved: "Сохранено",
+    conflict:
+      "Файл изменился на диске. Перезагрузите его перед сохранением, чтобы не перезаписать изменения.",
+    discardTitle: "Отменить изменения?",
+    discardMessage: "Несохранённые правки будут потеряны.",
+    discard: "Отменить",
+  },
   common: {
     back: "Назад",
     loading: "Загрузка...",
@@ -134,6 +202,10 @@ export const ru: TranslationResources = {
       addIssueOrPr_mr: "Добавить проблему или MR",
       dropImagesHere: "Скиньте изображения сюда",
       dropFilesHere: "Переместите файлы сюда",
+      queuedCount: "В очереди: {{count}}",
+      deleteQueuedMessage: "Удалить сообщение из очереди",
+      deleteAllQueued: "Удалить всё",
+      sendAllQueuedNow: "Отправить всё сейчас",
       editQueuedMessage: "Изменить сообщение из очереди",
       sendQueuedMessageNow: "Отправить сообщение из очереди сейчас",
       openImage: "Открыть прикрепленное изображение",
@@ -173,9 +245,14 @@ export const ru: TranslationResources = {
     },
   },
   agentControls: {
+    moreSettings: "Дополнительные настройки",
+    permissions: "Разрешения",
+    plan: "План",
+    caffeineMode: "Режим бодрствования",
     provider: {
       fallback: "Провайдер",
       select: "Выбрать провайдера агента",
+      switched: "Продолжаем в {{provider}} в новой вкладке с историей чата",
     },
     thinking: {
       title: "Рассуждения",
@@ -292,6 +369,7 @@ export const ru: TranslationResources = {
     },
   },
   message: {
+    forkedFrom: "Ответвление от {{title}}",
     diagram: {
       diagram: "Диаграмма",
       zoomIn: "Увеличить масштаб",
@@ -305,9 +383,10 @@ export const ru: TranslationResources = {
       copyCode: "Скопировать код",
       copyTurn: "Скопировать ответ",
       copyMessage: "Копировать сообщение",
+      expandMessage: "Показать ещё",
+      collapseMessage: "Показать меньше",
       forkMenu: "Форкнуть чат отсюда",
       forkInNewTab: "Создать форк в новой вкладке",
-      forkInNewWorkspace: "Создать форк в новом рабочем пространстве",
       forkUnavailable: "Обновите хост, чтобы использовать эту функцию.",
       forkMissingWorkspace: "Этот агент не связан с рабочим пространством.",
       forkFailed: "Не удалось создать форк чата",
@@ -318,6 +397,8 @@ export const ru: TranslationResources = {
       dismissImage: "Закрыть изображение",
       closeImage: "Закрыть изображение",
       imageLoadFailed: "Не удалось загрузить изображение",
+      copyImage: "Копировать изображение",
+      copyImageFailed: "Не удалось скопировать изображение. Попробуйте ещё раз.",
       imageUnavailable: "Изображение недоступно",
       imagePreviewUnavailable: "Предварительный просмотр изображения недоступен.",
       imagePreviewLoadFailed: "Не удалось загрузить предварительный просмотр изображения.",
@@ -335,6 +416,10 @@ export const ru: TranslationResources = {
       details: "Подробности",
     },
     dictation: {
+      listening: "Слушаю",
+      transcribing: "Расшифровка…",
+      stopped: "Запись остановлена",
+      doubleCommand: "Нажмите ⌘ дважды, чтобы начать или остановить диктовку",
       start: "Начать диктовку голосом",
       cancel: "Отменить диктовку",
       retry: "Повторить диктовку",
@@ -407,6 +492,15 @@ export const ru: TranslationResources = {
     },
   },
   workspace: {
+    zoom: {
+      textSize: "Размер текста",
+      increase: "Увеличить размер текста",
+      decrease: "Уменьшить размер текста",
+      reset: "Сбросить",
+      terminalOptions: "Параметры терминала",
+      terminalText: "Текст терминала: {{size}} пикс.",
+      editorText: "Текст редактора: {{size}} пикс.",
+    },
     route: {
       loading: "Загрузка рабочего пространства",
       connecting: "Подключение",
@@ -468,11 +562,6 @@ export const ru: TranslationResources = {
       },
     },
     fileExplorer: {
-      sort: {
-        name: "Имя",
-        modified: "Дата изменения",
-        size: "Размер",
-      },
       context: {
         size: "Размер",
         modified: "Дата изменения",
@@ -606,6 +695,8 @@ export const ru: TranslationResources = {
       },
       menu: {
         openFor: "Открыть меню для {{label}}",
+        copyConversation: "Копировать разговор",
+        downloadConversation: "Скачать разговор",
         copyResumeCommand: "Копировать команду продолжения",
         copyAgentId: "Скопировать идентификатор агента",
         copyTerminalId: "Скопировать идентификатор терминала",
@@ -657,6 +748,14 @@ export const ru: TranslationResources = {
         filePathCopiedLabel: "Путь к файлу",
         resumeIdUnavailable: "ID возобновления недоступен",
         resumeCommandUnavailable: "Команда возобновления недоступна",
+        copyingConversation: "Копирование разговора…",
+        conversationCopied: "Разговор скопирован",
+        conversationCopyFailed:
+          "Не удалось скопировать разговор: {{reason}}. Попробуйте «Копировать разговор» ещё раз.",
+        downloadingConversation: "Подготовка разговора к скачиванию…",
+        conversationChanged: "История разговора изменилась. Попробуйте ещё раз.",
+        conversationDownloadFailed:
+          "Не удалось скачать разговор: {{reason}}. Попробуйте скачать ещё раз.",
         reloadingAgent: "Перезагрузка агента...",
         reloadedAgent: "Агент перезагружен",
         failedToReloadAgent: "Не удалось перезагрузить агента",
@@ -740,7 +839,7 @@ export const ru: TranslationResources = {
       },
       routes: {
         public: "Обратный прокси",
-        paseo: "Запоминающийся адрес",
+        gravity: "Запоминающийся адрес",
         direct: "Прямой адрес",
       },
       states: {
@@ -856,7 +955,7 @@ export const ru: TranslationResources = {
           updateCurrent: "Обновление недоступно: эта ветка уже синхронизирована с {{baseRef}}.",
           mergePrNoGithub: "Слияние PR сейчас недоступно: GitHub не подключён.",
           archiveNotWorktree:
-            "Архивирование недоступно: это рабочее пространство не было создано как worktree Paseo.",
+            "Архивирование недоступно: это рабочее пространство не было создано как worktree Gravity.",
           mergePrNoForge: "Слияние {{noun}} сейчас недоступно: {{brand}} не подключён.",
           mergePrMissing: "Слияние PR недоступно: PR ещё не создан.",
           mergePrDraft: "Слияние PR недоступно: PR всё ещё является черновиком.",
@@ -1066,6 +1165,20 @@ export const ru: TranslationResources = {
       updateHost: "Обновите этот хост для управления метками.",
     },
   },
+  githubStar: {
+    title: "Нравится Gravity?",
+    description:
+      "Gravity — проект с открытым исходным кодом. Если он помог вам сегодня, звезда на GitHub поможет другим разработчикам его найти.",
+    hostHint: "Звезда ставится от имени аккаунта GitHub, в который выполнен вход в gh на {{host}}.",
+    directStarFailed:
+      "Не удалось поставить звезду отсюда. Откройте GitHub, чтобы поставить её в браузере.",
+    thanks: "Спасибо за звезду для Gravity.",
+    star: "Поставить звезду на GitHub",
+    starring: "Ставим звезду...",
+    openGitHub: "Открыть GitHub",
+    opening: "Открываем...",
+    later: "Позже",
+  },
   changelog: {
     title: "Что нового",
     installed: "Установлена",
@@ -1074,6 +1187,111 @@ export const ru: TranslationResources = {
     error: {
       title: "Не удалось загрузить список изменений",
       description: "Проверьте подключение и попробуйте снова.",
+    },
+  },
+  linear: {
+    title: "Задачи",
+    connect: {
+      title: "Подключить Linear",
+      description:
+        "Вставьте персональный API-ключ, чтобы видеть здесь свои задачи. Ключ остаётся на этом хосте.",
+      apiKeyLabel: "API-ключ",
+      apiKeyPlaceholder: "lin_api_…",
+      action: "Подключить",
+      pending: "Подключение…",
+      createKey: "Создать API-ключ в Linear",
+    },
+    filters: {
+      assigned: "Назначенные",
+      created: "Созданные",
+      all: "Все",
+      completed: "Завершённые",
+      allTeams: "Все команды",
+      teamFilterLabel: "Фильтр по команде: {{team}}",
+      searchPlaceholder: "Поиск задач",
+      clearSearch: "Очистить поиск",
+    },
+    menu: {
+      actions: "Действия Linear",
+      refresh: "Обновить",
+      openLinear: "Открыть Linear",
+      disconnect: "Отключить",
+      disconnecting: "Отключение…",
+      disconnectTitle: "Отключить Linear",
+      disconnectMessage: "Удалить API-ключ Linear с хоста {{host}}?",
+      disconnectConfirm: "Отключить",
+    },
+    states: {
+      noHosts: "Добавьте хост, чтобы использовать Linear.",
+      hostOffline: "Этот хост не в сети.",
+      hostUnsupported: "Обновите этот хост, чтобы использовать Linear.",
+      retry: "Повторить",
+      loadError: "Не удалось загрузить задачи",
+      empty: "Задач нет",
+      searchEmpty: "По вашему запросу задач не найдено",
+      hasMore: "Показаны первые {{count}} задач",
+    },
+    pagination: {
+      range: "Задачи {{start}}–{{end}}",
+      previous: "Назад",
+      next: "Далее",
+      page: "Страница {{page}}",
+      updateHost: "Обновите этот хост, чтобы просмотреть больше задач.",
+    },
+    start: {
+      repository: "Репозиторий",
+      workspace: "Рабочее пространство",
+      newWorktree: "Новое рабочее дерево",
+      newWorkspace: "Новое рабочее пространство",
+      existingWorkspace: "Существующее рабочее пространство",
+      repositoryCheckout: "Рабочая копия репозитория (текущая ветка)",
+      noWorkspaces: "В этом репозитории нет рабочих пространств",
+      model: "Модель",
+      chooseModel: "Выберите модель",
+      noModels: "Нет доступных моделей",
+      prompt: "Запрос",
+    },
+    issue: {
+      open: "Открыть в Linear",
+      startAgent: "Запустить агента",
+      actions: "Действия с задачей",
+      startFailed: "Не удалось запустить агента",
+      chooseRepo: "Выберите репозиторий",
+      noProjects: "На этом хосте нет проектов",
+      openComposer: "Настроить в новом рабочем пространстве",
+      copyBranch: "Скопировать имя ветки",
+      branchCopied: "Имя ветки скопировано",
+      state: "Статус",
+      changeState: "Изменить статус",
+      stateUpdateFailed: "Не удалось обновить статус",
+      priority: "Приоритет",
+      assignee: "Исполнитель",
+      unassigned: "Не назначен",
+      unknownUser: "Неизвестно",
+      labels: "Метки",
+      project: "Проект",
+      dueDate: "Срок",
+      updated: "Обновлено",
+      updatedAgo: "Обновлено {{time}}",
+      description: "Описание",
+      noDescription: "Описания нет",
+      subIssues: "Подзадачи",
+      comments: "Комментарии",
+      noComments: "Комментариев пока нет",
+      loadError: "Не удалось загрузить эту задачу",
+    },
+    priority: {
+      none: "Без приоритета",
+      urgent: "Срочно",
+      high: "Высокий",
+      medium: "Средний",
+      low: "Низкий",
+    },
+    errors: {
+      auth: "Linear отклонил API-ключ.",
+      rateLimited: "Достигнут лимит запросов Linear. Повторите попытку позже.",
+      network: "Не удалось связаться с Linear.",
+      notConnected: "Linear не подключён на этом хосте.",
     },
   },
   sidebar: {
@@ -1144,15 +1362,16 @@ export const ru: TranslationResources = {
       diagnostics: "Запустить диагностику",
       shortcuts: "Сочетания клавиш",
       reportIssue: "Сообщить о проблеме",
-      discord: "Discord",
       github: "Создать issue на GitHub",
       whatsNew: "Что нового",
-      appName: "Paseo",
+      starOnGithub: "Поставить звезду на GitHub",
+      appName: "Gravity",
     },
     sections: {
       sessions: "История",
       search: "Поиск",
-      schedules: "Расписания",
+      schedules: "Автоматизации",
+      tasks: "Задачи",
     },
     worktreeSetup: {
       title: "Настроить скрипты worktree",
@@ -1208,6 +1427,7 @@ export const ru: TranslationResources = {
         showMore: "Показать ещё",
         showLess: "Показать меньше",
         createWorkspaceFor: "Создать новое рабочее пространство для {{projectName}}",
+        newAgent: "Новый агент",
         copyPath: "Копировать путь",
         copyBranchName: "Скопировать имя ветки",
         rename: "Переименовать рабочее пространство",
@@ -1245,9 +1465,9 @@ export const ru: TranslationResources = {
     title: "Новое рабочее пространство",
     create: "Создать",
     isolation: {
-      local: "Локально",
+      local: "Текущая папка",
       worktree: "Новый worktree",
-      label: "Изоляция",
+      label: "Где запускать",
     },
     fields: {
       project: "Проект",
@@ -1262,9 +1482,9 @@ export const ru: TranslationResources = {
       selectModel: "Выберите модель",
     },
     tooltips: {
+      isolation: "Запустить здесь или в новом worktree",
       project: "Выберите проект",
       host: "Выберите хост",
-      isolation: "Выберите уровень изоляции",
       startingRef: "Выберите, с чего начать",
       launch: "Выберите, что запустить",
     },
@@ -1295,7 +1515,7 @@ export const ru: TranslationResources = {
       close: "Закрыть окно",
     },
     quitting: {
-      title: "Завершение работы Paseo...",
+      title: "Завершение работы Gravity...",
       detail: "Остановка локального демона.",
     },
     daemon: {
@@ -1310,20 +1530,20 @@ export const ru: TranslationResources = {
       },
       management: {
         title: "Управление встроенным демоном",
-        hint: "Разрешить Paseo запускать и останавливать встроенный демон",
+        hint: "Разрешить Gravity запускать и останавливать встроенный демон",
         pauseTitle: "Приостановить встроенный демон",
         pauseMessage:
           "Это немедленно остановит встроенный демон. Запущенные агенты и терминалы, подключенные к встроенному демону, будут остановлены.",
         pauseAndStop: "Приостановить управление и остановить демон",
         registrationFailed:
-          "Встроенный демон запущен, но Paseo не удалось сохранить подключение к localhost. Выключите и снова включите управление демоном или добавьте localhost вручную.",
+          "Встроенный демон запущен, но Gravity не удалось сохранить подключение к localhost. Выключите и снова включите управление демоном или добавьте localhost вручную.",
         pausedStopFailed:
-          "Встроенное управление демоном было приостановлено, но Paseo не смог остановить демон.",
+          "Встроенное управление демоном было приостановлено, но Gravity не смог остановить демон.",
         updateFailed: "Не удалось изменить настройки управления встроенным демоном.",
       },
       keepRunning: {
         title: "Продолжать работу демона после выхода",
-        hint: "Демон продолжит работать после выхода из Paseo",
+        hint: "Демон продолжит работать после выхода из Gravity",
       },
       logs: {
         title: "Файл журнала",
@@ -1338,7 +1558,7 @@ export const ru: TranslationResources = {
       fullStatus: {
         title: "Полный статус",
         modalTitle: "Статус демона",
-        hint: "Выполняет команду `paseo daemon status` и показывает результат",
+        hint: "Выполняет команду `gravity daemon status` и показывает результат",
         view: "Посмотреть статус",
         copied: "Статус скопирован в буфер обмена.",
         fetchFailed: "Не удалось получить статус демона: {{message}}",
@@ -1394,7 +1614,7 @@ export const ru: TranslationResources = {
     },
     rosetta: {
       title: "Загрузите сборку Apple Silicon",
-      runningIntel: "Вы используете сборку Paseo для Intel через Rosetta на Apple Silicon.",
+      runningIntel: "Вы используете сборку Gravity для Intel через Rosetta на Apple Silicon.",
       highCpu:
         "Из-за этого процессор сильно загружен. Чтобы устранить проблему, скачайте сборку для Apple Silicon.",
       download: "Скачать",
@@ -1439,7 +1659,7 @@ export const ru: TranslationResources = {
         microphone: "Состояние микрофона ещё не проверялось.",
       },
       testNotification: {
-        title: "Тест уведомлений Paseo",
+        title: "Тест уведомлений Gravity",
         body: "Если вы это видите, уведомления на рабочем столе работают.",
         notDelivered:
           "Уведомление не доставлено. Проверьте раздел «Уведомления» в системных настройках.",
@@ -1449,12 +1669,12 @@ export const ru: TranslationResources = {
     integrations: {
       cli: {
         statusFailed: "Не удалось проверить состояние установки CLI.",
-        installFailed: "Не удалось установить Paseo CLI.",
+        installFailed: "Не удалось установить Gravity CLI.",
       },
     },
   },
   rootError: {
-    title: "В Paseo возникла проблема.",
+    title: "В Gravity возникла проблема.",
     body: "Попробуйте перезагрузить приложение. Если ошибка повторится, приложите приведённые ниже сведения к отчёту.",
     details: "Подробности",
   },
@@ -1521,6 +1741,8 @@ export const ru: TranslationResources = {
     stashRestored: "Изменения из stash восстановлены.",
   },
   agentAutocomplete: {
+    command: "Команда",
+    skill: "Навык",
     searchingWorkspace: "Поиск в рабочем пространстве...",
     loadingCommands: "Загрузка команд...",
     noFiles: "Файлы и каталоги не найдены",
@@ -1550,7 +1772,7 @@ export const ru: TranslationResources = {
     },
   },
   onboarding: {
-    title: "Добро пожаловать в Paseo",
+    title: "Добро пожаловать в Gravity",
     subtitle: "Подключите компьютер, чтобы начать",
     actions: {
       settings: "Настройки",
@@ -1638,7 +1860,7 @@ export const ru: TranslationResources = {
     },
     direct: {
       title: "Прямое подключение",
-      helper: "Введите адрес сервера Paseo.",
+      helper: "Введите адрес сервера Gravity.",
       fields: {
         host: "Хост",
         port: "Порт",
@@ -1681,7 +1903,7 @@ export const ru: TranslationResources = {
     },
     remoteSsh: {
       title: "Удалённый SSH",
-      helper: "Подключитесь к демону Paseo на удалённом хосте.",
+      helper: "Подключитесь к демону Gravity на удалённом хосте.",
       fields: {
         target: "Хост SSH",
       },
@@ -1739,15 +1961,15 @@ export const ru: TranslationResources = {
       enableDescription:
         "Ретранслятор позволяет этому устройству подключаться откуда угодно. Трафик сопряжения защищён сквозным шифрованием.",
       relayDocs: "Как работает ретранслятор",
-      relayDocsAccessibility: "Узнать, как работает ретранслятор Paseo",
+      relayDocsAccessibility: "Узнать, как работает ретранслятор Gravity",
       enableRelay: "Включить ретранслятор",
       enablingRelay: "Включение ретранслятора...",
       notNow: "Не сейчас",
       directConnectionHint:
         "Без ретранслятора подключайтесь напрямую через TCP, Tailscale или другую VPN. QR-код создаваться не будет.",
-      updateRequired: "Обновите хост, чтобы включить ретранслятор из Paseo Desktop.",
+      updateRequired: "Обновите хост, чтобы включить ретранслятор из Gravity Desktop.",
       unavailable: "Данные для сопряжения недоступны.",
-      hint: "Отсканируйте этот QR-код с помощью Paseo на телефоне или скопируйте ссылку ниже.",
+      hint: "Отсканируйте этот QR-код с помощью Gravity на телефоне или скопируйте ссылку ниже.",
       securityWarning:
         "Обращайтесь с этой ссылкой для сопряжения как с паролем. Любой, у кого она есть, может получить доступ к этому демону.",
       qrUnavailable: "QR-код недоступен.",
@@ -1782,7 +2004,7 @@ export const ru: TranslationResources = {
   serviceUrl: {
     title: "Открыть URL сервиса",
     message: "Открыть {{url}}?",
-    inPaseo: "В Paseo",
+    inGravity: "В Gravity",
     externalBrowser: "Внешний браузер",
     dontAskAgain: "Больше не спрашивать",
   },
@@ -1827,6 +2049,19 @@ export const ru: TranslationResources = {
       failedToLoad: "Не удалось загрузить файл",
       failedToLoadPreview: "Не удалось загрузить предварительный просмотр файла.",
       editor: {
+        find: {
+          placeholder: "Найти",
+          replace: "Заменить",
+          toggleReplace: "Показать замену",
+          previous: "Предыдущее совпадение",
+          next: "Следующее совпадение",
+          selectAll: "Выбрать все совпадения",
+          close: "Закрыть поиск",
+          replaceAll: "Заменить всё",
+          count: "{{current}} из {{total}}",
+          invalidRegex: "Неверное выражение",
+          noResults: "Нет результатов",
+        },
         fileSize: "Размер файла {{size}}",
         lines: "Строк: {{count}}",
         editorStatus: "Состояние редактора: {{status}}",
@@ -1855,6 +2090,54 @@ export const ru: TranslationResources = {
       tooltip: "Просмотр файлов рабочего пространства",
       chooseFile: "Выберите файл",
     },
+    search: {
+      label: "Поиск",
+      subtitle: "Поиск в файлах",
+      tooltip: "Поиск по файлам рабочего пространства",
+      placeholder: "Поиск",
+      clear: "Очистить поиск",
+      modes: {
+        names: "Имена",
+        contents: "Содержимое",
+      },
+      options: {
+        caseSensitive: "Учитывать регистр",
+        wholeWord: "Только слово целиком",
+        regex: "Использовать регулярное выражение",
+        filters: "Файлы для включения или исключения",
+      },
+      filters: {
+        includeLabel: "Включить файлы",
+        includePlaceholder: "напр. *.ts, src/**",
+        excludeLabel: "Исключить файлы",
+        excludePlaceholder: "напр. *.min.js, dist/**",
+      },
+      count: {
+        fileResult: "{{count}} результат в {{files}} файле",
+        filesResult: "{{count}} результат в {{files}} файлах",
+        fileResults: "{{count}} результатов в {{files}} файле",
+        filesResults: "{{count}} результатов в {{files}} файлах",
+      },
+      states: {
+        prompt: "Введите текст для поиска по содержимому файлов",
+        namesPrompt: "Введите текст для поиска по именам файлов",
+        empty: "Ничего не найдено. Проверьте настроенные исключения и файлы gitignore.",
+        emptyIncludes: "Ничего не найдено в '{{include}}'.",
+        emptyExcludes: "Ничего не найдено без учёта '{{exclude}}'.",
+        emptyIncludesExcludes: "Ничего не найдено в '{{include}}' без учёта '{{exclude}}'.",
+        limitHit:
+          "Набор результатов содержит лишь часть всех совпадений. Уточните запрос, чтобы сузить результаты.",
+      },
+      actions: {
+        refresh: "Обновить",
+        clear: "Очистить результаты поиска",
+        collapseAll: "Свернуть все",
+        expandAll: "Развернуть все",
+        toggleDetails: "Показать или скрыть параметры поиска",
+      },
+      fileMatches_one: "Найдено {{count}} совпадение",
+      fileMatches_other: "Найдено совпадений: {{count}}",
+    },
     pullRequest: {
       label: "PR",
       subtitle: "Сведения о PR",
@@ -1882,6 +2165,10 @@ export const ru: TranslationResources = {
     output: "Выходные данные",
   },
   toolCallGroup: {
+    earlierCalls: {
+      one: "Предыдущие вызовы инструментов: {{count}}",
+      other: "Предыдущие вызовы инструментов: {{count}}",
+    },
     editedFiles: {
       one: "изменён {{count}} файл",
       other: "изменены файлы ({{count}})",
@@ -1902,9 +2189,9 @@ export const ru: TranslationResources = {
       one: "использован {{count}} другой инструмент",
       other: "использованы другие инструменты ({{count}})",
     },
-    paseoCalls: {
-      one: "выполнен {{count}} вызов Paseo",
-      other: "выполнены вызовы Paseo ({{count}})",
+    gravityCalls: {
+      one: "выполнен {{count}} вызов Gravity",
+      other: "выполнены вызовы Gravity ({{count}})",
     },
     and: "и",
   },
@@ -1985,7 +2272,7 @@ export const ru: TranslationResources = {
       send: "Отправить",
       sending: "Отправка...",
       sentTitle: "Тестовое уведомление отправлено",
-      sentDescription: "Paseo передал уведомление операционной системе.",
+      sentDescription: "Gravity передал уведомление операционной системе.",
       sendFailedTitle: "Не удалось отправить тестовое уведомление",
     },
     hostSections: {
@@ -2004,14 +2291,14 @@ export const ru: TranslationResources = {
     metadataGeneration: {
       title: "Генерация метаданных",
       description:
-        "Выберите модель, которую Paseo будет использовать для названий рабочих пространств и веток, сообщений коммитов и черновиков PR",
+        "Выберите модель, которую Gravity будет использовать для названий рабочих пространств и веток, сообщений коммитов и черновиков PR",
       selection: "Выбор модели",
       automatic: "Автоматически",
       preferred: "Вручную",
-      automaticHint: "Paseo выбирает быструю доступную модель",
-      preferredHint: "Выберите модель, которую использует Paseo",
+      automaticHint: "Gravity выбирает быструю доступную модель",
+      preferredHint: "Выберите модель, которую использует Gravity",
       model: "Модель",
-      fallbackHint: "Если она недоступна, Paseo использует другую доступную модель",
+      fallbackHint: "Если она недоступна, Gravity использует другую доступную модель",
       docs: "Документация",
       saveError: "Не удалось обновить настройки генерации метаданных",
     },
@@ -2020,7 +2307,7 @@ export const ru: TranslationResources = {
       browserData: {
         title: "Данные браузера",
         siteData: "Файлы cookie и данные сайтов",
-        description: "Вкладки браузера в Paseo используют общие данные входа и данные сайтов.",
+        description: "Вкладки браузера в Gravity используют общие данные входа и данные сайтов.",
         clear: "Очистить данные браузера",
         clearing: "Очистка...",
         confirmTitle: "Очистить данные браузера?",
@@ -2050,9 +2337,22 @@ export const ru: TranslationResources = {
         description: "Где открывать URL-адреса запущенных скриптов",
         options: {
           ask: "Спрашивать",
-          inApp: "В Paseo",
+          inApp: "В Gravity",
           external: "Внешний браузер",
         },
+      },
+      power: {
+        title: "Питание",
+        label: "Продолжать работу с закрытой крышкой",
+        description:
+          "Этот Mac не засыпает до отключения опции или выхода из Gravity. Отключается через 12 часов или при заряде 20%.",
+        agentLabel: "Не давать Mac уснуть для этого агента",
+        agentHint:
+          "Mac не засыпает до завершения следующего запуска этого агента. Требуется разрешение администратора.",
+        pending: "Ожидание macOS…",
+        error: "Не удалось изменить настройки сна. Повторите попытку. {{detail}}",
+        agentsActive: "Агент не даёт этому Mac уснуть. Выключите его переключатель в поле ввода.",
+        globalActive: "Включено для этого Mac в разделе Настройки → Общие.",
       },
       terminalScrollback: {
         label: "Буфер прокрутки терминала",
@@ -2064,14 +2364,10 @@ export const ru: TranslationResources = {
         description:
           "По умолчанию полностью разворачивать блоки размышлений и хода рассуждений агента",
       },
-      toolCallDetail: {
-        label: "Отображение вызовов инструментов",
-        description: "Как вызовы инструментов отображаются на временной шкале",
-        accessibilityLabel: "Выбрать отображение вызовов инструментов ({{value}})",
-        options: {
-          overview: "Сводка",
-          detailed: "Все подробности",
-        },
+      collapseToolCalls: {
+        label: "Сворачивать вызовы инструментов",
+        description:
+          "Объединяет последовательные вызовы инструментов в сворачиваемый раздел с прокруткой",
       },
       language: {
         label: "Язык",
@@ -2130,7 +2426,7 @@ export const ru: TranslationResources = {
       releaseChannel: {
         label: "Канал выпуска",
         description:
-          "Переключитесь на бета-канал, чтобы раньше получать обновления и помогать развивать Paseo.",
+          "Переключитесь на бета-канал, чтобы раньше получать обновления и помогать развивать Gravity.",
         stable: "Стабильный",
         beta: "Бета",
       },
@@ -2138,7 +2434,7 @@ export const ru: TranslationResources = {
         label: "Обновления приложения",
         readyToInstall: "Версия {{version}} готова к установке",
         installTitle: "Установить обновление настольного приложения",
-        installMessage: "Это обновит Paseo на этом компьютере.",
+        installMessage: "Это обновит Gravity на этом компьютере.",
         installConfirm: "Установить обновление",
         update: "Обновить",
         updateTo: "Обновить до {{version}}",
@@ -2196,8 +2492,11 @@ export const ru: TranslationResources = {
           "Используется для кода, диффов и вывода терминала. Оставьте поле пустым, чтобы использовать системный шрифт.",
         codeFontAccessibility: "Семейство шрифтов кода",
         codeSize: "Размер кода",
-        codeSizeHint: "Используется для кода, диффов и вывода терминала",
+        codeSizeHint: "Используется для кода и диффов",
         codeSizeAccessibility: "Размер шрифта кода",
+        terminalSize: "Размер терминала",
+        terminalSizeHint: "Используется для вывода терминала",
+        terminalSizeAccessibility: "Размер шрифта терминала",
       },
       syntax: {
         title: "Синтаксис",
@@ -2264,6 +2563,7 @@ export const ru: TranslationResources = {
         toggleRightSidebar: "Переключить боковую панель",
         toggleBothSidebars: "Переключить обе боковые панели",
         toggleSettings: "Переключить настройки",
+        openHistory: "Открыть историю",
         toggleFocusMode: "Переключить режим фокусировки",
         cycleTheme: "Переключить тему",
         focusMessageInput: "Перейти к полю ввода сообщения",
@@ -2374,11 +2674,11 @@ export const ru: TranslationResources = {
         unavailable: "Подключитесь к этому хосту, чтобы управлять навыками оркестрации",
         unsupported: "Обновите этот хост, чтобы управлять навыками оркестрации",
         updateAvailable: "Доступно обновление",
-        updateTitle: "Обновить навыки Paseo?",
+        updateTitle: "Обновить навыки Gravity?",
         updateFallback: "Встроенные навыки будут синхронизированы с этим хостом.",
-        uninstallTitle: "Удалить навыки Paseo?",
+        uninstallTitle: "Удалить навыки Gravity?",
         uninstallMessage:
-          "Удаляет все навыки оркестрации Paseo из ~/.agents, ~/.claude и ~/.codex на этом хосте.",
+          "Удаляет все навыки оркестрации Gravity из ~/.agents, ~/.claude и ~/.codex на этом хосте.",
         choose: "Выбрать навыки",
         chooseAll: "Все навыки",
         chooseAllHint: "Устанавливать все встроенные навыки, включая добавленные позже.",
@@ -2414,9 +2714,9 @@ export const ru: TranslationResources = {
         title: "Оркестрация",
         unavailable: "Подключитесь к этому хосту, чтобы управлять оркестрацией.",
         enableTools: {
-          title: "Включить инструменты Paseo",
+          title: "Включить инструменты Gravity",
           hint: "Агенты смогут управлять worktree, агентами и расписаниями.",
-          accessibilityLabel: "Добавить инструменты Paseo",
+          accessibilityLabel: "Добавить инструменты Gravity",
         },
         systemPrompt: {
           title: "Системный промпт",
@@ -2521,15 +2821,15 @@ export const ru: TranslationResources = {
             "Этот хост не подключён. Дождитесь его появления в сети перед перезапуском.",
           offlineTitle: "Хост не в сети",
           offlineMessage:
-            "Этот хост не в сети. Paseo переподключится автоматически. Дождитесь подключения перед перезапуском.",
+            "Этот хост не в сети. Gravity переподключится автоматически. Дождитесь подключения перед перезапуском.",
           requestFailedTitle: "Ошибка",
           requestFailedMessage:
-            "Не удалось отправить запрос на перезапуск. Paseo переподключается автоматически. Повторите попытку, когда хост появится в сети.",
+            "Не удалось отправить запрос на перезапуск. Gravity переподключается автоматически. Повторите попытку, когда хост появится в сети.",
           dialogFailedMessage: "Не удалось открыть диалог подтверждения перезапуска.",
         },
         update: {
           desktopManagedHint:
-            "Этот демон управляется Paseo Desktop. Обновите Paseo Desktop на хосте.",
+            "Этот демон управляется Gravity Desktop. Обновите Gravity Desktop на хосте.",
           title: "Обновить демон",
           hint: "Обновить демон до последней версии и перезапустить его",
           confirm: "Обновить",
@@ -2635,6 +2935,44 @@ export const ru: TranslationResources = {
         unknownError: "Неизвестная ошибка",
       },
     },
+    accounts: {
+      title: "Аккаунты",
+      info: "Сохраняйте несколько входов для каждого провайдера и переключайтесь между ними. Провайдер продолжает использовать активный вход; запущенные агенты подхватывают переключение при следующем запросе.",
+      loading: "Загрузка аккаунтов...",
+      errorTitle: "Не удалось загрузить аккаунты",
+      providerUnsupported: "Этот провайдер не поддерживает сохранённые входы",
+      hostUnavailable: "Подключитесь к этому хосту, чтобы управлять аккаунтами",
+      hostUpgradeRequired: "Обновите хост, чтобы управлять аккаунтами",
+      clientUnavailable: "Подключение к хосту не готово",
+      refresh: "Обновить",
+      refreshing: "Обновление...",
+      retry: "Повторить",
+      dismiss: "Закрыть",
+      notSignedIn: "Нет входа в {{provider}}",
+      currentLoginUnsaved:
+        "Выполнен вход как {{email}}. Сохраните этот вход, чтобы позже вернуться к нему.",
+      currentLoginExpired:
+        "Текущий вход для {{email}} истёк. Войдите снова, прежде чем сохранять его.",
+      save: "Сохранить текущий вход",
+      saving: "Сохранение...",
+      active: "Активен",
+      loginExpired: "Вход истёк",
+      loginExpiredHint:
+        "Снова войдите в {{provider}} с этим аккаунтом, затем сохраните текущий вход",
+      usageUnavailable: "Использование недоступно",
+      switch: "Переключить",
+      switching: "Переключение...",
+      remove: "Удалить",
+      removing: "Удаление...",
+      removeConfirmTitle: "Удалить {{email}}?",
+      removeConfirmMessage:
+        "Gravity забудет этот сохранённый вход. Вход самого провайдера не изменится.",
+      removeConfirm: "Удалить",
+      switchErrorTitle: "Не удалось переключить аккаунт",
+      saveErrorTitle: "Не удалось сохранить вход",
+      removeErrorTitle: "Не удалось удалить вход",
+      actionsMenu: "Действия для {{email}}",
+    },
     project: {
       noEditableTarget: "Этот проект нельзя редактировать на этом хосте.",
       backToProjects: "Вернуться к проектам",
@@ -2650,13 +2988,13 @@ export const ru: TranslationResources = {
         savedToast: "Проект обновлён",
       },
       readFailures: {
-        invalidTitle: "Не удалось разобрать paseo.json",
+        invalidTitle: "Не удалось разобрать gravity.json",
         invalidDescription: "Исправьте файл на диске, затем загрузите его заново.",
         missingTitle: "У этого хоста нет этого проекта",
         missingSingleHost: "У выбранного хоста нет записей об этом проекте.",
-        transportTitle: "Не удалось загрузить paseo.json.",
+        transportTitle: "Не удалось загрузить gravity.json.",
         transportFallback: "Хост не ответил.",
-        failedTitle: "Не удалось загрузить paseo.json.",
+        failedTitle: "Не удалось загрузить gravity.json.",
         failedDescription: "Загрузите данные заново, чтобы повторить попытку.",
       },
       worktree: {
@@ -2667,7 +3005,7 @@ export const ru: TranslationResources = {
           "Дополнительную информацию и переменные среды, доступные для этих команд, см. в документации.",
         setup: "Настройка",
         setupAccessibility: "Команды настройки worktree",
-        uncommittedTitle: "Закоммитьте изменения в paseo.json",
+        uncommittedTitle: "Закоммитьте изменения в gravity.json",
         uncommittedDescription:
           "Новые worktree используют скрипт настройки из выбранной базовой ветки.",
         teardown: "Удаление",
@@ -2692,7 +3030,7 @@ export const ru: TranslationResources = {
         newScript: "Новый скрипт",
         editScript: "Изменить {{name}}",
         runAsService: "Запускать как сервис",
-        serviceHint: "Paseo управляет процессом и назначает порт через переменную $PASEO_PORT.",
+        serviceHint: "Gravity управляет процессом и назначает порт через переменную $GRAVITY_PORT.",
         actions: {
           add: "Добавить скрипт",
           edit: "Редактировать",
@@ -2701,7 +3039,7 @@ export const ru: TranslationResources = {
       },
       metadata: {
         title: "Генерация метаданных",
-        info: "Инструкции для этого проекта, добавляемые в промпты ИИ, с помощью которых Paseo генерирует метаданные. Используйте их, чтобы соблюдать принятые в команде правила именования веток, оформления коммитов и формата PR.",
+        info: "Инструкции для этого проекта, добавляемые в промпты ИИ, с помощью которых Gravity генерирует метаданные. Используйте их, чтобы соблюдать принятые в команде правила именования веток, оформления коммитов и формата PR.",
         branchName: "Названия веток",
         branchNamePlaceholder:
           "Добавляйте к веткам префиксы feat/ или fix/, а к личным веткам — mb/",
@@ -2713,9 +3051,9 @@ export const ru: TranslationResources = {
       },
       writeFailures: {
         staleTitle: "Конфигурация изменена на диске",
-        staleDescription: "Перед сохранением загрузите с диска последнюю версию paseo.json.",
-        failedTitle: "Не удалось сохранить paseo.json.",
-        failedDescription: "Повторите попытку или загрузите с диска последнюю версию paseo.json.",
+        staleDescription: "Перед сохранением загрузите с диска последнюю версию gravity.json.",
+        failedTitle: "Не удалось сохранить gravity.json.",
+        failedDescription: "Повторите попытку или загрузите с диска последнюю версию gravity.json.",
       },
       actions: {
         reload: "Загрузить заново",

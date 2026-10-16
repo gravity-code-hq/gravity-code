@@ -6,7 +6,8 @@ import { StyleSheet, useUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { isWeb } from "@/constants/platform";
-import { AlertTriangle, CheckCircle2, Info } from "lucide-react-native";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react-native";
 import { getOverlayRoot, OVERLAY_Z } from "@/lib/overlay-root";
 import {
   HEADER_INNER_HEIGHT,
@@ -284,6 +285,7 @@ export function ToastViewport({
               {toast.content}
             </View>
           )}
+          <ToastDismissButton toast={toast} onDismiss={animateOut} />
         </Animated.View>
       </View>
     </View>
@@ -294,6 +296,26 @@ export function ToastViewport({
   }
 
   return content;
+}
+
+interface ToastDismissButtonProps {
+  toast: ToastState;
+  onDismiss: () => void;
+}
+
+function ToastDismissButton({ toast, onDismiss }: ToastDismissButtonProps) {
+  const { t } = useTranslation();
+  if (toast.durationMs !== null || toast.variant !== "error") return null;
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      testID="app-toast-dismiss"
+      accessibilityLabel={t("common.actions.dismiss")}
+      onPress={onDismiss}
+      leftIcon={X}
+    />
+  );
 }
 
 const styles = StyleSheet.create((theme) => ({

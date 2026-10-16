@@ -3,18 +3,15 @@ export type ComposerControlDensity = "full" | "condensed" | "tight";
 export interface ComposerControlPresence {
   hasModel: boolean;
   hasThinking: boolean;
-  hasMode: boolean;
-  features: readonly ComposerFeatureControlPresence[];
+  hasPlan: boolean;
+  hasSettings: boolean;
   fontScale: number;
 }
-
-export type ComposerFeatureControlPresence = { type: "toggle" } | { type: "select"; label: string };
 
 export interface ComposerControlPresentation {
   showCarets: boolean;
   showThinkingLabel: boolean;
-  showModeLabel: boolean;
-  aggregateFeatures: boolean;
+  showPlanLabel: boolean;
 }
 
 export const COMPOSER_TOOLBAR_GEOMETRY = {
@@ -39,30 +36,13 @@ function sumControlWidths(widths: number[]): number {
   );
 }
 
-function estimateLabelWidth(label: string, fontScale: number): number {
-  return Array.from(label).length * 7 * fontScale;
-}
-
-function resolveFeatureControlWidth(
-  feature: ComposerFeatureControlPresence,
-  fontScale: number,
-): number {
-  if (feature.type === "toggle") return COMPOSER_TOOLBAR_GEOMETRY.controlSize;
-  return (
-    COMPOSER_TOOLBAR_GEOMETRY.controlSize +
-    COMPOSER_TOOLBAR_GEOMETRY.iconLabelGap +
-    COMPOSER_TOOLBAR_GEOMETRY.labelPadding * 2 +
-    estimateLabelWidth(feature.label, fontScale)
-  );
-}
-
 function resolveCondensedFloor(controls: ComposerControlPresence): number {
   const fontScale = normalizedFontScale(controls.fontScale);
   const widths: number[] = [];
   if (controls.hasModel) widths.push(36 + 60 * fontScale);
   if (controls.hasThinking) widths.push(COMPOSER_TOOLBAR_GEOMETRY.controlSize);
-  if (controls.hasMode) widths.push(36 + 96 * fontScale);
-  if (controls.features.length > 0) widths.push(COMPOSER_TOOLBAR_GEOMETRY.controlSize);
+  if (controls.hasPlan) widths.push(44 + 28 * fontScale);
+  if (controls.hasSettings) widths.push(COMPOSER_TOOLBAR_GEOMETRY.controlSize);
   return sumControlWidths(widths);
 }
 
@@ -71,10 +51,8 @@ function resolveFullFloor(controls: ComposerControlPresence): number {
   const widths: number[] = [];
   if (controls.hasModel) widths.push(50 + 70 * fontScale);
   if (controls.hasThinking) widths.push(54 + 48 * fontScale);
-  if (controls.hasMode) widths.push(54 + 96 * fontScale);
-  for (const feature of controls.features) {
-    widths.push(resolveFeatureControlWidth(feature, fontScale));
-  }
+  if (controls.hasPlan) widths.push(44 + 28 * fontScale);
+  if (controls.hasSettings) widths.push(COMPOSER_TOOLBAR_GEOMETRY.controlSize);
   return sumControlWidths(widths);
 }
 
@@ -109,23 +87,20 @@ export function resolveComposerControlPresentation(
     return {
       showCarets: true,
       showThinkingLabel: true,
-      showModeLabel: true,
-      aggregateFeatures: false,
+      showPlanLabel: true,
     };
   }
   if (density === "condensed") {
     return {
       showCarets: false,
       showThinkingLabel: false,
-      showModeLabel: true,
-      aggregateFeatures: true,
+      showPlanLabel: true,
     };
   }
   return {
     showCarets: false,
     showThinkingLabel: false,
-    showModeLabel: false,
-    aggregateFeatures: true,
+    showPlanLabel: false,
   };
 }
 

@@ -7,6 +7,7 @@ import {
   restoreExpandedDirectories,
   setExpandedDirectoryPath,
   showHiddenFilesAndRestoreExpandedDirectories,
+  sortExplorerEntries,
 } from "./tree";
 
 function makeDirectoryEntry(name: string, path: string): ExplorerEntry {
@@ -17,6 +18,10 @@ function makeDirectoryEntry(name: string, path: string): ExplorerEntry {
     size: 0,
     modifiedAt: "2026-01-01T00:00:00.000Z",
   };
+}
+
+function makeFileEntry(name: string): ExplorerEntry {
+  return { name, path: name, kind: "file", size: 0, modifiedAt: "2026-01-01T00:00:00.000Z" };
 }
 
 describe("file explorer tree", () => {
@@ -40,7 +45,6 @@ describe("file explorer tree", () => {
     const rows = flattenExplorerTree({
       directories,
       expandedPaths,
-      sortOption: "name",
       showHiddenFiles: true,
     });
 
@@ -76,7 +80,6 @@ describe("file explorer tree", () => {
     const rows = flattenExplorerTree({
       directories,
       expandedPaths: new Set([".", "generated"]),
-      sortOption: "name",
       showHiddenFiles: true,
     });
 
@@ -193,5 +196,26 @@ describe("file explorer tree", () => {
     expect(hiddenFilesAreShown).toBe(true);
     resolveDirectory({ path: ".hidden", entries: [] });
     await expect(restoration).resolves.toEqual([".", ".hidden"]);
+  });
+});
+
+describe("sortExplorerEntries", () => {
+  it("puts folders first, then files, in case-insensitive natural name order", () => {
+    const entries = [
+      makeFileEntry("zeta.ts"),
+      makeFileEntry("file10.ts"),
+      makeDirectoryEntry("src", "src"),
+      makeFileEntry("Alpha.ts"),
+      makeFileEntry("file2.ts"),
+      makeDirectoryEntry("Docs", "Docs"),
+    ];
+    expect(sortExplorerEntries(entries).map((entry) => entry.name)).toEqual([
+      "Docs",
+      "src",
+      "Alpha.ts",
+      "file2.ts",
+      "file10.ts",
+      "zeta.ts",
+    ]);
   });
 });

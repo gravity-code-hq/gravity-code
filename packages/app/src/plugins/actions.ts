@@ -1,11 +1,11 @@
-import { callPluginRpc } from "@getpaseo/plugin/client/host";
+import { callPluginRpc } from "@gravity/plugin/client/host";
 import type {
   PluginAgentCommandContext,
   PluginCommandCapabilities,
   PluginPanelLocation,
   PluginWorkspaceCommandContext,
-} from "@getpaseo/plugin/client";
-import type { PluginClientStateSource } from "@getpaseo/plugin/client/host";
+} from "@gravity/plugin/client";
+import type { PluginClientStateSource } from "@gravity/plugin/client/host";
 import { resolvePluginPanelOpenLocation } from "./workspace-panels/locations";
 import type { PluginSurfaceRuntime } from "./surface-runtime";
 import type { InstalledPlugin } from "./types";
@@ -28,7 +28,7 @@ export function createPluginCapabilities(
   navigation: PluginNavigation,
 ): PluginCommandCapabilities {
   return {
-    paseo: runtime.paseo,
+    gravity: runtime.gravity,
     rpc: (contract, input) => callPluginRpc(contract, runtime.invoke, input),
     openSettings(screenId) {
       if (!plugin.settingsScreens.some((screen) => screen.id === screenId))

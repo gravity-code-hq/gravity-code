@@ -13,7 +13,7 @@ import {
 describe("path equivalence", () => {
   test.each([
     ["C:/Users/Administrator/GhostFactory", "C:\\Users\\Administrator\\GhostFactory"],
-    ["d:\\Projects\\paseo", "D:\\Projects\\paseo"],
+    ["d:\\Projects\\gravity", "D:\\Projects\\gravity"],
     ["C:\\Users\\Administrator\\GhostFactory\\", "C:\\Users\\Administrator\\GhostFactory"],
     [String.raw`\\?\C:\Users\Administrator\GhostFactory`, "C:\\Users\\Administrator\\GhostFactory"],
     [String.raw`\\?\UNC\server\share\GhostFactory`, String.raw`\\server\share\GhostFactory`],
@@ -29,15 +29,17 @@ describe("path equivalence", () => {
   });
 
   test("checks POSIX root containment without prefix false positives", () => {
-    expect(isPathInsideRoot("/opt/paseo", "/opt/paseo/node_modules/@getpaseo/server")).toBe(true);
-    expect(isPathInsideRoot("/opt/paseo", "/opt/paseo-other")).toBe(false);
+    expect(isPathInsideRoot("/opt/gravity", "/opt/gravity/node_modules/@gravity/server")).toBe(
+      true,
+    );
+    expect(isPathInsideRoot("/opt/gravity", "/opt/gravity-other")).toBe(false);
   });
 
   test("checks Windows root containment case-insensitively", () => {
     expect(
-      isPathInsideRoot("C:\\Paseo\\node_modules", "c:/paseo/node_modules/@getpaseo/server"),
+      isPathInsideRoot("C:\\Gravity\\node_modules", "c:/gravity/node_modules/@gravity/server"),
     ).toBe(true);
-    expect(isPathInsideRoot("C:\\Paseo\\node_modules", "C:\\Paseo\\node_modules-other")).toBe(
+    expect(isPathInsideRoot("C:\\Gravity\\node_modules", "C:\\Gravity\\node_modules-other")).toBe(
       false,
     );
   });
@@ -52,7 +54,7 @@ describe("path equivalence", () => {
   test.skipIf(process.platform === "win32")(
     "derives the contained suffix from a realpath-equivalent root",
     () => {
-      const tempDir = mkdtempSync(join(tmpdir(), "paseo-path-"));
+      const tempDir = mkdtempSync(join(tmpdir(), "gravity-path-"));
       try {
         const realRoot = join(tempDir, "real-root");
         const nestedPath = join(realRoot, "packages", "app");

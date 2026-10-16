@@ -85,7 +85,7 @@ export async function expectPrimaryCommandCenterActions(panel: Locator): Promise
     { title: "New workspace", shortcut: "⌘N" },
     { title: "Import session" },
     { title: "History" },
-    { title: "Schedules" },
+    { title: "Automations" },
     { title: "Settings", shortcut: "⌘," },
     { title: "Keyboard shortcuts", shortcut: "?" },
   ] as const;

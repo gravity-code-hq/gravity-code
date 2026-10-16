@@ -1,4 +1,5 @@
-import { lineNumberGutterWidth } from "@/components/code-insets";
+import { diffGutterWidth } from "./gutter";
+import { DIFF_FILE_HEADER_HEIGHT } from "@/git/file-header-presentation";
 import { findClusterBreak } from "@marijn/find-cluster-break";
 import {
   buildSplitDiffRows,
@@ -24,7 +25,8 @@ import type {
   TextMeasurer,
 } from "./types";
 
-export const FILE_HEADER_HEIGHT = 30;
+export const FILE_HEADER_HEIGHT = DIFF_FILE_HEADER_HEIGHT;
+export const DIFF_FILE_GAP = 12;
 export const DIFF_BODY_BORDER_HEIGHT = 1;
 const CODE_HORIZONTAL_PADDING = 16;
 
@@ -67,12 +69,17 @@ export function buildDiffDocumentModel(input: BuildDiffDocumentModelInput): Diff
   let documentTop = 0;
 
   for (const [fileIndex, file] of input.files.entries()) {
+    if (fileIndex > 0) documentTop += DIFF_FILE_GAP;
     const fileTop = documentTop;
     const isCollapsed = input.collapsedFilePaths.has(file.path);
     documentTop += FILE_HEADER_HEIGHT;
     const bodyTop = documentTop;
     const rowStart = rows.length;
-    const gutterWidth = lineNumberGutterWidth(maximumLineNumber(file), input.typography.size);
+    const gutterWidth = diffGutterWidth(
+      maximumLineNumber(file),
+      input.typography.size,
+      input.layout,
+    );
     let maximumHorizontalOverflow = 0;
 
     const reusable = findReusableFileRows({

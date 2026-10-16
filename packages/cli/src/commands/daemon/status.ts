@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { DaemonConnectionError } from "@getpaseo/client/internal/daemon-client";
+import { DaemonConnectionError } from "@gravity/client/internal/daemon-client";
 import {
   readDaemonInstance,
   readPersistedConfig,
@@ -7,7 +7,7 @@ import {
   daemonLogPath,
   isSameDaemonInstance,
   DaemonInstanceError,
-} from "@getpaseo/server";
+} from "@gravity/server";
 import { connectToDaemon, buildDaemonConnectionCommandError } from "../../utils/client.js";
 import { withOutput, toCommandError, type CommandOptions } from "../../output/index.js";
 import { addJsonAndDaemonHostOptions } from "../../utils/command-options.js";

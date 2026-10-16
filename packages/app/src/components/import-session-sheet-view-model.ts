@@ -1,5 +1,5 @@
-import type { FetchRecentProviderSessionEntry } from "@getpaseo/client/internal/daemon-client";
-import type { AgentProvider } from "@getpaseo/protocol/agent-types";
+import type { FetchRecentProviderSessionEntry } from "@gravity/client/internal/daemon-client";
+import type { AgentProvider } from "@gravity/protocol/agent-types";
 import { i18n } from "@/i18n/i18next";
 
 export const PER_PROVIDER_LIMIT = 15;

@@ -51,11 +51,11 @@ const LATTE_MUTED_FOREGROUND = "rgb(108, 111, 133)";
 test("applies a contributed theme and falls back when its plugin is gone", async ({
   page,
 }, testInfo) => {
-  const directory = await mkdtemp(path.join(tmpdir(), "paseo-plugin-theme-e2e-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "gravity-plugin-theme-e2e-"));
   const client = await connectNewWorkspaceDaemonClient({ ownProjects: false });
   const previousConfig = await client.getDaemonConfig();
   await writeFile(
-    path.join(directory, "paseo-plugin.json"),
+    path.join(directory, "gravity-plugin.json"),
     JSON.stringify({ id: PLUGIN_ID, requirements: pluginRequirements }),
   );
   await writeFile(path.join(directory, "index.client.ts"), PLUGIN_SOURCE);

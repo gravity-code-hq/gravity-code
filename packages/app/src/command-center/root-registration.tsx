@@ -3,6 +3,7 @@ import { router, type Href } from "expo-router";
 import { useTranslation } from "react-i18next";
 import {
   CalendarClock,
+  List,
   CircleDashed,
   Folder,
   FolderPlus,
@@ -28,6 +29,7 @@ import { useSidebarViewStore } from "@/stores/sidebar-view-store";
 import { clearCommandCenterFocusRestoreElement } from "@/utils/command-center-focus-restore";
 import {
   buildOpenProjectRoute,
+  buildLinearRoute,
   buildSchedulesRoute,
   buildSessionsRoute,
   buildSettingsRoute,
@@ -45,6 +47,9 @@ const ThemedHistory = withUnistyles(History, (theme) => ({
   color: theme.colors.foregroundMuted,
 }));
 const ThemedCalendarClock = withUnistyles(CalendarClock, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
+const ThemedList = withUnistyles(List, (theme) => ({
   color: theme.colors.foregroundMuted,
 }));
 const ThemedKeyboard = withUnistyles(Keyboard, (theme) => ({
@@ -83,6 +88,10 @@ function SchedulesIcon({ size }: CommandCenterIconProps) {
   return <ThemedCalendarClock size={size} strokeWidth={2.2} />;
 }
 
+function TasksIcon({ size }: CommandCenterIconProps) {
+  return <ThemedList size={size} strokeWidth={2.2} />;
+}
+
 function KeyboardIcon({ size }: CommandCenterIconProps) {
   return <ThemedKeyboard size={size} strokeWidth={2.2} />;
 }
@@ -118,6 +127,7 @@ export function CommandCenterRootActions() {
   const homeRoute = useMemo<Href>(() => buildOpenProjectRoute(), []);
   const sessionsRoute = useMemo<Href>(() => buildSessionsRoute(), []);
   const schedulesRoute = useMemo<Href>(() => buildSchedulesRoute(), []);
+  const linearRoute = useMemo<Href>(() => buildLinearRoute(), []);
   const setShortcutsDialogOpen = useKeyboardShortcutsStore((state) => state.setShortcutsDialogOpen);
   // Narrow selector on purpose: a whole-store subscription would re-register every root action
   // each time host filters are reconciled.
@@ -225,14 +235,34 @@ export function CommandCenterRootActions() {
           title: t("sidebar.sections.sessions"),
           sectionTitle: t("shell.commandCenter.actions"),
           icon: HistoryIcon,
+          shortcutKeys:
+            resolveShortcutKeysForAction("open-history", overrides, shortcutPlatform) ?? undefined,
+        },
+      },
+      {
+        id: "linear",
+        group: "actions",
+        groupRank: 0,
+        rank: 5,
+        keywords: ["tasks", "linear", "issues", "tickets"],
+        visibility: "always",
+        run: () => {
+          clearCommandCenterFocusRestoreElement();
+          router.push(linearRoute);
+        },
+        presentation: {
+          kind: "action",
+          title: t("sidebar.sections.tasks"),
+          sectionTitle: t("shell.commandCenter.actions"),
+          icon: TasksIcon,
         },
       },
       {
         id: "schedules",
         group: "actions",
         groupRank: 0,
-        rank: 5,
-        keywords: ["schedules", "scheduled", "automation", "recurring"],
+        rank: 6,
+        keywords: ["automations", "automation", "schedules", "scheduled", "recurring"],
         visibility: "always",
         run: () => {
           clearCommandCenterFocusRestoreElement();
@@ -249,7 +279,7 @@ export function CommandCenterRootActions() {
         id: "settings",
         group: "actions",
         groupRank: 0,
-        rank: 6,
+        rank: 7,
         keywords: ["settings", "preferences", "config", "configuration"],
         visibility: "always",
         run: () => {
@@ -276,7 +306,7 @@ export function CommandCenterRootActions() {
         id: "toggle-left-sidebar",
         group: "actions",
         groupRank: 0,
-        rank: 8,
+        rank: 9,
         keywords: ["toggle", "sidebar", "left", "panel", "workspaces"],
         visibility: "query",
         run: () => {
@@ -300,7 +330,7 @@ export function CommandCenterRootActions() {
         id: "keyboard-shortcuts",
         group: "actions",
         groupRank: 0,
-        rank: 7,
+        rank: 8,
         keywords: ["keyboard", "shortcuts", "keys", "hotkeys"],
         visibility: "always",
         run: () => setShortcutsDialogOpen(true),
@@ -337,6 +367,7 @@ export function CommandCenterRootActions() {
     openAddProject,
     openImportSession,
     overrides,
+    linearRoute,
     schedulesRoute,
     sessionsRoute,
     setGroupMode,

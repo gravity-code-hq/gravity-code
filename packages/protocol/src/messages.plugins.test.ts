@@ -7,7 +7,7 @@ import {
 } from "./messages.js";
 
 describe("plugin protocol compatibility", () => {
-  it.each([undefined, { paseo: ">=0.8.0" }])(
+  it.each([undefined, { gravity: ">=0.8.0" }])(
     "parses plugin catalogs with requirements %j",
     (requirements) => {
       const message = {

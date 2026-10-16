@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { WorkspaceDescriptorPayload } from "@getpaseo/protocol/messages";
+import type { WorkspaceDescriptorPayload } from "@gravity/protocol/messages";
 import {
   normalizeProjectDescriptor,
   normalizeWorkspaceDescriptor,
@@ -122,7 +122,7 @@ function agent(id = "agent-1"): Agent {
       {
         id,
         provider: "codex",
-        cwd: "/repo/paseo",
+        cwd: "/repo/gravity",
         workspaceId: "workspace-1",
         model: null,
         createdAt: "2026-07-18T08:00:00.000Z",
@@ -154,9 +154,9 @@ function workspacePayload(): WorkspaceDescriptorPayload {
   return {
     id: "workspace-1",
     projectId: "project-1",
-    projectDisplayName: "Paseo",
-    projectRootPath: "/repo/paseo",
-    workspaceDirectory: "/repo/paseo",
+    projectDisplayName: "Gravity",
+    projectRootPath: "/repo/gravity",
+    workspaceDirectory: "/repo/gravity",
     projectKind: "git",
     workspaceKind: "local_checkout",
     name: "main",
@@ -186,8 +186,8 @@ function directory(
   const workspace = normalizeWorkspaceDescriptor(workspacePayload());
   const project = normalizeProjectDescriptor({
     projectId: "project-1",
-    projectDisplayName: "Paseo",
-    projectRootPath: "/repo/paseo",
+    projectDisplayName: "Gravity",
+    projectRootPath: "/repo/gravity",
     projectKind: "git",
   });
   return {
@@ -270,7 +270,7 @@ describe("ReplicaCache", () => {
 
     expect(restoredDirectory.agents.get("agent-1")?.title).toBe("Cached agent");
     expect(restoredDirectory.workspaces.get("workspace-1")?.name).toBe("main");
-    expect(restoredDirectory.projects.get("project-1")?.projectDisplayName).toBe("Paseo");
+    expect(restoredDirectory.projects.get("project-1")?.projectDisplayName).toBe("Gravity");
     expect(restoredDirectory.checkpoint).toEqual({ agents: { generation: "g", afterSeq: 12 } });
     expect(restoredTimeline).toEqual(timeline());
   });
@@ -581,10 +581,10 @@ describe("ReplicaCache", () => {
       id: "project-1",
       payload: JSON.stringify({
         projectId: "project-1",
-        projectDisplayName: "Paseo",
+        projectDisplayName: "Gravity",
         projectCustomName: null,
         projectCustomIconRevision: null,
-        projectRootPath: "/repo/paseo",
+        projectRootPath: "/repo/gravity",
         projectKind: "git",
       }),
     });
@@ -593,7 +593,7 @@ describe("ReplicaCache", () => {
     const restored = await cache.readDirectory(SERVER_ID);
 
     expect(restored.agents.size).toBe(0);
-    expect(restored.projects.get("project-1")?.projectDisplayName).toBe("Paseo");
+    expect(restored.projects.get("project-1")?.projectDisplayName).toBe("Gravity");
     expect(storage.rows.has(`${SERVER_ID}:agent:agent-1`)).toBe(false);
     expect(storage.rows.has(`${SERVER_ID}:project:project-1`)).toBe(true);
   });

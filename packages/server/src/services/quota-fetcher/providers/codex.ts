@@ -96,14 +96,26 @@ export class CodexQuotaProvider implements ProviderUsageFetcher {
     }
 
     const { account_id } = auth.tokens ?? {};
-    const resp = await this.callCodexApi(accessToken, account_id);
+    const usage = await this.fetchUsageForTokens(accessToken, account_id);
 
-    if (resp === "NEEDS_AUTH") {
+    if (usage === "NEEDS_AUTH") {
       // Read-only on credentials; the Codex CLI owns refresh. See docs/providers.md.
       return unavailableUsage(this);
     }
 
-    return this.toUsage(resp);
+    return usage;
+  }
+
+  /**
+   * Usage for one access token. Shared with saved-account listing, which holds tokens
+   * for logins other than the one the Codex CLI is currently using.
+   */
+  async fetchUsageForTokens(
+    accessToken: string,
+    accountId?: string,
+  ): Promise<ProviderUsage | "NEEDS_AUTH"> {
+    const resp = await this.callCodexApi(accessToken, accountId);
+    return resp === "NEEDS_AUTH" ? "NEEDS_AUTH" : this.toUsage(resp);
   }
 
   private toUsage(resp: CodexUsageResponse): ProviderUsage {

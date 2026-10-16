@@ -1,4 +1,4 @@
-export { createTestPaseoDaemon, type TestPaseoDaemon } from "./paseo-daemon.js";
+export { createTestGravityDaemon, type TestGravityDaemon } from "./gravity-daemon.js";
 export {
   DaemonClient,
   type DaemonClientConfig,

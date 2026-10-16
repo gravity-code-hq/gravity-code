@@ -78,15 +78,15 @@ function choice(input: {
   };
 }
 
-/** The real Actions › Schedules contribution, shape-for-shape (root-registration.tsx). */
+/** The real Actions › Automations contribution, shape-for-shape (root-registration.tsx). */
 function schedulesAction(): CommandCenterContribution {
   return action({
     id: "schedules",
     group: "actions",
     groupRank: 0,
     rank: 4,
-    title: "Schedules",
-    keywords: ["schedules", "scheduled", "automation", "recurring"],
+    title: "Automations",
+    keywords: ["automations", "automation", "schedules", "scheduled", "recurring"],
   });
 }
 
@@ -205,8 +205,18 @@ describe("Command Center relevance ordering", () => {
     // "Auto mode", so Enter navigated to Schedules instead of switching permission mode.
     // Every prefix counts, not just the full word — you read the list while you type, and "aut"
     // is a string-prefix of both "Auto mode" and "automation", so match quality alone ties them.
+    // The sidebar row has since been relabeled "Automations", which matches these prefixes by
+    // label; the regression scenario keeps the old label so the keyword-only path stays covered.
+    const hiddenKeywordAction = action({
+      id: "schedules",
+      group: "actions",
+      groupRank: 0,
+      rank: 4,
+      title: "Schedules",
+      keywords: ["schedules", "scheduled", "automation", "recurring"],
+    });
     for (const query of ["a", "au", "aut", "auto"]) {
-      const sections = buildContributionSections([schedulesAction(), autoModeChoice()], query);
+      const sections = buildContributionSections([hiddenKeywordAction, autoModeChoice()], query);
       expect(
         sections.map((section) => section.id),
         `query ${query}`,
@@ -364,7 +374,7 @@ describe("Command Center query tokenization", () => {
   });
 
   it("requires each token to be adjacent characters, not a subsequence", () => {
-    // Unlike the composer's slash-command list, where "/pasbab" finds "/paseo-babysit". Dropping
+    // Unlike the composer's slash-command list, where "/pasbab" finds "/gravity-babysit". Dropping
     // the subsequence tier is what keeps "No matches" meaning no matches: this list preselects
     // its first row, so a query that should find nothing must not put an action under Enter.
     for (const query of ["labdes", "lbl", "lasdsgn"]) {
@@ -524,7 +534,7 @@ describe("joinSubtitleParts", () => {
   });
 
   it("drops empty strings (Boolean parity — agents subtitle refactor guard)", () => {
-    expect(joinSubtitleParts(["", "paseo", "master"])).toBe("paseo · master");
+    expect(joinSubtitleParts(["", "gravity", "master"])).toBe("gravity · master");
   });
 
   it("returns an empty string when every part is null or empty", () => {
@@ -532,15 +542,15 @@ describe("joinSubtitleParts", () => {
   });
 
   it("returns a single part unchanged, with no separator", () => {
-    expect(joinSubtitleParts([null, "paseo", null])).toBe("paseo");
+    expect(joinSubtitleParts([null, "gravity", null])).toBe("gravity");
   });
 
   it("builds the workspace subtitle in host · project · branch order", () => {
     // Single-host: host gated away, project leads.
-    expect(joinSubtitleParts([null, "paseo", "master"])).toBe("paseo · master");
+    expect(joinSubtitleParts([null, "gravity", "master"])).toBe("gravity · master");
     // Multi-host: host first, then project, then branch.
-    expect(joinSubtitleParts(["host", "paseo", "master"])).toBe("host · paseo · master");
+    expect(joinSubtitleParts(["host", "gravity", "master"])).toBe("host · gravity · master");
     // No branch: degrades to project (or host · project).
-    expect(joinSubtitleParts([null, "paseo", null])).toBe("paseo");
+    expect(joinSubtitleParts([null, "gravity", null])).toBe("gravity");
   });
 });

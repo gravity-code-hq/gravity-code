@@ -14,6 +14,7 @@ interface OverviewGroupProps {
   isLastInSequence: boolean;
   onExpandedChange: (groupId: string, expanded: boolean) => void;
   children: ReactNode;
+  earlierCalls?: boolean;
 }
 
 const TOOL_CALL_GROUP_MAX_HEIGHT = 400;
@@ -42,7 +43,7 @@ function useOverviewSummary(summary: OverviewSummary): string {
       [summary.readFileCount, "toolCallGroup.readFiles"],
       [summary.searchCount, "toolCallGroup.searches"],
       [summary.otherToolCount, "toolCallGroup.otherTools"],
-      [summary.paseoCallCount, "toolCallGroup.paseoCalls"],
+      [summary.gravityCallCount, "toolCallGroup.gravityCalls"],
     ] as const;
     for (const [count, key] of entries) {
       if (count > 0) {
@@ -59,10 +60,17 @@ export const OverviewToolCallGroupView = memo(function OverviewToolCallGroupView
   isLastInSequence,
   onExpandedChange,
   children,
+  earlierCalls = false,
 }: OverviewGroupProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
   const isCompact = useIsCompactFormFactor();
-  const aggregateSummary = useOverviewSummary(group.summary);
+  const overviewSummary = useOverviewSummary(group.summary);
+  const count = group.run.calls.length;
+  const earlierSummary = t(`toolCallGroup.earlierCalls.${count === 1 ? "one" : "other"}`, {
+    count,
+  });
+  const aggregateSummary = earlierCalls ? earlierSummary : overviewSummary;
   const scrollToLatest = useCallback(() => {
     scrollRef.current?.scrollToEnd({ animated: false });
   }, []);

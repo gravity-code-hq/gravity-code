@@ -2,7 +2,7 @@ import {
   compareMatchScores,
   type MatchScore,
   scoreTextFields,
-} from "@getpaseo/protocol/search/text-match";
+} from "@gravity/protocol/search/text-match";
 
 interface CommandAutocompleteEntry {
   command: {
@@ -17,6 +17,11 @@ interface InlineSkillCommandEntry extends CommandAutocompleteEntry {
 }
 
 export type SlashCommandPosition = "start" | "inline";
+
+export function getSlashCommandKind(kind?: string): "command" | "skill" | undefined {
+  if (kind === "command" || kind === "skill") return kind;
+  return undefined;
+}
 
 export interface SlashCommandRange {
   start: number;

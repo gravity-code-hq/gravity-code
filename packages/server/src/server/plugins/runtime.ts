@@ -1,4 +1,4 @@
-import type { PluginBeforeRequests, PluginLifecycleEvents } from "@getpaseo/plugin/server";
+import type { PluginBeforeRequests, PluginLifecycleEvents } from "@gravity/plugin/server";
 import { validateBeforeRequest, validateBeforeResult } from "./lifecycle/index.js";
 import { fork } from "node:child_process";
 import { stat } from "node:fs/promises";
@@ -14,12 +14,12 @@ import {
   type ProviderConnection,
   type ProviderEvent,
   type ProviderInput,
-} from "@getpaseo/plugin/server/provider";
-import type { PluginLogEntry } from "@getpaseo/protocol/messages";
+} from "@gravity/plugin/server/provider";
+import type { PluginLogEntry } from "@gravity/protocol/messages";
 import { compilePlugin } from "./compiler.js";
 import { readPluginManifest } from "./manifest.js";
-import type { PluginRequirements } from "@getpaseo/protocol/messages";
-import { assertPluginCompatibility } from "@getpaseo/protocol/plugin-requirements";
+import type { PluginRequirements } from "@gravity/protocol/messages";
+import { assertPluginCompatibility } from "@gravity/protocol/plugin-requirements";
 import type {
   PluginProcessMessage,
   PluginProcessRequest,
@@ -99,7 +99,7 @@ interface PluginRuntimeDependencies {
   settingsDirectory?: string;
   onSettingsChanged?: (pluginId: string, settingsId: string) => void;
   spawnChild?: () => PluginChild;
-  sessionHost?: PluginPaseoSessionHost;
+  sessionHost?: PluginGravitySessionHost;
 }
 
 interface PluginLogTail {
@@ -175,7 +175,7 @@ class PluginOutputCapture {
   }
 }
 
-export interface PluginPaseoSessionHost {
+export interface PluginGravitySessionHost {
   attachPluginSocket(
     pluginId: string,
     socket: PluginSessionSocket,
@@ -260,7 +260,7 @@ async function resolveEntryPaths(directory: string): Promise<{
   const legacyEntry = await findEntry(directory, ["index.ts", "index.tsx"]);
   if (legacyEntry) {
     throw new Error(
-      "This plugin was made for an older version of Paseo and cannot run on Paseo v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://paseo.sh/docs/plugins/v0.8/migration",
+      "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
     );
   }
   throw new Error(
@@ -273,7 +273,7 @@ export class PluginRuntime {
   private readonly logTails = new Map<string, PluginLogTail>();
   private readonly logger: pino.Logger;
   private readonly spawnChild: () => PluginChild;
-  private sessionHost: PluginPaseoSessionHost | null;
+  private sessionHost: PluginGravitySessionHost | null;
   private readonly listeners = new Set<(pluginId: string, error?: string) => void>();
 
   constructor(
@@ -286,7 +286,7 @@ export class PluginRuntime {
     this.sessionHost = dependencies.sessionHost ?? null;
   }
 
-  bindPaseoSessionHost(sessionHost: PluginPaseoSessionHost): void {
+  bindGravitySessionHost(sessionHost: PluginGravitySessionHost): void {
     if (this.plugins.size > 0)
       throw new Error("Cannot replace the plugin session host while running");
     this.sessionHost = sessionHost;
@@ -303,9 +303,13 @@ export class PluginRuntime {
     canPublish: () => boolean = () => true,
   ): Promise<void> {
     if (this.plugins.has(pluginId)) throw new Error(`Plugin is already running: ${pluginId}`);
-    this.appendLog(pluginId, "stdout", "[paseo] Loading plugin");
+    this.appendLog(pluginId, "stdout", "[gravity] Loading plugin");
     const loaded = await this.loadDirectoryPlugin(pluginId, configuredPath).catch((error) => {
-      this.appendLog(pluginId, "stderr", `[paseo] Plugin failed to load: ${describeError(error)}`);
+      this.appendLog(
+        pluginId,
+        "stderr",
+        `[gravity] Plugin failed to load: ${describeError(error)}`,
+      );
       throw error;
     });
     if (!canPublish()) {
@@ -313,7 +317,7 @@ export class PluginRuntime {
       throw new Error(`Plugin start cancelled: ${pluginId}`);
     }
     this.plugins.set(pluginId, loaded);
-    this.appendLog(pluginId, "stdout", "[paseo] Plugin ready");
+    this.appendLog(pluginId, "stdout", "[gravity] Plugin ready");
   }
 
   async validatePlugin(configuredPath: string): Promise<void> {
@@ -560,7 +564,7 @@ export class PluginRuntime {
       };
     }
     const sessionHost = this.sessionHost;
-    if (!sessionHost) throw new Error("Plugin Paseo session host is not attached");
+    if (!sessionHost) throw new Error("Plugin Gravity session host is not attached");
     const child = this.spawnChild();
     const outputCapture = new PluginOutputCapture(child, (stream, message) => {
       this.appendLog(pluginId, stream, message);
@@ -600,9 +604,9 @@ export class PluginRuntime {
               return;
             }
             const message = parsed.data;
-            if (message.type === "paseo_frame") {
+            if (message.type === "gravity_frame") {
               sessionSocket.receive(message.data, message.isBinary);
-            } else if (message.type === "paseo_close") {
+            } else if (message.type === "gravity_close") {
               sessionSocket.peerClosed();
             } else if (message.type === "ready") {
               if (settled) return;
@@ -945,7 +949,7 @@ export class PluginRuntime {
     const connectionId = readConnectionId(rawMessage);
     const state = connectionId ? loaded.providerConnections.get(connectionId) : undefined;
     if (!connectionId || !state) {
-      this.appendLog(loaded.id, "stderr", `[paseo] ${error.message}`);
+      this.appendLog(loaded.id, "stderr", `[gravity] ${error.message}`);
       terminatePluginChild(loaded.child!);
       return;
     }
@@ -989,7 +993,7 @@ export class PluginRuntime {
   }
 
   private async stopPlugin(loaded: LoadedPlugin): Promise<void> {
-    this.appendLog(loaded.id, "stdout", "[paseo] Stopping plugin");
+    this.appendLog(loaded.id, "stdout", "[gravity] Stopping plugin");
     for (const [connectionId, state] of loaded.providerConnections) {
       if (state.connected) continue;
       this.abandonProviderConnect(
@@ -1001,13 +1005,13 @@ export class PluginRuntime {
     }
     const { child, sessionSocket, sessionClosed } = loaded;
     if (!child || !sessionSocket || !sessionClosed) {
-      this.appendLog(loaded.id, "stdout", "[paseo] Plugin stopped");
+      this.appendLog(loaded.id, "stdout", "[gravity] Plugin stopped");
       return;
     }
     if (child.killed) {
       sessionSocket.peerClosed();
       await sessionClosed;
-      this.appendLog(loaded.id, "stdout", "[paseo] Plugin stopped");
+      this.appendLog(loaded.id, "stdout", "[gravity] Plugin stopped");
       return;
     }
     const closed = new Promise<void>((resolve) =>
@@ -1029,7 +1033,7 @@ export class PluginRuntime {
     });
     sessionSocket.peerClosed();
     await sessionClosed;
-    this.appendLog(loaded.id, "stdout", "[paseo] Plugin stopped");
+    this.appendLog(loaded.id, "stdout", "[gravity] Plugin stopped");
   }
 
   private rejectPending(loaded: LoadedPlugin, message: string): void {

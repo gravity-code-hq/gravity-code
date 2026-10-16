@@ -13,6 +13,43 @@ import {
 import { CodexAppServerAgentClient } from "./codex-app-server-agent.js";
 
 describe("Codex app-server provider (real)", () => {
+  test("preserves the native thread when changing its context budget", async () => {
+    const client = new CodexAppServerAgentClient(createTestLogger());
+    const cwd = mkdtempSync(path.join(os.tmpdir(), "codex-context-budget-"));
+    try {
+      const { models } = await client.fetchCatalog({ scope: "workspace", cwd, force: false });
+      const model = models.find((candidate) => candidate.isDefault);
+      if (!model) throw new Error("Codex did not report a default model");
+      const session = await client.createSession({
+        provider: "codex",
+        model: model.id,
+        cwd,
+        modeId: "read-only",
+        featureValues: { context_budget: "250000" },
+      });
+      try {
+        await session.run("Remember the word kumquat. Reply only OK. Do not use tools.");
+        const threadId = session.id;
+        await session.setFeature?.("context_budget", "500000");
+        const result = await session.run(
+          "What word did I ask you to remember? Reply with just that word. Do not use tools.",
+        );
+        expect(result.finalText.trim().toLowerCase()).toBe("kumquat");
+        expect(session.id).toBe(threadId);
+        await session.setFeature?.("context_budget", "auto");
+        const afterAuto = await session.run(
+          "Repeat that remembered word, with no other text. Do not use tools.",
+        );
+        expect(afterAuto.finalText.trim().toLowerCase()).toBe("kumquat");
+        expect(session.id).toBe(threadId);
+      } finally {
+        await session.close();
+      }
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   let canRunOpenRouter = false;
 
   beforeAll(async () => {

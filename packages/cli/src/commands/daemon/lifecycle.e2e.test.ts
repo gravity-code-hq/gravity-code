@@ -5,7 +5,7 @@ import net from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { startDaemonInstance, readDaemonInstance } from "@getpaseo/server";
+import { startDaemonInstance, readDaemonInstance } from "@gravity/server";
 import { expect, test } from "vitest";
 import { connectToDaemon } from "../../utils/client.js";
 
@@ -22,9 +22,11 @@ async function port() {
 }
 
 async function fixture() {
-  const root = await mkdtemp(path.join(tmpdir(), "paseo lifecycle "));
+  const root = await mkdtemp(path.join(tmpdir(), "gravity lifecycle "));
   const env = {
-    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("PASEO_"))),
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => !key.startsWith("GRAVITY_")),
+    ),
     HOME: root,
     USERPROFILE: root,
   };
@@ -57,7 +59,7 @@ async function fixture() {
     });
     for (const home of homes) {
       try {
-        const lock = JSON.parse(await readFile(path.join(home, "paseo.pid"), "utf8"));
+        const lock = JSON.parse(await readFile(path.join(home, "gravity.pid"), "utf8"));
         owned.set(home, lock);
       } catch {
         /* No acquired launch. */
@@ -98,7 +100,7 @@ async function fixture() {
   async function close() {
     for (const [home, captured] of owned) {
       try {
-        const lock = JSON.parse(await readFile(path.join(home, "paseo.pid"), "utf8"));
+        const lock = JSON.parse(await readFile(path.join(home, "gravity.pid"), "utf8"));
         if (lock.pid === captured.pid && lock.startedAt === captured.startedAt) {
           await run(["daemon", "stop", "--home", home, "--force", "--timeout", "2"]);
         }
@@ -122,12 +124,12 @@ test("managed two-home restart retains its supervisor and never routes ordinary 
     await f.configure(b, `127.0.0.1:${portB}`);
     const launchA = await f.ok(["start", "--home", a, "--timeout", "30"]);
     const poisoned = {
-      PASEO_HOME: a,
-      PASEO_HOST: `127.0.0.1:${portA}`,
-      PASEO_LISTEN: `127.0.0.1:${portA}`,
+      GRAVITY_HOME: a,
+      GRAVITY_HOST: `127.0.0.1:${portA}`,
+      GRAVITY_LISTEN: `127.0.0.1:${portA}`,
       PORT: String(portA),
-      PASEO_WEB_UI_ENABLED: "true",
-      PASEO_RELAY_ENABLED: "true",
+      GRAVITY_WEB_UI_ENABLED: "true",
+      GRAVITY_RELAY_ENABLED: "true",
     };
     const launchB = await f.ok(["daemon", "start", "--home", b, "--timeout", "30"], poisoned);
     expect(launchA.listen).toBe(`127.0.0.1:${portA}`);
@@ -135,7 +137,7 @@ test("managed two-home restart retains its supervisor and never routes ordinary 
     const beforeA = await f.liveStatus(a);
     const beforeB = await f.liveStatus(b, poisoned);
     if (process.platform !== "win32") {
-      for (const home of [a, b, path.join(f.root, ".paseo")])
+      for (const home of [a, b, path.join(f.root, ".gravity")])
         expect((await stat(home)).mode & 0o777).toBe(0o700);
     }
 
@@ -271,15 +273,15 @@ test("worker restart preserves an already-running legacy supervisor's launch fla
         "--no-relay",
         "--no-web-ui",
       ],
-      // The legacy CLI translated --port into PASEO_LISTEN before spawning.
-      env: { ...f.env, PASEO_LISTEN: `127.0.0.1:${launchPort}` },
+      // The legacy CLI translated --port into GRAVITY_LISTEN before spawning.
+      env: { ...f.env, GRAVITY_LISTEN: `127.0.0.1:${launchPort}` },
       mode: "deployment",
       timeoutMs: 30_000,
     });
     const before = await f.liveStatus(home);
     expect(before.listen).toBe(`127.0.0.1:${launchPort}`);
     const restarted = await f.ok(["restart", "--home", home, "--timeout", "30"], {
-      PASEO_LISTEN: `127.0.0.1:${filePort}`,
+      GRAVITY_LISTEN: `127.0.0.1:${filePort}`,
     });
     expect(restarted.supervisorPid).toBe(launch.instance.pid);
     expect(restarted.workerPid).not.toBe(before.workerPid);
@@ -299,13 +301,13 @@ test.skipIf(process.platform === "win32")(
       await f.configure(b, `127.0.0.1:${await port()}`);
       await writeFile(path.join(b, "server-id"), "saved-b");
       await f.ok(["start", "--home", a, "--timeout", "30"]);
-      await f.ok(["start", "--home", b, "--timeout", "30"], { PASEO_SERVER_ID: "live-b" });
+      await f.ok(["start", "--home", b, "--timeout", "30"], { GRAVITY_SERVER_ID: "live-b" });
       const beforeA = await f.liveStatus(a);
       expect((await f.liveStatus(b)).serverId).toBe("live-b");
       await f.ok(["restart", "--home", b, "--timeout", "30"]);
-      const bLock = JSON.parse(await readFile(path.join(b, "paseo.pid"), "utf8"));
+      const bLock = JSON.parse(await readFile(path.join(b, "gravity.pid"), "utf8"));
       await writeFile(
-        path.join(b, "paseo.pid"),
+        path.join(b, "gravity.pid"),
         JSON.stringify({ ...bLock, listen: beforeA.listen }),
       );
       await writeFile(path.join(b, "server-id"), beforeA.serverId);
@@ -338,9 +340,9 @@ test.skipIf(process.platform === "win32").each([["start"], ["daemon", "run"]])(
       });
       const exited = new Promise((resolve) => child!.once("exit", resolve));
       await expect
-        .poll(async () => existsSync(path.join(home, "paseo.pid")), { timeout: 10_000 })
+        .poll(async () => existsSync(path.join(home, "gravity.pid")), { timeout: 10_000 })
         .toBe(true);
-      const lock = JSON.parse(await readFile(path.join(home, "paseo.pid"), "utf8"));
+      const lock = JSON.parse(await readFile(path.join(home, "gravity.pid"), "utf8"));
       await f.ok(["status", "--home", home]);
       child.kill("SIGINT");
       await exited;
@@ -396,11 +398,11 @@ test("empty explicit selectors never select the ambient daemon or create local s
       ["start", "--home", ""],
       ["daemon", "config", "set", "daemon.relay.enabled", "true", "--home", ""],
     ]) {
-      const refused = await f.run(["--json", ...args], { PASEO_HOME: home });
+      const refused = await f.run(["--json", ...args], { GRAVITY_HOME: home });
       expect(refused.code).toBe(1);
       expect(refused.stderr).toContain("TARGET_INVALID");
       expect((await f.liveStatus(home)).workerPid).toBe(before.workerPid);
-      expect(existsSync(path.join(f.root, "paseo.pid"))).toBe(false);
+      expect(existsSync(path.join(f.root, "gravity.pid"))).toBe(false);
       expect(existsSync(path.join(f.root, "config.json"))).toBe(false);
     }
   } finally {
@@ -457,7 +459,7 @@ test("raw log following subscribes to a stored agent that exists only in B", asy
       [cli, "logs", agentId, "--follow", "--tail", "0", "--home", b],
       {
         cwd: f.root,
-        env: { ...f.env, PASEO_HOME: a, PASEO_HOST: launchA.listen },
+        env: { ...f.env, GRAVITY_HOME: a, GRAVITY_HOST: launchA.listen },
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
@@ -511,7 +513,7 @@ test("foreground deployment retains environment until its owner ends the launch;
     await f.configure(home, fileEndpoint);
     deployment = spawn(process.execPath, [cli, "daemon", "run", "--home", home], {
       cwd: f.root,
-      env: { ...f.env, PASEO_LISTEN: deploymentEndpoint, PASEO_RELAY_ENABLED: "false" },
+      env: { ...f.env, GRAVITY_LISTEN: deploymentEndpoint, GRAVITY_RELAY_ENABLED: "false" },
       stdio: "ignore",
     });
     await expect
@@ -534,7 +536,7 @@ test("foreground deployment retains environment until its owner ends the launch;
       home,
     ]);
     expect(changed.overrideControlledPaths).toContain("daemon.listen");
-    const restarted = await f.ok(["restart", "--home", home], { PASEO_LISTEN: fileEndpoint });
+    const restarted = await f.ok(["restart", "--home", home], { GRAVITY_LISTEN: fileEndpoint });
     expect(restarted.supervisorPid).toBe(before.pid);
     expect((await f.ok(["status", "--home", home])).listen).toBe(deploymentEndpoint);
     const exited = new Promise((resolve) => deployment!.once("exit", resolve));

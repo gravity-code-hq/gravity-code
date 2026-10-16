@@ -1,4 +1,5 @@
 import type { AgentFeature, AgentFeatureToggle } from "../agent-sdk-types.js";
+import { buildContextBudgetFeature } from "./context-budget.js";
 
 // Codex Fast is distinct from API Priority processing. Keep model support aligned with
 // https://developers.openai.com/codex/speed and https://developers.openai.com/codex/models.
@@ -48,6 +49,7 @@ export function buildCodexFeatures(input: {
   fastModeEnabled: boolean;
   planModeEnabled: boolean;
   planModeAvailable?: boolean;
+  contextBudget?: unknown;
 }): AgentFeature[] {
   const features: AgentFeature[] = [];
 
@@ -65,5 +67,6 @@ export function buildCodexFeatures(input: {
     });
   }
 
+  features.push(buildContextBudgetFeature(input.contextBudget));
   return features;
 }

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { z } from "zod";
-import type { JsonValue } from "@getpaseo/protocol/agent-types";
+import type { JsonValue } from "@gravity/protocol/agent-types";
 import type { WorkspaceTab, WorkspaceTabTarget } from "@/workspace-tabs/model";
 import {
   defaultWorkspaceLayoutIds,

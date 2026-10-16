@@ -68,6 +68,44 @@ describe("MockLoadTestAgentClient", () => {
     await session.interrupt();
   });
 
+  test("emits every requested tool call through the stress timeline", async () => {
+    const client = new MockLoadTestAgentClient();
+    const session = await client.createSession({ provider: "mock", cwd: process.cwd() });
+    const events: AgentStreamEvent[] = [];
+    session.subscribe((event) => events.push(event));
+
+    await session.run("Emit 25 tool call agent stream updates");
+
+    const calls = events.flatMap((event) =>
+      event.type === "timeline" && event.item.type === "tool_call" ? [event.item] : [],
+    );
+    expect(calls).toHaveLength(25);
+    expect(new Set(calls.map((call) => call.callId)).size).toBe(25);
+    expect(calls[24]).toMatchObject({
+      status: "completed",
+      detail: { type: "shell", command: "echo tool-25", output: "tool-25" },
+    });
+  });
+
+  test("retains every line of requested tool stress output", async () => {
+    const client = new MockLoadTestAgentClient();
+    const session = await client.createSession({ provider: "mock", cwd: process.cwd() });
+    const events: AgentStreamEvent[] = [];
+    session.subscribe((event) => events.push(event));
+    await session.run("Emit 1 tool call agent stream updates with 120 output lines");
+    const calls = events.flatMap((event) =>
+      event.type === "timeline" && event.item.type === "tool_call" ? [event.item] : [],
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.detail).toEqual({
+      type: "shell",
+      command: "echo tool-1",
+      output: Array.from({ length: 120 }, (_, index) => `tool-1 output line ${index + 1}`).join(
+        "\n",
+      ),
+    });
+  });
+
   test("streams a configured assistant response through the normal timeline", async () => {
     vi.useFakeTimers();
     const response = [
@@ -484,7 +522,7 @@ describe("MockLoadTestAgentClient", () => {
 
   test("agent manager coalesces adjacent assistant tokens into fewer messages", async () => {
     vi.useFakeTimers();
-    const workdir = mkdtempSync(join(tmpdir(), "paseo-mock-load-test-"));
+    const workdir = mkdtempSync(join(tmpdir(), "gravity-mock-load-test-"));
     try {
       const client = new MockLoadTestAgentClient();
       const manager = new AgentManager({

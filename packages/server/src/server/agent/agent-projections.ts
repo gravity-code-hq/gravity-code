@@ -71,6 +71,7 @@ export function toStoredAgentRecord(
 
   return {
     id: agent.id,
+    forkHistory: agent.forkHistory,
     provider: agent.provider,
     cwd: agent.cwd,
     workspaceId: agent.workspaceId,
@@ -87,6 +88,7 @@ export function toStoredAgentRecord(
     features: normalizeFeatures(agent.features),
     persistence,
     lastError: agent.lastError ?? undefined,
+    lastUsage: sanitizeUsage(agent.lastUsage),
     requiresAttention: agent.attention.requiresAttention,
     attentionReason: agent.attention.requiresAttention ? agent.attention.attentionReason : null,
     attentionTimestamp: agent.attention.requiresAttention
@@ -216,6 +218,7 @@ export function buildStoredAgentPayload(
   const persistence = projectPersistenceHandleForWire(
     buildStoredPersistenceHandle(record, validProviders),
   );
+  const storedUsage = sanitizeUsage(record.lastUsage);
 
   return {
     id: record.id,
@@ -239,6 +242,7 @@ export function buildStoredAgentPayload(
     pendingPermissions: [],
     persistence,
     title: record.title ?? null,
+    ...(storedUsage ? { lastUsage: storedUsage } : {}),
     requiresAttention: record.requiresAttention ?? false,
     attentionReason: record.attentionReason ?? null,
     attentionTimestamp: record.attentionTimestamp ?? null,

@@ -132,12 +132,13 @@ export function CompactExplorerSidebarHost({
   }, [model, openCompactFileExplorer]);
 
   const handleOpenFile = useCallback(
-    (filePath: string) => {
+    (filePath: string, line?: number) => {
       if (!model) {
         return;
       }
       openWorkspaceFileFromExplorer({
         filePath,
+        line,
         persistenceKey: model.persistenceKey,
         closeExplorerAfterOpen: presentation === "overlay",
         showMobileAgent,

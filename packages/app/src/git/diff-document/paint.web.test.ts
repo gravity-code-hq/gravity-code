@@ -3,7 +3,7 @@ import { paintWebViewport } from "./paint.web";
 import type { DiffCell, DiffDocumentModel, DiffLineRow, DiffPalette, DiffSelection } from "./types";
 
 describe("web diff text shaping", () => {
-  it("matches the 30px file-header alignment rails exactly", () => {
+  it("matches the 40px file-header alignment rails exactly", () => {
     const fills: Array<{ color: string; x: number; y: number; width: number; height: number }> = [];
     const labels: Array<{ text: string; x: number; y: number; color: string; font: string }> = [];
     let fillStyle = "";
@@ -60,13 +60,13 @@ describe("web diff text shaping", () => {
         files: [
           {
             ...model.files[0]!,
-            headerHeight: 30,
-            bodyTop: 30,
+            headerHeight: 40,
+            bodyTop: 40,
             bodyHeight: 18,
-            bottom: 48,
+            bottom: 58,
           },
         ],
-        height: 48,
+        height: 58,
       },
       palette,
       typography: { family: "monospace", size: 12, lineHeight: 18 },
@@ -84,14 +84,14 @@ describe("web diff text shaping", () => {
     expect(
       fills.filter((fill) => fill.color === "header" || fill.color === "header-border"),
     ).toEqual([
-      { color: "header", x: 0, y: 0, width: 200, height: 30 },
-      { color: "header-border", x: 0, y: 29, width: 200, height: 1 },
+      { color: "header", x: 0, y: 0, width: 200, height: 40 },
+      { color: "header-border", x: 0, y: 39, width: 200, height: 1 },
     ]);
-    expect(labels.filter((label) => label.text !== "fi")).toEqual([
-      { text: "+1", x: 142, y: 18, color: "success", font: "12px system-ui" },
-      { text: "-0", x: 158, y: 18, color: "danger", font: "12px system-ui" },
-      { text: "a.ts", x: 12, y: 18, color: "foreground", font: "14px system-ui" },
-      { text: "src", x: 40, y: 18, color: "muted", font: "14px system-ui" },
+    expect(labels.filter((label) => label.font.endsWith("system-ui"))).toEqual([
+      { text: "+1", x: 142, y: 23.5, color: "success", font: "12px system-ui" },
+      { text: "-0", x: 158, y: 23.5, color: "danger", font: "12px system-ui" },
+      { text: "src/", x: 36, y: 23.5, color: "muted", font: "14px system-ui" },
+      { text: "a.ts", x: 60, y: 23.5, color: "foreground", font: "14px system-ui" },
     ]);
   });
 
@@ -131,7 +131,7 @@ describe("web diff text shaping", () => {
       devicePixelRatio: 1,
     });
 
-    expect(paintedText).toEqual(["fi", "fi"]);
+    expect(paintedText).toEqual(["+", "fi", "fi"]);
   });
 
   it("paints review space with the surface color and continues the gutter divider", () => {
@@ -447,6 +447,9 @@ function selectionCell(side: "old" | "new"): DiffCell {
 
 const palette: DiffPalette = {
   surface: "surface",
+  hunkBackground: "#123",
+  additionGutterBackground: "#142",
+  deletionGutterBackground: "#412",
   headerSurface: "header",
   border: "border",
   foreground: "foreground",

@@ -1,3 +1,4 @@
+import { diffGutterLabels } from "./gutter";
 import {
   ClipOp,
   PaintStyle,
@@ -14,7 +15,6 @@ import {
   DIFF_FILE_HEADER_ICON_SIZE,
   DIFF_FILE_HEADER_LEFT,
   DIFF_FILE_HEADER_RIGHT,
-  DIFF_FILE_HEADER_TEXT_GAP,
   allocateDiffHeaderTextWidths,
   diffFileChangeKind,
   directorySuffix,
@@ -52,6 +52,9 @@ export interface NativePaints {
   additionBackground: SkPaint;
   deletionBackground: SkPaint;
   headerSurface: SkPaint;
+  hunkBackground: SkPaint;
+  additionGutterBackground: SkPaint;
+  deletionGutterBackground: SkPaint;
   headerBorder: SkPaint;
   statusSuccess: SkPaint;
   statusDanger: SkPaint;
@@ -71,6 +74,9 @@ export function createNativePaints(palette: DiffPalette): NativePaints {
     additionBackground: paint(palette.additionBackground),
     deletionBackground: paint(palette.deletionBackground),
     headerSurface: paint(palette.headerSurface),
+    hunkBackground: paint(palette.hunkBackground),
+    additionGutterBackground: paint(palette.additionGutterBackground),
+    deletionGutterBackground: paint(palette.deletionGutterBackground),
     headerBorder: paint(palette.headerBorder),
     statusSuccess: paint(palette.statusSuccess),
     statusDanger: paint(palette.statusDanger),
@@ -98,6 +104,19 @@ export function recordNativeHeaderPicture(input: {
     Skia.XYWHRect(0, DIFF_FILE_HEADER_HEIGHT - 1, input.viewportWidth, 1),
     input.paints.headerBorder,
   );
+  const chevron = input.paints.foregroundMuted.copy();
+  chevron.setStyle(PaintStyle.Stroke);
+  chevron.setStrokeWidth(1.5);
+  chevron.setStrokeCap(StrokeCap.Round);
+  const centerY = DIFF_FILE_HEADER_CONTENT_HEIGHT / 2;
+  if (input.file.isCollapsed) {
+    canvas.drawLine(15, centerY - 4, 19, centerY, chevron);
+    canvas.drawLine(19, centerY, 15, centerY + 4, chevron);
+  } else {
+    canvas.drawLine(13, centerY - 2, 17, centerY + 2, chevron);
+    canvas.drawLine(17, centerY + 2, 21, centerY - 2, chevron);
+  }
+  chevron.dispose();
   const iconX = input.viewportWidth - DIFF_FILE_HEADER_RIGHT - DIFF_FILE_HEADER_ICON_SIZE;
   const additions = `+${formatDiffCount(input.file.file.additions)}`;
   const deletions = `-${formatDiffCount(input.file.file.deletions)}`;
@@ -126,7 +145,9 @@ export function recordNativeHeaderPicture(input: {
 
   const available = Math.max(0, statX - DIFF_FILE_HEADER_LEFT);
   const name = fileNameForPath(input.file.path);
-  const directory = directorySuffix(input.file.path).trimStart();
+  const directory = input.file.path.includes("/")
+    ? `${directorySuffix(input.file.path).trimStart()}/`
+    : "";
   const fitted = fitNativeHeaderText(input.textLayout, name, directory, available);
   canvas.save();
   canvas.clipRect(
@@ -134,13 +155,9 @@ export function recordNativeHeaderPicture(input: {
     ClipOp.Intersect,
     false,
   );
-  paintNativeHeaderText(canvas, fitted.name, DIFF_FILE_HEADER_LEFT);
+  paintNativeHeaderText(canvas, fitted.name, DIFF_FILE_HEADER_LEFT + fitted.directory.width);
   if (fitted.directory.width > 0) {
-    paintNativeHeaderText(
-      canvas,
-      fitted.directory,
-      DIFF_FILE_HEADER_LEFT + fitted.name.width + DIFF_FILE_HEADER_TEXT_GAP,
-    );
+    paintNativeHeaderText(canvas, fitted.directory, DIFF_FILE_HEADER_LEFT);
   }
   canvas.restore();
   const picture = recorder.finishRecordingAsPicture();
@@ -349,15 +366,17 @@ function paintNativeGutter(input: {
         Skia.XYWHRect(columnX + file.gutterWidth, y, 1, reviewDividerHeight(row.height)),
         input.paints.border,
       );
-      const label = String(cell.lineNumber ?? "");
-      const font = input.textLayout.font;
-      input.canvas.drawText(
-        label,
-        columnX + file.gutterWidth - 7 - font.getTextWidth(label),
-        y + input.model.lineHeight * 0.78,
-        input.paints[codeLineNumberTone(cell)],
-        font,
-      );
+      paintNativeGutterLabels({
+        canvas: input.canvas,
+        cell,
+        file,
+        columnX,
+        y,
+        height: row.height - row.reviewHeight,
+        model: input.model,
+        textLayout: input.textLayout,
+        paints: input.paints,
+      });
     });
   }
 }
@@ -390,7 +409,7 @@ function paintNativeRange(input: PaintNativeRangeInput): void {
     add: input.paints.additionBackground,
     context: input.paints.surface,
     empty: input.paints.emptyBackground,
-    header: input.paints.headerSurface,
+    header: input.paints.hunkBackground,
     remove: input.paints.deletionBackground,
   };
   const range = visibleRowRange(input.model.rows, input.scrollTop, input.viewportHeight);
@@ -503,15 +522,52 @@ function paintNativeFixedCell(input: {
     ),
     input.input.paints.border,
   );
-  const label = String(input.cell.lineNumber ?? "");
-  const font = input.input.textLayout.font;
-  input.input.canvas.drawText(
-    label,
-    input.columnX + input.file.gutterWidth - 7 - font.getTextWidth(label),
-    input.y + input.input.model.lineHeight * 0.78,
-    input.input.paints[codeLineNumberTone(input.cell)],
-    font,
-  );
+  paintNativeGutterLabels({
+    canvas: input.input.canvas,
+    cell: input.cell,
+    file: input.file,
+    columnX: input.columnX,
+    y: input.y,
+    height: input.row.height - input.row.reviewHeight,
+    model: input.input.model,
+    textLayout: input.input.textLayout,
+    paints: input.input.paints,
+  });
+}
+
+function paintNativeGutterLabels(input: {
+  canvas: SkCanvas;
+  cell: DiffCell;
+  file: DiffFileSection;
+  columnX: number;
+  y: number;
+  height: number;
+  model: DiffDocumentModel;
+  textLayout: NativeTextLayout;
+  paints: NativePaints;
+}): void {
+  if (input.cell.type === "add" || input.cell.type === "remove") {
+    // The gutter is composited over the fixed layer on native; paint an opaque
+    // surface first so translucent change tints are applied only once.
+    const rect = Skia.XYWHRect(input.columnX, input.y, input.file.gutterWidth, input.height);
+    input.canvas.drawRect(rect, input.paints.surface);
+    input.canvas.drawRect(
+      rect,
+      input.cell.type === "add"
+        ? input.paints.additionGutterBackground
+        : input.paints.deletionGutterBackground,
+    );
+  }
+  const font = input.textLayout.font;
+  for (const label of diffGutterLabels(input.cell, input.file.gutterWidth, input.model.layout)) {
+    input.canvas.drawText(
+      label.text,
+      input.columnX + label.right - font.getTextWidth(label.text),
+      input.y + input.model.lineHeight * 0.78,
+      input.paints[codeLineNumberTone(input.cell)],
+      font,
+    );
+  }
 }
 
 function paintNativeCodeCell(input: {

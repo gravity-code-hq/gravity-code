@@ -6,7 +6,7 @@ Tokens — every color, font size, weight, spacing step, radius, icon size — l
 
 ## 1. Character
 
-Paseo is minimal, spacious, quiet, confident. Whitespace is deliberate. Nothing crowds, nothing decorates, nothing apologizes. A row, a label, a control. That is the bar.
+Gravity is minimal, spacious, quiet, confident. Whitespace is deliberate. Nothing crowds, nothing decorates, nothing apologizes. A row, a label, a control. That is the bar.
 
 The app is calm so the user's work is not. Every visual decision serves either _act on this_ or _understand this_ — never _look at this_.
 
@@ -30,7 +30,9 @@ Before adding a new component, read `components/ui/`. The primitive usually exis
 
 Hierarchy is conveyed through weight and color, not size. Most interface text is `fontSize.base`; compact metadata and hints use `fontSize.sm`. The distinction between a row's primary line and its secondary line is `foreground` versus `foregroundMuted`.
 
-The authored interface ramp uses a 14px base. New native installs default to 15px; web and desktop default to 14px. The Appearance **Interface size** setting is the rendered `fontSize.base` value and scales the rest of the UI ramp proportionally. Primary readable content has its own `fontSize.content`, which defaults to 16px on native and 15px on web and desktop. It owns message bodies, composer input, Markdown, and PR prose. Controls, navigation, metadata, tool chrome, code, diffs, editors, and terminals stay on their interface or code tokens. **Code size** remains independent.
+Use the platform's system UI font, following VS Code: San Francisco on macOS, Segoe UI on Windows, and the system font on Linux. The authored interface ramp keeps its 14px base so saved size preferences retain their proportions. New native installs default to 15px; web and desktop default to 13px. The Appearance **Interface size** setting is the rendered `fontSize.base` value and scales the rest of the UI ramp proportionally. Primary readable content has its own `fontSize.content`, which defaults to 16px on native and 15px on web and desktop. It owns message bodies, composer input, Markdown, and PR prose. Controls, navigation, metadata, tool chrome, code, diffs, editors, and terminals stay on their interface or code tokens. **Code size** remains independent, and the terminal has its own **Terminal size** (15px default) because terminal text reads comfortably larger than diff text at the same density.
+
+Cmd/Ctrl +/−/0 changes text size when a terminal input or source editor has focus; elsewhere it changes app zoom. Text overrides belong to the mounted pane and reset to the pane's own setting (**Terminal size** or **Code size**), so making one terminal readable does not resize other panes. **View → App Zoom** always scales the entire desktop window.
 
 Weight has three tiers, applied by role:
 
@@ -169,7 +171,7 @@ A new list+detail feature copies the settings shell. A new workspace-shaped feat
 
 ## 10. Copy and voice
 
-Sentence case. "Pair a device", "Danger zone", "Restart daemon", "Inject Paseo tools", "No sessions yet", "Load more". Proper nouns retain casing — Paseo, Beta, Stable, Local. Title case is wrong.
+Sentence case. "Pair a device", "Danger zone", "Restart daemon", "Inject Gravity tools", "No sessions yet", "Load more". Proper nouns retain casing — Gravity, Beta, Stable, Local. Title case is wrong.
 
 No trailing periods on row titles, labels, or buttons. No trailing period on a single-clause hint: "What happens when you press Enter while the agent is running" (`packages/app/src/screens/settings-screen.tsx:271-272`). Periods exist inside multi-sentence prose: "Restarts the daemon process. The app will reconnect automatically."
 

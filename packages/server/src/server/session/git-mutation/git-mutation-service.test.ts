@@ -71,7 +71,7 @@ function initRepo(extraBranch?: string): string {
   const run = (...args: string[]) => execFileSync("git", args, { cwd: dir, stdio: "pipe" });
   run("init", "-b", "main");
   run("config", "user.email", "test@example.com");
-  run("config", "user.name", "Paseo Test");
+  run("config", "user.name", "Gravity Test");
   writeFileSync(join(dir, "README.md"), "hello\n");
   run("add", "-A");
   run("commit", "-m", "init");

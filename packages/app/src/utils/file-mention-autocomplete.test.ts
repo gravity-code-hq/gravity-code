@@ -3,7 +3,33 @@ import {
   applyFileMentionReplacement,
   findActiveFileMention,
   formatQuotedFileMentionPath,
+  rankFileMentionSuggestions,
 } from "./file-mention-autocomplete";
+
+describe("rankFileMentionSuggestions", () => {
+  const entries = [
+    { path: "src/lunar", kind: "directory" },
+    { path: "src/lunar/client.ts", kind: "file" },
+    { path: "wiki/lunar-implementation-plan.md", kind: "file" },
+    { path: ".claude/commands/lunar.md", kind: "file" },
+    { path: ".cursor/commands/lunar.md", kind: "file" },
+  ] as const;
+
+  it("puts matching filenames before matches in parent folders and keeps duplicate names together", () => {
+    expect(rankFileMentionSuggestions(entries, "LUNAR").map((entry) => entry.path)).toEqual([
+      ".claude/commands/lunar.md",
+      ".cursor/commands/lunar.md",
+      "wiki/lunar-implementation-plan.md",
+      "src/lunar",
+      "src/lunar/client.ts",
+    ]);
+  });
+
+  it("preserves host ranking when browsing or searching a specific path", () => {
+    expect(rankFileMentionSuggestions(entries, "")).toEqual(entries);
+    expect(rankFileMentionSuggestions(entries, "src/lunar")).toEqual(entries);
+  });
+});
 
 describe("findActiveFileMention", () => {
   it("detects mentions at the start of input", () => {

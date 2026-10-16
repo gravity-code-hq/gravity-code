@@ -2,8 +2,8 @@ import type {
   AgentMode,
   AgentModelDefinition,
   ProviderSnapshotEntry,
-} from "@getpaseo/protocol/agent-types";
-import type { ScheduleSummary } from "@getpaseo/protocol/schedule/types";
+} from "@gravity/protocol/agent-types";
+import type { ScheduleSummary } from "@gravity/protocol/schedule/types";
 import type { FormPreferences } from "@/create-agent-preferences/preferences";
 import { describe, expect, it } from "vitest";
 import { buildProjectOptionId, type ScheduleProjectTarget } from "./schedule-project-targets";
@@ -222,7 +222,6 @@ describe("schedule form model", () => {
       projectDisplay: { label: "Project B" },
       selectedProjectOptionId: buildProjectOptionId("host-b", "project-b"),
       archiveOnFinish: false,
-      isolation: "worktree",
       effectiveIsolation: "worktree",
       providerResolutionByServerId: { "host-b": "pending" },
       providerSnapshotRequest: {
@@ -337,10 +336,67 @@ describe("schedule form model", () => {
       selectedModelDisplay: null,
       selectedThinkingDisplay: null,
       archiveOnFinish: true,
-      isolation: "local",
-      effectiveIsolation: "local",
+      effectiveIsolation: "worktree",
       providerResolutionByServerId: {},
     });
+  });
+
+  it("opens create pre-filled when a template id is given", () => {
+    const form = open({
+      mode: "create",
+      defaults: {
+        serverId: "host-a",
+        projectTargets: PROJECT_TARGETS,
+        preferences: {},
+        timezone: "UTC",
+        templateId: "change-review",
+      },
+    });
+
+    expect(form.getState()).toMatchObject({
+      name: "Daily change review",
+      selectedTemplateId: "change-review",
+      templateApplyCount: 0,
+      submitCadence: { type: "cron", expression: "0 17 * * *", timezone: "UTC" },
+    });
+    expect(form.getState().prompt).toContain("commit");
+  });
+
+  it("applies a template to name, prompt, and cadence, and forgets it on edit", () => {
+    const form = open({
+      mode: "create",
+      defaults: {
+        serverId: "host-a",
+        projectTargets: PROJECT_TARGETS,
+        preferences: {},
+        timezone: "Europe/Paris",
+      },
+    });
+
+    form.applyTemplate("inbox-digest");
+
+    expect(form.getState()).toMatchObject({
+      name: "Daily inbox digest",
+      selectedTemplateId: "inbox-digest",
+      templateApplyCount: 1,
+      cadence: { type: "cron", expression: "0 8 * * 1-5", timezone: "Europe/Paris" },
+      submitCadence: { type: "cron", expression: "0 8 * * 1-5", timezone: "Europe/Paris" },
+    });
+    expect(form.getState().prompt).toContain("Slack");
+
+    form.setPrompt("Something else");
+
+    expect(form.getState()).toMatchObject({
+      selectedTemplateId: "",
+      name: "Daily inbox digest",
+      prompt: "Something else",
+    });
+
+    form.applyTemplate("inbox-digest");
+    expect(form.getState().templateApplyCount).toBe(2);
+
+    form.applyTemplate("missing");
+    expect(form.getState().templateApplyCount).toBe(2);
   });
 
   it("derives the host to project to model disclosure chain from model state", () => {
@@ -354,7 +410,6 @@ describe("schedule form model", () => {
       showModelField: false,
       showThinkingField: false,
       showModeField: false,
-      showIsolationField: false,
       showArchiveOnFinishField: false,
     });
 
@@ -365,7 +420,6 @@ describe("schedule form model", () => {
       showModelField: true,
       showThinkingField: false,
       showModeField: false,
-      showIsolationField: true,
       showArchiveOnFinishField: true,
     });
 
@@ -377,12 +431,11 @@ describe("schedule form model", () => {
       showModelField: true,
       showThinkingField: true,
       showModeField: true,
-      showIsolationField: true,
       showArchiveOnFinishField: true,
     });
   });
 
-  it("hides isolation unless the selected project can create a worktree", () => {
+  it("only submits workspace lifecycle options when the host supports them", () => {
     const nonGitTarget = target({
       serverId: "host-a",
       projectKey: "plain-project",
@@ -397,9 +450,9 @@ describe("schedule form model", () => {
 
     nonGit.setProject(nonGitTarget.optionId, { label: "Plain Project" });
 
-    expect(nonGit.getState().disclosure).toMatchObject({
-      showIsolationField: false,
-      showArchiveOnFinishField: true,
+    expect(nonGit.getState()).toMatchObject({
+      canUseWorktreeIsolation: false,
+      disclosure: { showArchiveOnFinishField: true },
     });
 
     const gitTarget = target({
@@ -418,7 +471,6 @@ describe("schedule form model", () => {
     unsupportedHost.setProject(gitTarget.optionId, { label: "Git Project" });
 
     expect(unsupportedHost.getState().disclosure).toMatchObject({
-      showIsolationField: false,
       showArchiveOnFinishField: false,
     });
     expect(
@@ -456,7 +508,7 @@ describe("schedule form model", () => {
     });
   });
 
-  it("preserves stored worktree isolation until host resolution proves it unavailable", () => {
+  it("keeps worktree runs until host resolution proves the project cannot host one", () => {
     const nonGitTarget = target({
       serverId: "host-b",
       projectKey: "plain-project",
@@ -476,7 +528,6 @@ describe("schedule form model", () => {
     });
 
     expect(form.getState()).toMatchObject({
-      isolation: "worktree",
       effectiveIsolation: "worktree",
       canUseWorktreeIsolation: false,
       providerResolutionByServerId: { "host-b": "pending" },
@@ -485,7 +536,6 @@ describe("schedule form model", () => {
     form.applyProviderSnapshot("host-b", providerSnapshot(HOST_B_MODELS));
 
     expect(form.getState()).toMatchObject({
-      isolation: "worktree",
       effectiveIsolation: "local",
       canUseWorktreeIsolation: false,
       providerResolutionByServerId: { "host-b": "complete" },
@@ -703,7 +753,6 @@ describe("schedule form model", () => {
           thinkingByModel: { "model-b": "high" },
         },
       },
-      isolation: "worktree",
     };
 
     const create = open({
@@ -719,7 +768,6 @@ describe("schedule form model", () => {
       selectedModel: "model-b",
       selectedMode: "load-test",
       selectedThinkingOptionId: "high",
-      isolation: "worktree",
     });
 
     const userEdited = open({
@@ -728,14 +776,12 @@ describe("schedule form model", () => {
     });
     userEdited.applyProviderSnapshot("host-a", providerSnapshot(ALL_MODELS));
     userEdited.setModel("mock", "model-a");
-    userEdited.setIsolation("local");
 
     applyPreferences(userEdited, savedPreferences);
 
     expect(userEdited.getState()).toMatchObject({
       selectedProvider: "mock",
       selectedModel: "model-a",
-      isolation: "local",
     });
 
     const edit = open({
@@ -750,13 +796,12 @@ describe("schedule form model", () => {
     });
     edit.applyProviderSnapshot("host-a", providerSnapshot(ALL_MODELS));
 
-    applyPreferences(edit, { ...savedPreferences, isolation: "local" });
+    applyPreferences(edit, savedPreferences);
 
     expect(edit.getState()).toMatchObject({
       selectedProvider: "mock",
       selectedModel: "model-a",
       selectedMode: "load-test",
-      isolation: "worktree",
     });
   });
 });

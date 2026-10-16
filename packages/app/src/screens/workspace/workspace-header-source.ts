@@ -1,3 +1,4 @@
+import { workspaceDisplayName } from "@/workspace/display-name";
 import type { WorkspaceDescriptor } from "@/stores/session-store";
 
 export type WorkspaceHeaderCheckoutState =
@@ -29,25 +30,19 @@ function trimNonEmpty(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function areHeaderLabelsEquivalent(
-  a: string | null | undefined,
-  b: string | null | undefined,
-): boolean {
-  const normalizedA = trimNonEmpty(a)?.toLocaleLowerCase();
-  const normalizedB = trimNonEmpty(b)?.toLocaleLowerCase();
-  if (!normalizedA || !normalizedB) {
-    return false;
-  }
-  return normalizedA === normalizedB;
-}
-
 export function resolveWorkspaceHeader(input: { workspace: WorkspaceDescriptor }): {
   title: string;
   subtitle: string;
 } {
   return {
-    title: input.workspace.name,
-    subtitle: input.workspace.projectDisplayName,
+    title: workspaceDisplayName({
+      projectName: input.workspace.projectCustomName ?? input.workspace.projectDisplayName,
+      projectKind: input.workspace.projectKind,
+      workspaceDirectory: input.workspace.workspaceDirectory,
+      worktreeSlug: input.workspace.worktreeSlug,
+      currentBranch: input.workspace.gitRuntime?.currentBranch ?? null,
+    }),
+    subtitle: "",
   };
 }
 
@@ -59,7 +54,6 @@ export function resolveWorkspaceHeaderRenderState(input: {
     return { kind: "skeleton" };
   }
 
-  const header = resolveWorkspaceHeader({ workspace: input.workspace });
   const checkout = input.checkoutState.kind === "ready" ? input.checkoutState.checkout : null;
   const currentBranchName =
     checkout?.isGit && checkout.currentBranch !== "HEAD"
@@ -68,9 +62,17 @@ export function resolveWorkspaceHeaderRenderState(input: {
 
   return {
     kind: "ready",
-    title: header.title,
-    subtitle: header.subtitle,
-    isSubtitleDistinct: !areHeaderLabelsEquivalent(header.title, header.subtitle),
+    title: workspaceDisplayName({
+      projectName: input.workspace.projectCustomName ?? input.workspace.projectDisplayName,
+      projectKind: input.workspace.projectKind,
+      workspaceDirectory: input.workspace.workspaceDirectory,
+      worktreeSlug: input.workspace.worktreeSlug,
+      currentBranch: checkout
+        ? checkout.currentBranch
+        : (input.workspace.gitRuntime?.currentBranch ?? null),
+    }),
+    subtitle: "",
+    isSubtitleDistinct: false,
     isGitCheckout: checkout?.isGit ?? false,
     currentBranchName,
   };

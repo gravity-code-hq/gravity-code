@@ -1,0 +1,32 @@
+{
+  "worktree": {
+    "setup": [
+      "npm ci",
+      "node ./scripts/seed-ios-native-cache.mjs",
+      "node ./scripts/seed-worktree-dev-state.mjs",
+      "npm run build:server",
+      "npm run build --workspace=@gravity/expo-two-way-audio"
+    ]
+  },
+  "scripts": {
+    "daemon": {
+      "type": "service",
+      "command": "GRAVITY_DEV_MANAGED_HOME=1 GRAVITY_DEV_ROOT=\"${GRAVITY_WORKTREE_PATH:-$PWD}\" GRAVITY_HOME=\"${GRAVITY_WORKTREE_PATH:-$PWD}/.dev/gravity-home\" GRAVITY_SKIP_DEV_SERVER_BUILD=1 GRAVITY_LISTEN=0.0.0.0:${GRAVITY_PORT:-6768} ./scripts/dev-daemon.sh"
+    },
+    "app": {
+      "type": "service",
+      "command": "GRAVITY_DEV_MANAGED_HOME=1 GRAVITY_DEV_ROOT=\"${GRAVITY_WORKTREE_PATH:-$PWD}\" GRAVITY_HOME=\"${GRAVITY_WORKTREE_PATH:-$PWD}/.dev/gravity-home\" GRAVITY_LISTEN=0.0.0.0:${GRAVITY_SERVICE_DAEMON_PORT:-6768} GRAVITY_DEV_DAEMON_ENDPOINT=localhost:${GRAVITY_SERVICE_DAEMON_PORT:-6768} EXPO_PORT=${GRAVITY_PORT:-} ./scripts/dev-app.sh"
+    },
+    "desktop": {
+      "type": "service",
+      "command": "GRAVITY_DEV_MANAGED_HOME=1 GRAVITY_DEV_ROOT=\"${GRAVITY_WORKTREE_PATH:-$PWD}\" GRAVITY_HOME=\"${GRAVITY_WORKTREE_PATH:-$PWD}/.dev/gravity-home\" GRAVITY_LISTEN=0.0.0.0:${GRAVITY_SERVICE_DAEMON_PORT:-6768} GRAVITY_DEV_DAEMON_ENDPOINT=localhost:${GRAVITY_SERVICE_DAEMON_PORT:-6768} EXPO_PORT=${GRAVITY_PORT:-} exec ./packages/desktop/scripts/dev.sh"
+    },
+    "ios-simulator": {
+      "type": "service",
+      "command": "GRAVITY_DEV_MANAGED_HOME=1 GRAVITY_DEV_ROOT=\"$PWD\" GRAVITY_HOME=\"$PWD/.dev/gravity-home\" GRAVITY_LISTEN=0.0.0.0:${GRAVITY_SERVICE_DAEMON_PORT} GRAVITY_DEV_DAEMON_ENDPOINT=localhost:${GRAVITY_SERVICE_DAEMON_PORT} ./scripts/gravity-ios-simulator-service.sh"
+    },
+    "typecheck": {
+      "command": "npm run typecheck"
+    }
+  }
+}

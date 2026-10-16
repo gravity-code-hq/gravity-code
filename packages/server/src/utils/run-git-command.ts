@@ -1,7 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { delimiter, resolve as resolvePath } from "node:path";
 import type { Logger } from "pino";
-import type { ProcessEnvRecord } from "../server/paseo-env.js";
+import type { ProcessEnvRecord } from "../server/gravity-env.js";
 import {
   GitCommandRuntimeMetricsWindow,
   type GitCommandRuntimeMetricsSnapshot,
@@ -23,6 +25,20 @@ import {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 20 * 1024 * 1024; // 20MB
 const DEFAULT_STDERR_LIMIT = 2048;
+
+const which: {
+  sync(command: string, options: { path: string; nothrow: true }): string | null;
+} = createRequire(import.meta.url)("which");
+
+function resolveGitExecutable(cwd: string, envOverlay: ProcessEnvRecord | undefined): string {
+  // Avoid repeated PATH searches in the child launch path (notably on macOS).
+  // Resolve per command so PATH changes and newly installed wrappers take effect.
+  if (process.platform === "win32") return "git";
+  const env = { ...process.env, ...envOverlay };
+  const directories = (env.PATH ?? "/usr/bin:/bin").split(delimiter);
+  const searchPath = directories.map((directory) => resolvePath(cwd, directory)).join(delimiter);
+  return which.sync("git", { path: searchPath, nothrow: true }) ?? "git";
+}
 
 let gitProcessScheduler = new GitProcessScheduler(resolveGitProcessPolicy({ env: process.env }));
 let gitRuntimeMetrics = createGitCommandRuntimeMetricsWindow(gitProcessScheduler.policy);
@@ -397,7 +413,7 @@ function executeGitCommand<Output>(
         // octal-escaping non-ASCII bytes (e.g. `测试文件.txt` vs `"\346\265\213..."`).
         // `core.fsmonitor=false` prevents repository config from launching a command.
         child = spawnProcess(
-          "git",
+          resolveGitExecutable(options.cwd, envOverlay),
           ["-c", "core.quotepath=false", "-c", "core.fsmonitor=false", ...args],
           {
             cwd: options.cwd,

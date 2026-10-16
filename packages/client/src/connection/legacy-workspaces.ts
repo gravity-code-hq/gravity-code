@@ -1,9 +1,9 @@
-import { AgentSnapshotPayloadSchema } from "@getpaseo/protocol/messages";
-import type { AgentSnapshotPayload, SessionOutboundMessage } from "@getpaseo/protocol/messages";
+import { AgentSnapshotPayloadSchema } from "@gravity/protocol/messages";
+import type { AgentSnapshotPayload, SessionOutboundMessage } from "@gravity/protocol/messages";
 import {
   deriveAgentStateBucket,
   getWorkspaceStateBucketPriority,
-} from "@getpaseo/protocol/agent-state-bucket";
+} from "@gravity/protocol/agent-state-bucket";
 
 type AgentEntry = Extract<
   SessionOutboundMessage,
@@ -150,7 +150,7 @@ function workspaceId(entry: AgentEntry): string {
 
 function workspaceKind(checkout: AgentEntry["project"]["checkout"]): Workspace["workspaceKind"] {
   if (!checkout.isGit) return "directory";
-  if (checkout.isPaseoOwnedWorktree) return "worktree";
+  if (checkout.isGravityOwnedWorktree) return "worktree";
   return "checkout";
 }
 
@@ -167,7 +167,7 @@ function gitRuntime(checkout: AgentEntry["project"]["checkout"]): Workspace["git
   return {
     currentBranch: checkout.currentBranch,
     remoteUrl: checkout.remoteUrl,
-    isPaseoOwnedWorktree: checkout.isPaseoOwnedWorktree,
+    isGravityOwnedWorktree: checkout.isGravityOwnedWorktree,
     isDirty: null,
     aheadBehind: null,
     aheadOfOrigin: null,

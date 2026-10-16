@@ -1,4 +1,4 @@
-import type { AgentModelDefinition } from "@getpaseo/protocol/agent-types";
+import type { AgentModelDefinition } from "@gravity/protocol/agent-types";
 import { describe, expect, it } from "vitest";
 import { findModelByReference } from "./model-catalog";
 

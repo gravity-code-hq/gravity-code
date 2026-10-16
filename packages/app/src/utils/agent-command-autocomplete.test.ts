@@ -1,23 +1,57 @@
 import { describe, expect, it } from "vitest";
+import { getCommandTextRanges } from "@/components/ui/text-input/command-ranges";
 
 import {
   applySlashCommandReplacement,
   filterAndRankCommandAutocompleteEntries,
   filterInlineSkillCommandEntries,
   findActiveSlashCommand,
+  getSlashCommandKind,
 } from "./agent-command-autocomplete";
+
+describe("getSlashCommandKind", () => {
+  it("preserves known types without guessing missing provider metadata", () => {
+    expect(getSlashCommandKind("skill")).toBe("skill");
+    expect(getSlashCommandKind("command")).toBe("command");
+    expect(getSlashCommandKind()).toBeUndefined();
+    expect(getSlashCommandKind("extension")).toBeUndefined();
+  });
+});
+
+describe("composer command highlighting", () => {
+  const commands = [
+    { name: "review", kind: "command" },
+    { name: "superset:plugins", kind: "skill" },
+  ];
+
+  it("highlights the exact command while leaving arguments and paths as plain text", () => {
+    expect(getCommandTextRanges("/review src/file.ts /review", commands)).toEqual([
+      { start: 0, end: 7 },
+    ]);
+    expect(getCommandTextRanges("/review-more /tmp/file", commands)).toEqual([]);
+  });
+
+  it("recognizes skills inline without highlighting URLs or partial skill names", () => {
+    const text = "use /superset:plugins then /superset:plugins";
+    expect(getCommandTextRanges(text, commands)).toEqual([
+      { start: 4, end: 21 },
+      { start: 27, end: 44 },
+    ]);
+    expect(getCommandTextRanges("https://host/review /superset:plug", commands)).toEqual([]);
+  });
+});
 
 describe("filterAndRankCommandAutocompleteEntries", () => {
   const entries = [
-    { source: "provider" as const, command: { name: "paseo-committee" } },
+    { source: "provider" as const, command: { name: "gravity-committee" } },
     { source: "provider" as const, command: { name: "commit" } },
-    { source: "provider" as const, command: { name: "paseo-advisor" } },
+    { source: "provider" as const, command: { name: "gravity-advisor" } },
   ];
 
   it("ranks command-name prefixes above later word-boundary partial matches", () => {
     const result = filterAndRankCommandAutocompleteEntries(entries, "comm");
 
-    expect(result.map((entry) => entry.command.name)).toEqual(["commit", "paseo-committee"]);
+    expect(result.map((entry) => entry.command.name)).toEqual(["commit", "gravity-committee"]);
   });
 
   it("matches client command aliases", () => {

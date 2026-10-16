@@ -11,7 +11,7 @@
  */
 
 import assert from "node:assert";
-import { runLocalPaseo } from "./helpers/local-cli.ts";
+import { runLocalGravity } from "./helpers/local-cli.ts";
 import { getAvailablePort } from "./helpers/network.ts";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
@@ -20,10 +20,10 @@ import { join } from "path";
 console.log("=== Delete Command Tests ===\n");
 
 const port = await getAvailablePort();
-const paseoHome = await mkdtemp(join(tmpdir(), "paseo-delete-test-home-"));
+const gravityHome = await mkdtemp(join(tmpdir(), "gravity-delete-test-home-"));
 
 async function runCli(args: string[]) {
-  return runLocalPaseo(["--host", `localhost:${port}`, ...args], { PASEO_HOME: paseoHome });
+  return runLocalGravity(["--host", `localhost:${port}`, ...args], { GRAVITY_HOME: gravityHome });
 }
 
 async function runDelete(args: string[]) {
@@ -97,11 +97,11 @@ try {
   }
 
   {
-    console.log("Test 7: paseo --help shows delete command");
+    console.log("Test 7: gravity --help shows delete command");
     const result = await runCli(["--help"]);
-    assert.strictEqual(result.exitCode, 0, "paseo --help should exit 0");
+    assert.strictEqual(result.exitCode, 0, "gravity --help should exit 0");
     assert(result.stdout.includes("delete"), "help should mention delete command");
-    console.log("✓ paseo --help shows delete command\n");
+    console.log("✓ gravity --help shows delete command\n");
   }
 
   {
@@ -113,7 +113,7 @@ try {
     console.log("✓ -q (quiet) flag is accepted with delete\n");
   }
 } finally {
-  await rm(paseoHome, { recursive: true, force: true });
+  await rm(gravityHome, { recursive: true, force: true });
 }
 
 console.log("=== All delete tests passed ===");

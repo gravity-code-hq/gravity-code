@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import type { FileVersion, FileWriteResult } from "@getpaseo/protocol/messages";
+import type { FileVersion, FileWriteResult } from "@gravity/protocol/messages";
 import {
   FileEditorModel,
   getFileConflictCallout,

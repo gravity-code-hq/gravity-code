@@ -97,6 +97,108 @@ async function createConnectedSession(
 }
 
 describe("Codex app-server provider features", () => {
+  test("preserves Codex background work and lets the user cancel a pending budget change", async () => {
+    const appServer = createFakeCodexAppServer({
+      "thread/backgroundTerminals/list": () => ({ data: [{ id: "background-command" }] }),
+    });
+    const session = new CodexAppServerAgentSession(
+      createConfig(),
+      null,
+      createTestLogger(),
+      async () => appServer.child,
+    );
+    try {
+      await session.startTurn("first turn");
+      appServer.completeTurn();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await session.setFeature("context_budget", "500000");
+      await expect(session.startTurn("next turn")).rejects.toThrow("Finish Codex background work");
+      await session.setFeature("context_budget", "auto");
+      await expect(session.startTurn("continue with the existing budget")).resolves.toMatchObject({
+        turnId: expect.any(String),
+      });
+      expect(
+        appServer.requests().filter((request) => request.method === "initialize"),
+      ).toHaveLength(1);
+      appServer.assertNoErrors();
+    } finally {
+      await session.close();
+    }
+  });
+
+  test("changes the context budget on the next turn and restores Auto on resume", async () => {
+    const first = createFakeCodexAppServer();
+    const second = createFakeCodexAppServer();
+    const third = createFakeCodexAppServer();
+    const children = [first.child, second.child, third.child];
+    const session = new CodexAppServerAgentSession(
+      createConfig(),
+      null,
+      createTestLogger(),
+      async () => {
+        const child = children.shift();
+        if (!child) throw new Error("Unexpected Codex process restart");
+        return child;
+      },
+    );
+    try {
+      await session.startTurn("first turn");
+      expect(await first.waitForRequest("thread/start")).not.toHaveProperty("config");
+      await session.setFeature("context_budget", "500000");
+      expect(children).toHaveLength(2);
+      first.completeTurn();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await session.startTurn("second turn");
+      expect(await second.waitForRequest("thread/resume")).toMatchObject({
+        threadId: "thread-1",
+        config: { model_auto_compact_token_limit: 500000 },
+      });
+      second.completeTurn();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await session.setFeature("context_budget", "auto");
+      await session.startTurn("third turn");
+      expect(await third.waitForRequest("thread/resume")).not.toHaveProperty("config");
+      expect(session.id).toBe("thread-1");
+      expect(session.features).toContainEqual(
+        expect.objectContaining({ id: "context_budget", value: "auto" }),
+      );
+      first.assertNoErrors();
+      second.assertNoErrors();
+      third.assertNoErrors();
+    } finally {
+      await session.close();
+    }
+  });
+
+  test("rejects invalid context budgets without changing the selection", async () => {
+    const { session } = await createConnectedSession();
+    try {
+      await expect(session.setFeature?.("context_budget", "unlimited")).rejects.toThrow();
+      expect(session.features).toContainEqual(
+        expect.objectContaining({ id: "context_budget", value: "auto" }),
+      );
+    } finally {
+      await session.close();
+    }
+  });
+
+  test("starts Codex with the selected context budget", async () => {
+    const { session, appServer } = await createConnectedSession({
+      featureValues: { context_budget: "250000" },
+    });
+    try {
+      await session.startTurn("hello");
+      expect(await appServer.waitForRequest("thread/start")).toMatchObject({
+        config: { model_auto_compact_token_limit: 250000 },
+      });
+      expect(session.features).toContainEqual(
+        expect.objectContaining({ id: "context_budget", type: "select", value: "250000" }),
+      );
+    } finally {
+      await session.close();
+    }
+  });
+
   test.each([
     "gpt-6-astra",
     "gpt-5.6",
@@ -142,7 +244,10 @@ describe("Codex app-server provider features", () => {
       featureValues: { fast_mode: true },
     });
     try {
-      expect(session.features.map((feature) => feature.id)).toEqual(["plan_mode"]);
+      expect(session.features.map((feature) => feature.id)).toEqual([
+        "plan_mode",
+        "context_budget",
+      ]);
       await expect(session.setFeature?.("fast_mode", true)).rejects.toThrow(
         `Codex fast mode is not available for model '${model}'`,
       );
@@ -201,6 +306,7 @@ describe("Codex app-server provider features", () => {
         icon: "list-todo",
         value: false,
       },
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
     ]);
 
     await session.setFeature?.("fast_mode", true);
@@ -225,6 +331,7 @@ describe("Codex app-server provider features", () => {
         icon: "list-todo",
         value: true,
       },
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
     ]);
   });
 
@@ -241,6 +348,7 @@ describe("Codex app-server provider features", () => {
         icon: "list-todo",
         value: false,
       },
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
     ]);
   });
 
@@ -260,6 +368,7 @@ describe("Codex app-server provider features", () => {
         icon: "list-todo",
         value: false,
       },
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
     ]);
 
     await session.startTurn("hello");
@@ -346,6 +455,7 @@ describe("Codex app-server provider features", () => {
         icon: "list-todo",
         value: true,
       },
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
     ]);
 
     await session.startTurn("hello");
@@ -408,6 +518,7 @@ describe("Codex app-server provider features", () => {
         icon: "list-todo",
         value: false,
       },
+      expect.objectContaining({ id: "context_budget", value: "auto" }),
     ]);
     await session.startTurn("hello");
 

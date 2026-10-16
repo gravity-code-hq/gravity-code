@@ -3,16 +3,19 @@ import type { StyleProp, ViewStyle } from "react-native";
 import type { ViewportFitOptions, ViewportSize } from "./geometry";
 
 export interface ZoomableViewportAction {
-  icon: ComponentType<{ size?: number; color?: string }>;
+  icon: ComponentType<{ size: number; color: string }>;
   label: string;
   onPress: () => void;
   testID?: string;
+  disabled?: boolean;
+  loading?: boolean;
 }
 
 export interface ZoomableViewportProps {
   contentSize: ViewportSize;
   children: ReactNode;
   actions?: ZoomableViewportAction[];
+  toolbarPlacement?: "corner" | "inset-corner";
   accessibilityLabel?: string;
   fit?: ViewportFitOptions;
   maxScale?: number;

@@ -1,5 +1,5 @@
-import type { ForgeSearchItem } from "@getpaseo/protocol/messages";
-import type { ActiveTurnBehavior } from "@getpaseo/protocol/messages";
+import type { ForgeSearchItem } from "@gravity/protocol/messages";
+import type { ActiveTurnBehavior } from "@gravity/protocol/messages";
 import type {
   AttachmentMetadata,
   ComposerAttachment,
@@ -291,22 +291,40 @@ export async function sendQueuedComposerMessageNow(
   input: SendQueuedComposerMessageNowInput,
 ): Promise<SendQueuedComposerMessageNowResult> {
   const item = input.queue.read(input.agentId).find((q) => q.id === input.messageId);
-  if (!item) return { status: "missing" };
+  return sendQueuedComposerMessages({ ...input, items: item ? [item] : [] });
+}
+
+export async function sendAllQueuedComposerMessagesNow(
+  input: Omit<SendQueuedComposerMessageNowInput, "messageId">,
+): Promise<SendQueuedComposerMessageNowResult> {
+  return sendQueuedComposerMessages({ ...input, items: input.queue.read(input.agentId) });
+}
+
+async function sendQueuedComposerMessages(
+  input: Omit<SendQueuedComposerMessageNowInput, "messageId"> & { items: QueuedComposerMessage[] },
+): Promise<SendQueuedComposerMessageNowResult> {
+  if (input.items.length === 0) return { status: "missing" };
+  const ids = new Set(input.items.map((item) => item.id));
   input.queue.write((prev) => {
     const next = new Map(prev);
     next.set(
       input.agentId,
-      (prev.get(input.agentId) ?? []).filter((q) => q.id !== input.messageId),
+      (prev.get(input.agentId) ?? []).filter((q) => !ids.has(q.id)),
     );
     return next;
   });
   try {
-    await input.submitMessage({ text: item.text, attachments: item.attachments });
+    const text = input.items
+      .map((item) => item.text)
+      .filter(Boolean)
+      .join("\n\n");
+    const attachments = input.items.flatMap((item) => item.attachments);
+    await input.submitMessage({ text, attachments });
     return { status: "submitted" };
   } catch (error) {
     input.queue.write((prev) => {
       const next = new Map(prev);
-      next.set(input.agentId, [item, ...(prev.get(input.agentId) ?? [])]);
+      next.set(input.agentId, [...input.items, ...(prev.get(input.agentId) ?? [])]);
       return next;
     });
     return {

@@ -154,33 +154,37 @@ const SHORTCUT_HELP_SECTION_LABEL_KEYS: Record<ShortcutSectionId, string> = {
 // fails when a new shortcut is added without a place, instead of silently sinking to the bottom.
 export const SHORTCUT_HELP_ROW_ORDER: Record<ShortcutSectionId, readonly string[]> = {
   general: [
+    "dictation-command-double-press",
+    "toggle-left-sidebar",
+    "toggle-right-sidebar",
+    "workspace-tab-target-agent",
+    "workspace-terminal-new",
     "toggle-command-center",
     "search-files",
+    "open-history",
+    "new-agent",
+    "new-workspace",
+    "workspace-jump-index",
+    "workspace-tab-jump-index",
+    "workspace-prev",
+    "workspace-next",
+    "workspace-tab-target-diff",
+    "workspace-tab-close-current",
+    "workspace-pane-split-right",
+    "toggle-both-sidebars",
+    "focus-message-input",
     "show-shortcuts",
     "toggle-settings",
     "cycle-theme",
   ],
-  workspaces: [
-    "new-agent",
-    "new-workspace",
-    "workspace-jump-index",
-    "workspace-prev",
-    "workspace-next",
-    "pin-workspace",
-    "archive-workspace",
-  ],
+  workspaces: ["pin-workspace", "archive-workspace"],
   "tabs-panes": [
     "workspace-tab-new",
-    "workspace-tab-target-agent",
-    "workspace-terminal-new",
     "workspace-tab-target-browser",
     "workspace-tab-target-changes",
     "workspace-tab-target-files",
-    "workspace-tab-close-current",
-    "workspace-tab-jump-index",
     "workspace-tab-prev",
     "workspace-tab-next",
-    "workspace-pane-split-right",
     "workspace-pane-split-down",
     "workspace-pane-focus-left",
     "workspace-pane-focus-right",
@@ -192,9 +196,8 @@ export const SHORTCUT_HELP_ROW_ORDER: Record<ShortcutSectionId, readonly string[
     "workspace-pane-move-tab-down",
     "workspace-pane-close",
   ],
-  layout: ["toggle-left-sidebar", "toggle-right-sidebar", "toggle-both-sidebars", "toggle-focus"],
+  layout: ["toggle-focus"],
   "agent-input": [
-    "focus-message-input",
     "cycle-agent-mode",
     "voice-toggle",
     "dictation-toggle",
@@ -211,6 +214,7 @@ const SHORTCUT_HELP_LABEL_KEYS: Record<string, string> = {
   "workspace-tab-new": "settings.shortcuts.help.newTab",
   "workspace-tab-target-agent": "workspace.tabs.actions.newAgent",
   "workspace-tab-target-browser": "workspace.tabs.actions.newBrowser",
+  "workspace-tab-target-diff": "panels.diff.diffLabel",
   "workspace-tab-target-changes": "workspace.tabs.actions.changes",
   "workspace-tab-target-files": "workspace.tabs.actions.files",
   "workspace-tab-close-current": "settings.shortcuts.help.closeCurrentTab",
@@ -239,6 +243,7 @@ const SHORTCUT_HELP_LABEL_KEYS: Record<string, string> = {
   "toggle-right-sidebar": "settings.shortcuts.help.toggleRightSidebar",
   "toggle-both-sidebars": "settings.shortcuts.help.toggleBothSidebars",
   "toggle-settings": "settings.shortcuts.help.toggleSettings",
+  "open-history": "settings.shortcuts.help.openHistory",
   "toggle-focus": "settings.shortcuts.help.toggleFocusMode",
   "cycle-theme": "settings.shortcuts.help.cycleTheme",
   "focus-message-input": "settings.shortcuts.help.focusMessageInput",
@@ -268,7 +273,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: true },
     help: {
       id: "new-agent",
-      section: "workspaces",
+      section: "general",
       label: "Open project",
     },
   },
@@ -279,7 +284,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, terminal: false },
     help: {
       id: "new-agent",
-      section: "workspaces",
+      section: "general",
       label: "Open project",
     },
   },
@@ -292,7 +297,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: true, commandCenter: false },
     help: {
       id: "new-workspace",
-      section: "workspaces",
+      section: "general",
       label: "New workspace",
     },
   },
@@ -303,7 +308,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "new-workspace",
-      section: "workspaces",
+      section: "general",
       label: "New workspace",
     },
   },
@@ -388,7 +393,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-tab-new-cmd-t-mac",
     action: "workspace.tab.menu.open",
-    combo: "Cmd+T",
+    combo: "Cmd+Shift+T",
     when: { mac: true, commandCenter: false },
     help: {
       id: "workspace-tab-new",
@@ -410,11 +415,12 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-tab-target-agent-cmd-shift-a-mac",
     action: "workspace.tab.target.agent",
-    combo: "Cmd+Shift+A",
-    when: { mac: true, commandCenter: false },
+    combo: "Cmd+A",
+    // Preserve Select All in text inputs and terminals.
+    when: { mac: true, commandCenter: false, editable: false, terminal: false },
     help: {
       id: "workspace-tab-target-agent",
-      section: "tabs-panes",
+      section: "general",
       label: "New agent",
     },
   },
@@ -425,7 +431,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "workspace-tab-target-agent",
-      section: "tabs-panes",
+      section: "general",
       label: "New agent",
     },
   },
@@ -449,6 +455,28 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
       id: "workspace-tab-target-browser",
       section: "tabs-panes",
       label: "New browser",
+    },
+  },
+  {
+    id: "workspace-tab-target-diff-cmd-d-mac",
+    action: "workspace.tab.target.diff",
+    combo: "Cmd+D",
+    when: { mac: true, commandCenter: false },
+    help: {
+      id: "workspace-tab-target-diff",
+      section: "general",
+      label: "Diff",
+    },
+  },
+  {
+    id: "workspace-tab-target-diff-ctrl-d-non-mac",
+    action: "workspace.tab.target.diff",
+    combo: "Ctrl+D",
+    when: { mac: false, commandCenter: false, terminal: false },
+    help: {
+      id: "workspace-tab-target-diff",
+      section: "general",
+      label: "Diff",
     },
   },
   {
@@ -504,7 +532,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: true, desktop: true, commandCenter: false },
     help: {
       id: "workspace-tab-close-current",
-      section: "tabs-panes",
+      section: "general",
       label: "Close current tab",
     },
   },
@@ -515,7 +543,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, desktop: true, commandCenter: false, terminal: false },
     help: {
       id: "workspace-tab-close-current",
-      section: "tabs-panes",
+      section: "general",
       label: "Close current tab",
     },
   },
@@ -526,7 +554,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { desktop: false, commandCenter: false },
     help: {
       id: "workspace-tab-close-current",
-      section: "tabs-panes",
+      section: "general",
       label: "Close current tab",
     },
   },
@@ -535,14 +563,14 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-navigate-index-cmd-digit-mac",
     action: "workspace.navigate.index",
-    combo: "Cmd+Digit",
+    combo: "Cmd+Alt+Digit",
     when: { mac: true, desktop: true, commandCenter: false },
     payload: { type: "index" },
     help: {
       id: "workspace-jump-index",
-      section: "workspaces",
+      section: "general",
       label: "Jump to workspace",
-      defaultDisplayKeys: ["mod", "1-9"],
+      defaultDisplayKeys: ["mod", "alt", "1-9"],
     },
   },
   {
@@ -553,7 +581,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "index" },
     help: {
       id: "workspace-jump-index",
-      section: "workspaces",
+      section: "general",
       label: "Jump to workspace",
       defaultDisplayKeys: ["mod", "1-9"],
     },
@@ -566,7 +594,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "index" },
     help: {
       id: "workspace-jump-index",
-      section: "workspaces",
+      section: "general",
       label: "Jump to workspace",
       defaultDisplayKeys: ["alt", "1-9"],
     },
@@ -576,14 +604,14 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-tab-navigate-index-cmd-alt-digit-mac-desktop",
     action: "workspace.tab.navigate.index",
-    combo: "Cmd+Alt+Digit",
+    combo: "Cmd+Digit",
     when: { mac: true, desktop: true, commandCenter: false },
     payload: { type: "index" },
     help: {
       id: "workspace-tab-jump-index",
-      section: "tabs-panes",
+      section: "general",
       label: "Jump to tab",
-      defaultDisplayKeys: ["mod", "alt", "1-9"],
+      defaultDisplayKeys: ["mod", "1-9"],
     },
   },
   {
@@ -594,7 +622,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "index" },
     help: {
       id: "workspace-tab-jump-index",
-      section: "tabs-panes",
+      section: "general",
       label: "Jump to tab",
       defaultDisplayKeys: ["alt", "1-9"],
     },
@@ -607,7 +635,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "index" },
     help: {
       id: "workspace-tab-jump-index",
-      section: "tabs-panes",
+      section: "general",
       label: "Jump to tab",
       defaultDisplayKeys: ["alt", "shift", "1-9"],
     },
@@ -622,7 +650,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "delta", delta: -1 },
     help: {
       id: "workspace-prev",
-      section: "workspaces",
+      section: "general",
       label: "Previous workspace",
     },
   },
@@ -634,7 +662,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "delta", delta: -1 },
     help: {
       id: "workspace-prev",
-      section: "workspaces",
+      section: "general",
       label: "Previous workspace",
     },
   },
@@ -646,7 +674,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "delta", delta: 1 },
     help: {
       id: "workspace-next",
-      section: "workspaces",
+      section: "general",
       label: "Next workspace",
     },
   },
@@ -658,7 +686,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "delta", delta: 1 },
     help: {
       id: "workspace-next",
-      section: "workspaces",
+      section: "general",
       label: "Next workspace",
     },
   },
@@ -670,7 +698,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "delta", delta: -1 },
     help: {
       id: "workspace-prev",
-      section: "workspaces",
+      section: "general",
       label: "Previous workspace",
     },
   },
@@ -682,7 +710,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "delta", delta: 1 },
     help: {
       id: "workspace-next",
-      section: "workspaces",
+      section: "general",
       label: "Next workspace",
     },
   },
@@ -721,7 +749,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: true, commandCenter: false },
     help: {
       id: "workspace-pane-split-right",
-      section: "tabs-panes",
+      section: "general",
       label: "Split pane right",
     },
   },
@@ -839,11 +867,11 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-terminal-new-cmd-shift-t-mac",
     action: "workspace.terminal.new",
-    combo: "Cmd+Shift+T",
+    combo: "Cmd+T",
     when: { mac: true, commandCenter: false },
     help: {
       id: "workspace-terminal-new",
-      section: "tabs-panes",
+      section: "general",
       label: "New terminal",
     },
   },
@@ -854,7 +882,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "workspace-terminal-new",
-      section: "tabs-panes",
+      section: "general",
       label: "New terminal",
     },
   },
@@ -907,7 +935,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: true },
     help: {
       id: "toggle-left-sidebar",
-      section: "layout",
+      section: "general",
       label: "Toggle left sidebar",
     },
   },
@@ -918,18 +946,19 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "toggle-left-sidebar",
-      section: "layout",
+      section: "general",
       label: "Toggle left sidebar",
     },
   },
   {
+    // Preserve saved overrides under the original binding id.
     id: "sidebar-toggle-right-cmd-e-mac",
     action: "sidebar.toggle.right",
-    combo: "Cmd+E",
+    combo: "Cmd+M",
     when: { mac: true, commandCenter: false },
     help: {
       id: "toggle-right-sidebar",
-      section: "layout",
+      section: "general",
       label: "Toggle Explorer sidebar",
     },
   },
@@ -940,7 +969,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "toggle-right-sidebar",
-      section: "layout",
+      section: "general",
       label: "Toggle Explorer sidebar",
     },
   },
@@ -959,7 +988,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: true, commandCenter: false },
     help: {
       id: "toggle-both-sidebars",
-      section: "layout",
+      section: "general",
       label: "Toggle both sidebars",
     },
   },
@@ -970,7 +999,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "toggle-both-sidebars",
-      section: "layout",
+      section: "general",
       label: "Toggle both sidebars",
     },
   },
@@ -996,6 +1025,20 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
       id: "toggle-settings",
       section: "general",
       label: "Toggle settings",
+    },
+  },
+
+  // --- History ---
+  // Mac only: Cmd+H is the system Hide, and Cmd+Y is History in Safari and Chrome.
+  {
+    id: "history-open-cmd-y-mac",
+    action: "history.open",
+    combo: "Cmd+Y",
+    when: { mac: true, commandCenter: false },
+    help: {
+      id: "open-history",
+      section: "general",
+      label: "Open history",
     },
   },
 
@@ -1056,7 +1099,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "message-input", kind: "focus" },
     help: {
       id: "focus-message-input",
-      section: "agent-input",
+      section: "general",
       label: "Focus message input",
     },
   },
@@ -1068,7 +1111,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     payload: { type: "message-input", kind: "focus" },
     help: {
       id: "focus-message-input",
-      section: "agent-input",
+      section: "general",
       label: "Focus message input",
     },
   },
@@ -1114,7 +1157,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "message-input-dictation-toggle-cmd-d-mac",
     action: "message-input.action",
-    combo: "Cmd+D",
+    combo: "Cmd+Alt+D",
     when: { mac: true, commandCenter: false, terminal: false },
     payload: { type: "message-input", kind: "dictation-toggle" },
     help: {
@@ -1126,7 +1169,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "message-input-dictation-toggle-ctrl-d-non-mac",
     action: "message-input.action",
-    combo: "Ctrl+D",
+    combo: "Ctrl+Alt+D",
     when: { mac: false, commandCenter: false, terminal: false },
     payload: { type: "message-input", kind: "dictation-toggle" },
     help: {
@@ -1671,6 +1714,16 @@ export function buildKeyboardShortcutHelpSections(
   const rowsBySection = new Map<ShortcutSectionId, KeyboardShortcutHelpRow[]>(
     SHORTCUT_HELP_SECTION_ORDER.map((sectionId) => [sectionId, []]),
   );
+
+  // This gesture is handled by useCommandDictation, outside the rebindable key matcher.
+  if (input.isMac) {
+    rowsBySection.get("general")?.push({
+      id: "dictation-command-double-press",
+      label: "Start/stop dictation",
+      labelKey: "settings.shortcuts.help.startStopDictation",
+      chord: [["meta", "×2"]],
+    });
+  }
 
   for (const binding of bindings) {
     const help = binding.help;

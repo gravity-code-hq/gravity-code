@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { PluginIdSchema, type PluginSourceStatusItem } from "@getpaseo/protocol/messages";
+import { PluginIdSchema, type PluginSourceStatusItem } from "@gravity/protocol/messages";
 import { runGitCommand } from "../../utils/run-git-command.js";
 import { ensurePrivateDirectory, writePrivateFileAtomicSync } from "../private-files.js";
 import { readPluginManifest } from "./manifest.js";
@@ -52,8 +52,8 @@ export class ManagedPluginSources {
   private readonly metadataPath: string;
   private readonly records: Record<string, ManagedPluginRecord>;
 
-  constructor(paseoHome: string) {
-    this.root = path.join(paseoHome, "plugins");
+  constructor(gravityHome: string) {
+    this.root = path.join(gravityHome, "plugins");
     this.metadataPath = path.join(this.root, "sources.json");
     this.records = this.readRecords();
   }
@@ -280,7 +280,7 @@ function assertPluginPath(checkoutRoot: string, directory: string): void {
 
 async function clone(remote: string, checkoutRoot: string): Promise<void> {
   const publicRemote = redactRemoteCredentials(remote);
-  const cloneRemote = publicRemote === remote ? remote : "https://paseo.invalid/plugin.git";
+  const cloneRemote = publicRemote === remote ? remote : "https://gravity.invalid/plugin.git";
   const envOverlay =
     cloneRemote === remote
       ? GIT_ENV

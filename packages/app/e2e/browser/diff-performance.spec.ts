@@ -9,19 +9,19 @@ import { createTempGitRepo } from "../support/helpers/workspace";
 import { openChangesPanel, waitForWorkspaceTabsVisible } from "../support/helpers/workspace-tabs";
 import { DIFF_POC_BASELINE } from "./diff-performance-baseline";
 
-const RUN_DIFF_PERF = process.env.PASEO_DIFF_PERF_E2E === "1";
-const RUN_HEADER_COMPARISON = process.env.PASEO_DIFF_HEADER_COMPARISON === "1";
+const RUN_DIFF_PERF = process.env.GRAVITY_DIFF_PERF_E2E === "1";
+const RUN_HEADER_COMPARISON = process.env.GRAVITY_DIFF_HEADER_COMPARISON === "1";
 const diffPerfDescribe = RUN_DIFF_PERF ? test.describe : test.describe.skip;
 const LINE_COUNT_PER_FILE = 1_200;
-const MANY_FILE_COUNT = Number(process.env.PASEO_DIFF_MANY_FILE_COUNT ?? 2_000);
+const MANY_FILE_COUNT = Number(process.env.GRAVITY_DIFF_MANY_FILE_COUNT ?? 2_000);
 const FILE_PATHS = ["src/large-a.ts", "src/large-b.ts"] as const;
-const CPU_SLOWDOWN = Number(process.env.PASEO_DIFF_PERF_CPU_SLOWDOWN ?? 6);
-const CHANGES_PREFERENCES_KEY = "@paseo:changes-preferences";
+const CPU_SLOWDOWN = Number(process.env.GRAVITY_DIFF_PERF_CPU_SLOWDOWN ?? 6);
+const CHANGES_PREFERENCES_KEY = "@gravity:changes-preferences";
 const POC_MEDIAN_FRAME_MS = Number(
-  process.env.PASEO_DIFF_POC_MEDIAN_FRAME_MS ?? DIFF_POC_BASELINE.medianFrameMs,
+  process.env.GRAVITY_DIFF_POC_MEDIAN_FRAME_MS ?? DIFF_POC_BASELINE.medianFrameMs,
 );
 const POC_P95_FRAME_MS = Number(
-  process.env.PASEO_DIFF_POC_P95_FRAME_MS ?? DIFF_POC_BASELINE.p95FrameMs,
+  process.env.GRAVITY_DIFF_POC_P95_FRAME_MS ?? DIFF_POC_BASELINE.p95FrameMs,
 );
 const MAX_MEDIAN_FRAME_MS = POC_MEDIAN_FRAME_MS * 2.6;
 const MAX_P95_FRAME_MS = POC_P95_FRAME_MS * 2.4;
@@ -140,7 +140,7 @@ diffPerfDescribe("Diff canvas performance", () => {
           };
         })
         .catch(() => null);
-      const capturePath = process.env.PASEO_DIFF_HEADER_CAPTURE_PATH;
+      const capturePath = process.env.GRAVITY_DIFF_HEADER_CAPTURE_PATH;
       if (capturePath) {
         await writeFile(capturePath, await page.getByTestId("git-diff-canvas-root").screenshot());
       }
@@ -404,9 +404,9 @@ async function configureUnwrappedUnifiedDiff(page: Page): Promise<void> {
   await page.addInitScript(
     ({ preferencesKey }) => {
       const scope = globalThis as typeof globalThis & {
-        __PASEO_DIFF_REACT_STATS__?: { commits: number };
+        __GRAVITY_DIFF_REACT_STATS__?: { commits: number };
       };
-      scope.__PASEO_DIFF_REACT_STATS__ = { commits: 0 };
+      scope.__GRAVITY_DIFF_REACT_STATS__ = { commits: 0 };
       if (!localStorage.getItem(preferencesKey)) {
         localStorage.setItem(
           preferencesKey,
@@ -555,21 +555,24 @@ async function benchmarkManyFileHeaderScrolling(page: Page): Promise<{
       maximumStickyCanvases = Math.max(maximumStickyCanvases, canvases.length);
       const scrollBounds = scroll.getBoundingClientRect();
       const sampleX = scrollBounds.left + 4;
-      const sampleY = scrollBounds.top + 10;
+      // File gaps can occupy the top edge while one sticky header hands off to
+      // the next. Sample the visible header within that transition band.
+      const headerTransitionBottom = scrollBounds.top + 52;
       const canvas = canvases.find((candidate) => {
         const bounds = candidate.getBoundingClientRect();
         return (
           bounds.width > 0 &&
           sampleX >= bounds.left &&
           sampleX < bounds.right &&
-          sampleY >= bounds.top &&
-          sampleY < bounds.bottom
+          bounds.bottom > scrollBounds.top + 1 &&
+          bounds.top < headerTransitionBottom
         );
       });
       if (canvas) {
         const context = canvas.getContext("2d")!;
         const bounds = canvas.getBoundingClientRect();
         const ratio = canvas.width / bounds.width;
+        const sampleY = Math.max(bounds.top, scrollBounds.top) + 0.5;
         if (
           context.getImageData(
             Math.round((sampleX - bounds.left) * ratio),
@@ -749,20 +752,20 @@ async function setHorizontalOffset(locator: Locator, offset: number) {
 async function startRendererInstrumentation(page: Page): Promise<void> {
   await page.getByTestId("git-diff-canvas-root").evaluate((root) => {
     const scope = globalThis as typeof globalThis & {
-      __PASEO_DIFF_REACT_STATS__?: { commits: number };
-      __PASEO_DIFF_RENDERER_STATS__?: {
+      __GRAVITY_DIFF_REACT_STATS__?: { commits: number };
+      __GRAVITY_DIFF_RENDERER_STATS__?: {
         initialCommits: number;
         addedElements: number;
         removedElements: number;
       };
     };
-    const reactStats = scope.__PASEO_DIFF_REACT_STATS__ ?? { commits: 0, unmounts: 0 };
+    const reactStats = scope.__GRAVITY_DIFF_REACT_STATS__ ?? { commits: 0, unmounts: 0 };
     const stats = {
       initialCommits: reactStats.commits,
       addedElements: 0,
       removedElements: 0,
     };
-    scope.__PASEO_DIFF_RENDERER_STATS__ = stats;
+    scope.__GRAVITY_DIFF_RENDERER_STATS__ = stats;
     new MutationObserver((records) => {
       for (const record of records) {
         stats.addedElements += Array.from(record.addedNodes).filter(
@@ -783,15 +786,15 @@ async function readRendererInstrumentation(page: Page): Promise<{
 }> {
   return page.evaluate(() => {
     const scope = globalThis as typeof globalThis & {
-      __PASEO_DIFF_REACT_STATS__?: { commits: number };
-      __PASEO_DIFF_RENDERER_STATS__?: {
+      __GRAVITY_DIFF_REACT_STATS__?: { commits: number };
+      __GRAVITY_DIFF_RENDERER_STATS__?: {
         initialCommits: number;
         addedElements: number;
         removedElements: number;
       };
     };
-    const react = scope.__PASEO_DIFF_REACT_STATS__!;
-    const renderer = scope.__PASEO_DIFF_RENDERER_STATS__!;
+    const react = scope.__GRAVITY_DIFF_REACT_STATS__!;
+    const renderer = scope.__GRAVITY_DIFF_RENDERER_STATS__!;
     return {
       reactCommits: react.commits - renderer.initialCommits,
       addedElements: renderer.addedElements,

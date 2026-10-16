@@ -1,12 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { DaemonClient } from "@getpaseo/client/internal/daemon-client";
-import type { ProviderSnapshotEntry } from "@getpaseo/protocol/agent-types";
+import type { DaemonClient } from "@gravity/client/internal/daemon-client";
+import type { ProviderSnapshotEntry } from "@gravity/protocol/agent-types";
 import {
   compactProviderSnapshot,
   expandProviderSnapshot,
-} from "@getpaseo/protocol/provider-snapshot-codec";
+} from "@gravity/protocol/provider-snapshot-codec";
 import type { CachedProviderSnapshot, ProviderSnapshotCache } from "@/data/provider-snapshot-cache";
 import { draftAgentCommandsQueryKey } from "@/hooks/agent-commands-query";
 import { resolveProviderIconName } from "@/components/provider-icon-name";

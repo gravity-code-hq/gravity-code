@@ -1,6 +1,5 @@
 import type { AgentModelDefinition, AgentSelectOption } from "../../agent-sdk-types.js";
-
-type ClaudeEffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
+import { type ClaudeEffortLevel, findClaudeRuntimeModel } from "./model-registry.js";
 
 interface ClaudeModelManifestEntry {
   id: string;
@@ -157,7 +156,7 @@ export const CLAUDE_MODEL_MANIFEST = [
   },
 ] as const satisfies readonly ClaudeModelManifestEntry[];
 
-function buildThinkingOptions(
+export function buildThinkingOptions(
   effortLevels: readonly ClaudeEffortLevel[] | undefined,
   supportsThinkingDisabled: boolean,
 ): AgentSelectOption[] | undefined {
@@ -272,8 +271,9 @@ export interface ClaudeDisabledThinkingResolution {
 }
 
 /**
- * Resolve the disabled-thinking capability from the curated manifest only. Runtime/provider
- * model aliases intentionally do not inherit this capability.
+ * Resolve the disabled-thinking capability from the curated manifest, falling back to what
+ * Claude Code reported for a model this build predates. Runtime/provider model aliases that
+ * neither source knows intentionally do not inherit this capability.
  */
 export function resolveClaudeDisabledThinkingForModel(
   modelId: string | null | undefined,
@@ -282,16 +282,57 @@ export function resolveClaudeDisabledThinkingForModel(
   const model = normalizedModelId
     ? CLAUDE_MODEL_MANIFEST.find((candidate) => candidate.id === normalizedModelId)
     : undefined;
+  if (model) {
+    return {
+      supported: "supportsThinkingDisabled" in model && model.supportsThinkingDisabled === true,
+      fallbackThinkingOptionId:
+        "effortLevels" in model ? CLAUDE_DEFAULT_THINKING_OPTION_ID : undefined,
+    };
+  }
+  const runtimeModel = findClaudeRuntimeModel(normalizedModelId ?? modelId);
   return {
-    supported:
-      !!model && "supportsThinkingDisabled" in model && model.supportsThinkingDisabled === true,
-    fallbackThinkingOptionId:
-      model && "effortLevels" in model ? CLAUDE_DEFAULT_THINKING_OPTION_ID : undefined,
+    supported: runtimeModel?.supportsThinkingDisabled === true,
+    fallbackThinkingOptionId: runtimeModel?.effortLevels
+      ? CLAUDE_DEFAULT_THINKING_OPTION_ID
+      : undefined,
   };
 }
 
+/**
+ * Known-id predicate behind both normalizers. Includes probe-discovered models so a model
+ * released after this build still canonicalizes (`opus-5-5` to `claude-opus-5-5`) instead of
+ * falling through as unknown.
+ */
+/**
+ * Whether a model's family disables thinking, for a model the manifest does not list.
+ *
+ * Claude Code's model rows do not report this capability, but the manifest sets it uniformly
+ * per family — every opus and sonnet entry, no fable or haiku entry — so a newly released
+ * member of a known family inherits its family's answer. Derived from the manifest rather
+ * than a second table so the two cannot drift.
+ */
+export function claudeFamilySupportsThinkingDisabled(modelId: string): boolean {
+  const family = modelId
+    .trim()
+    .toLowerCase()
+    .match(/^claude-(fable|opus|sonnet|haiku)-/)?.[1];
+  if (!family) return false;
+  const familyModels = CLAUDE_MODEL_MANIFEST.filter((model) =>
+    model.id.startsWith(`claude-${family}-`),
+  );
+  return (
+    familyModels.length > 0 &&
+    familyModels.every(
+      (model) => "supportsThinkingDisabled" in model && model.supportsThinkingDisabled === true,
+    )
+  );
+}
+
 export function isClaudeManifestModelId(modelId: string): boolean {
-  return CLAUDE_MODEL_MANIFEST.some((model) => model.id === modelId);
+  return (
+    CLAUDE_MODEL_MANIFEST.some((model) => model.id === modelId) ||
+    findClaudeRuntimeModel(modelId)?.id === modelId
+  );
 }
 
 export function claudeManifestModelSupportsFastMode(modelId: string | null | undefined): boolean {
@@ -299,12 +340,11 @@ export function claudeManifestModelSupportsFastMode(modelId: string | null | und
   if (!normalizedModelId) {
     return false;
   }
-  return CLAUDE_MODEL_MANIFEST.some(
-    (model) =>
-      model.id === normalizedModelId &&
-      "supportsFastMode" in model &&
-      model.supportsFastMode === true,
-  );
+  const model = CLAUDE_MODEL_MANIFEST.find((candidate) => candidate.id === normalizedModelId);
+  if (model) {
+    return "supportsFastMode" in model && model.supportsFastMode === true;
+  }
+  return findClaudeRuntimeModel(normalizedModelId)?.supportsFastMode === true;
 }
 
 /**

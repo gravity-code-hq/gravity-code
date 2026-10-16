@@ -5,7 +5,8 @@ import {
   type GestureResponderEvent,
   type PressableStateCallbackType,
 } from "react-native";
-import { StyleSheet } from "react-native-unistyles";
+import { StyleSheet, withUnistyles } from "react-native-unistyles";
+import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { useWorkspaceFileDragSource } from "@/attachments/use-workspace-file-drag-source";
 import { DiffStat } from "@/components/diff-stat";
 import { FileActionsContextMenuContent } from "@/components/file-actions-menu";
@@ -23,6 +24,8 @@ import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFileHeaderInteraction } from "@/git/file-header-interaction";
 import {
+  DIFF_FILE_HEADER_HEIGHT,
+  DIFF_FILE_HEADER_CONTENT_HEIGHT,
   diffFileChangeKind,
   directorySuffix,
   fileNameForPath,
@@ -30,6 +33,13 @@ import {
 } from "@/git/file-header-presentation";
 import type { ParsedDiffFile } from "@/git/use-diff-query";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
+
+const ThemedChevronDown = withUnistyles(ChevronDown, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
+const ThemedChevronRight = withUnistyles(ChevronRight, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
 
 export interface FileHeaderProps {
   file: ParsedDiffFile;
@@ -182,6 +192,67 @@ function FileHeaderMenu({
   );
 }
 
+function FileHeaderLabel({
+  file,
+  showsBodyState,
+  bodyVisible,
+  showDir,
+  isHovered,
+  testID,
+}: {
+  file: ParsedDiffFile;
+  showsBodyState: boolean;
+  bodyVisible: boolean;
+  showDir: boolean;
+  isHovered: boolean;
+  testID?: string;
+}) {
+  const fileName = fileNameForPath(file.path);
+  if (showsBodyState && showDir) {
+    return (
+      <>
+        <View style={styles.chevron}>
+          {bodyVisible ? <ThemedChevronDown size={14} /> : <ThemedChevronRight size={14} />}
+        </View>
+        <Text
+          style={styles.documentPath}
+          numberOfLines={1}
+          ellipsizeMode="middle"
+          testID={testID ? `${testID}-name` : undefined}
+        >
+          <Text style={styles.documentDirectory}>
+            {file.path.slice(0, file.path.length - fileName.length)}
+          </Text>
+          {fileName}
+        </Text>
+      </>
+    );
+  }
+  return (
+    <>
+      {showDir ? null : (
+        <View style={styles.icon}>
+          <MaterialFileIcon fileName={fileName} size={WORKSPACE_TREE_ICON_SIZE} />
+        </View>
+      )}
+      <Text
+        style={fileHeaderNameStyle(showsBodyState, isHovered)}
+        numberOfLines={1}
+        testID={testID ? `${testID}-name` : undefined}
+      >
+        {fileName}
+      </Text>
+      {showDir ? (
+        <Text style={styles.directory} numberOfLines={1}>
+          {directorySuffix(file.path)}
+        </Text>
+      ) : (
+        <View style={styles.directorySpacer} />
+      )}
+    </>
+  );
+}
+
 export const FileHeader = memo(function FileHeader({
   file,
   workspaceFileDragScope,
@@ -247,8 +318,6 @@ export const FileHeader = memo(function FileHeader({
     () => fileHeaderAccessibilityState({ showsBodyState, bodyVisible, isSelected }),
     [bodyVisible, isSelected, showsBodyState],
   );
-  const fileName = fileNameForPath(file.path);
-  const nameStyle = fileHeaderNameStyle(showsBodyState, hover.isHovered);
   const changeIcon = <FileChangeIcon change={fileChange(file)} />;
   const content = (
     <View
@@ -256,21 +325,14 @@ export const FileHeader = memo(function FileHeader({
       testID={testID ? `${testID}-header-content` : undefined}
     >
       <View ref={dragSourceRef} style={showDir ? styles.left : [styles.left, styles.leftTree]}>
-        {showDir ? null : (
-          <View style={styles.icon}>
-            <MaterialFileIcon fileName={fileName} size={WORKSPACE_TREE_ICON_SIZE} />
-          </View>
-        )}
-        <Text style={nameStyle} numberOfLines={1} testID={testID ? `${testID}-name` : undefined}>
-          {fileName}
-        </Text>
-        {showDir ? (
-          <Text style={styles.directory} numberOfLines={1}>
-            {directorySuffix(file.path)}
-          </Text>
-        ) : (
-          <View style={styles.directorySpacer} />
-        )}
+        <FileHeaderLabel
+          file={file}
+          showsBodyState={showsBodyState}
+          bodyVisible={bodyVisible}
+          showDir={showDir}
+          isHovered={hover.isHovered}
+          testID={testID}
+        />
       </View>
       <View style={styles.right}>
         <DiffStat
@@ -362,8 +424,8 @@ export const FileHeader = memo(function FileHeader({
 const styles = StyleSheet.create((theme) => ({
   container: { width: "100%", overflow: "hidden", userSelect: "none" },
   documentContainer: {
-    height: 30,
-    backgroundColor: theme.colors.surface0,
+    height: DIFF_FILE_HEADER_HEIGHT,
+    backgroundColor: theme.colors.surface1,
     borderBottomWidth: theme.borderWidth[1],
     borderBottomColor: theme.colors.borderAccent,
   },
@@ -380,7 +442,7 @@ const styles = StyleSheet.create((theme) => ({
     userSelect: "none",
   },
   documentHeader: {
-    height: 28,
+    height: DIFF_FILE_HEADER_CONTENT_HEIGHT,
     paddingLeft: 0,
     paddingRight: 0,
     paddingVertical: 0,
@@ -394,12 +456,12 @@ const styles = StyleSheet.create((theme) => ({
     userSelect: "none",
   },
   documentContent: {
-    height: 28,
+    height: DIFF_FILE_HEADER_CONTENT_HEIGHT,
     paddingLeft: theme.spacing[3],
     paddingRight: WORKSPACE_PANE_TRAILING_GLYPH_RAIL,
   },
-  documentActive: { backgroundColor: theme.colors.surface1 },
-  documentPressFeedback: { backgroundColor: theme.colors.surface1 },
+  documentActive: { backgroundColor: theme.colors.surface2 },
+  documentPressFeedback: { backgroundColor: theme.colors.surface2 },
   canvasInteraction: {
     backgroundColor: "transparent",
     borderColor: "transparent",
@@ -430,6 +492,15 @@ const styles = StyleSheet.create((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
+  chevron: { width: 20, flexShrink: 0 },
+  documentPath: {
+    flexShrink: 1,
+    minWidth: 0,
+    fontFamily: theme.fontFamily.mono,
+    fontSize: theme.fontSize.base,
+    color: theme.colors.foreground,
+  },
+  documentDirectory: { color: theme.colors.foregroundMuted },
   name: {
     fontSize: theme.fontSize.base,
     fontWeight: theme.fontWeight.normal,

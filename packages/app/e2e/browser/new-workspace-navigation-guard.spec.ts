@@ -8,9 +8,6 @@ test.describe("Delayed workspace creation", () => {
     test(`${launch}: keeps the workspace chosen during creation`, async ({ page }) => {
       await verifyDelayedWorkspaceCreation(page, launch, "leave");
     });
-    test(`worktree ${launch}: keeps the workspace chosen during creation`, async ({ page }) => {
-      await verifyDelayedWorkspaceCreation(page, launch, "leave", "worktree");
-    });
     test(`${launch}: opens the created workspace when the user stays`, async ({ page }) => {
       await verifyDelayedWorkspaceCreation(page, launch, "stay");
     });

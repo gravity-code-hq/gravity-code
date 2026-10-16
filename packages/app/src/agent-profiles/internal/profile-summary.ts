@@ -1,5 +1,5 @@
-import type { ProviderSnapshotEntry } from "@getpaseo/protocol/agent-types";
-import type { AgentProfile } from "@getpaseo/protocol/messages";
+import type { ProviderSnapshotEntry } from "@gravity/protocol/agent-types";
+import type { AgentProfile } from "@gravity/protocol/messages";
 import { formatAgentModeLabel, formatThinkingOptionLabel } from "@/agent-controls/labels";
 
 export interface AgentProfileTag {

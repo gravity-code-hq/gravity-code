@@ -1,4 +1,4 @@
-const PASEO_NODE_ENV = "PASEO_NODE_ENV";
+const GRAVITY_NODE_ENV = "GRAVITY_NODE_ENV";
 
 export interface NodeEntrypointSpec {
   entryPath: string;
@@ -30,7 +30,7 @@ export function createElectronNodeEnv(
   return {
     ...baseEnv,
     ELECTRON_RUN_AS_NODE: "1",
-    [PASEO_NODE_ENV]: options?.isPackaged === true ? "production" : "development",
+    [GRAVITY_NODE_ENV]: options?.isPackaged === true ? "production" : "development",
   };
 }
 

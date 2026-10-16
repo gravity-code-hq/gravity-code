@@ -14,11 +14,13 @@ import { expectMobileAgentSidebarVisible } from "../support/helpers/sidebar";
 const TEST_COMMANDS = [
   {
     name: "tdd",
+    kind: "skill",
     description: "Write a red test, verify it fails for the right reason, implement to green",
     argumentHint: "",
   },
   {
     name: "help",
+    kind: "command",
     description: "Show help for the current agent session and available slash commands",
     argumentHint: "",
   },
@@ -359,6 +361,216 @@ function expectPopoverDoesNotDisappearAfterFirstVisible(frames: PopoverFrame[]):
 }
 
 test.describe("Composer autocomplete", () => {
+  test("previews the highlighted file path beside a scrollable filename list", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    const agent = await seedMockAgentWorkspace({
+      repoPrefix: "file-picker-preview-",
+      title: "Workspace file context",
+      repo: {
+        files: [
+          { path: ".claude/commands/lunar.md", content: "# Lunar\n" },
+          { path: "templates/commands/lunar.md", content: "# Lunar\n" },
+          { path: "archive/workflows/lunar.md", content: "# Lunar\n" },
+          { path: "wiki/lunar-implementation-plan.md", content: "# Plan\n" },
+          { path: "src/lunar/client.ts", content: "export {};\n" },
+          { path: "backend/lunar/worker.py", content: "# Worker\n" },
+          ...Array.from({ length: 10 }, (_, index) => ({
+            path: `evals/lunar/scoring/examples/${index}/candidate__openai_gpt_lunar_high.json`,
+            content: "{}\n",
+          })),
+        ],
+      },
+    });
+    try {
+      await openAgentRoute(page, agent);
+      await expectComposerVisible(page);
+      const input = composerLocator(page);
+      await input.fill("@lunar");
+      const list = page.getByTestId("autocomplete-list");
+      const rows = list.locator('[data-testid^="autocomplete-option-"]');
+      const row = page.getByTestId("autocomplete-option-file:.claude/commands/lunar.md");
+      await expect(row).toBeAttached();
+      await expect(rows.first()).toHaveAttribute("aria-selected", "true");
+      await row.hover();
+      await expect(row).toHaveAttribute("aria-selected", "true");
+      const preview = page.getByTestId("autocomplete-file-path");
+      await expect(preview).toHaveAttribute("aria-label", ".claude/commands/lunar.md");
+      await expect(preview.getByText(".claude", { exact: true })).toBeVisible();
+      await expect(preview.getByText("commands", { exact: true })).toBeVisible();
+      const listBox = await list.boundingBox();
+      const previewBox = await preview.boundingBox();
+      if (!listBox || !previewBox) throw new Error("File picker did not have a layout");
+      expect(listBox.height).toBeGreaterThan(300);
+      expect(listBox.width).toBeLessThanOrEqual(360);
+      expect(previewBox.x).toBeGreaterThan(listBox.x + listBox.width);
+      expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(1280);
+      await page.screenshot({ path: test.info().outputPath("cursor-file-picker.png") });
+      await page.getByTestId("composer-autocomplete-popover").screenshot({
+        path: test.info().outputPath("file-list-detail.png"),
+      });
+      await input.press("ArrowDown");
+      const highlighted = list.locator('[aria-selected="true"]');
+      await expect(highlighted).not.toHaveAttribute(
+        "data-testid",
+        "autocomplete-option-file:.claude/commands/lunar.md",
+      );
+      const selectedId = await highlighted.getAttribute("data-testid");
+      if (!selectedId) throw new Error("No file suggestion was highlighted");
+      await expect(preview).toHaveAttribute(
+        "aria-label",
+        selectedId.replace(/^autocomplete-option-(file|directory):/, ""),
+      );
+      await expect(highlighted).toBeInViewport();
+      for (let index = 0; index < 12; index += 1) {
+        await input.press("ArrowDown");
+      }
+      await expect(highlighted).toBeInViewport();
+      const scrolledId = await highlighted.getAttribute("data-testid");
+      if (!scrolledId) throw new Error("No file suggestion was highlighted after scrolling");
+      await expect(preview).toHaveAttribute(
+        "aria-label",
+        scrolledId.replace(/^autocomplete-option-(file|directory):/, ""),
+      );
+      await page.mouse.move(0, 0);
+      await row.hover();
+      await expect(preview).toHaveAttribute("aria-label", ".claude/commands/lunar.md");
+      await input.press("Tab");
+      await expect(page.getByTestId("composer-workspace-file-attachment-pill")).toBeVisible();
+      await expect(input).toHaveValue("");
+      await expect(preview).toHaveCount(0);
+    } finally {
+      await agent.cleanup();
+    }
+  });
+
+  test("attaches file mentions as removable chips with filename-first results", async ({
+    page,
+  }) => {
+    const agent = await seedMockAgentWorkspace({
+      repoPrefix: "autocomplete-files-",
+      title: "File context chips",
+      repo: {
+        files: [
+          { path: "docs/LUNAR_TODO.md", content: "# Lunar tasks\n" },
+          { path: "archive/LUNAR_TODO.md", content: "# Previous tasks\n" },
+        ],
+      },
+    });
+    try {
+      await openAgentRoute(page, agent);
+      await expectComposerVisible(page);
+      const input = composerLocator(page);
+      await input.fill("Review @LUNAR");
+      const row = page.getByTestId("autocomplete-option-file:docs/LUNAR_TODO.md");
+      await expect(row.getByText("LUNAR_TODO.md", { exact: true })).toBeVisible();
+      await expect(row.getByText("docs", { exact: true })).toBeVisible();
+      const popup = page.getByTestId("composer-autocomplete-popover");
+      const box = await page.getByTestId("autocomplete-list").boundingBox();
+      expect(box?.width).toBeLessThanOrEqual(360);
+      await page.screenshot({ path: test.info().outputPath("file-picker.png") });
+      await row.click();
+      const chip = page.getByTestId("composer-workspace-file-attachment-pill");
+      await expect(chip).toHaveText("LUNAR_TODO.md");
+      await expect(input).toHaveValue("Review ");
+      await expect(input).toBeFocused();
+      await expect(popup).toBeHidden();
+      await page.screenshot({ path: test.info().outputPath("file-chip.png") });
+      await chip.getByLabel("docs/LUNAR_TODO.md", { exact: true }).hover();
+      await expect(page.getByText("docs/LUNAR_TODO.md", { exact: true })).toBeVisible();
+      await input.click();
+
+      await input.fill("Review @docs/LUNAR");
+      await expect(row).toBeVisible();
+      await input.press("Tab");
+      await expect(chip).toHaveCount(1);
+      await expect(input).toHaveValue("Review ");
+      await page.reload();
+      await expect(chip).toHaveCount(1);
+      await expect(input).toHaveValue("Review ");
+      await chip.getByRole("button", { name: /Remove/ }).click();
+      await expect(chip).toHaveCount(0);
+      await expect(input).toHaveValue("Review ");
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.reload();
+      await expectComposerVisible(page);
+      await input.fill("Review @docs/LUNAR carefully");
+      for (let index = 0; index < " carefully".length; index += 1) {
+        await input.press("ArrowLeft");
+      }
+      await expect(row).toBeVisible();
+      const compactBox = await popup.boundingBox();
+      if (!compactBox) throw new Error("File picker did not have a layout");
+      expect(compactBox.x).toBeGreaterThanOrEqual(0);
+      expect(compactBox.x + compactBox.width).toBeLessThanOrEqual(390);
+      await page.screenshot({ path: test.info().outputPath("file-picker-compact.png") });
+      await row.click();
+      await expect(input).toHaveValue("Review  carefully");
+      await input.pressSequentially("this");
+      await expect(input).toHaveValue("Review this carefully");
+      await expect(chip).toBeInViewport();
+      await page.screenshot({ path: test.info().outputPath("file-chip-compact.png") });
+      await page.getByRole("button", { name: "Send message", exact: true }).click();
+      const message = page.getByTestId("user-message").filter({ hasText: "Review" }).last();
+      await expect(message).toContainText("LUNAR_TODO.md");
+      await expect(chip).toHaveCount(0);
+    } finally {
+      await agent.cleanup();
+    }
+  });
+
+  test("shows command and skill labels, full preview, and an editable inserted chip", async ({
+    page,
+  }) => {
+    await installListCommandsStub(page);
+    const agent = await seedMockAgentWorkspace({
+      repoPrefix: "autocomplete-chip-",
+      title: "Autocomplete chip",
+    });
+    try {
+      await openAgentRoute(page, agent);
+      await expectComposerVisible(page, { timeout: 30_000 });
+      const input = composerLocator(page);
+      const inputBox = await input.boundingBox();
+      const composerBox = await page
+        .getByTestId("message-input-root")
+        .filter({ visible: true })
+        .boundingBox();
+      if (!inputBox || !composerBox) throw new Error("Composer did not have a layout");
+      expect(inputBox.width).toBeGreaterThan(composerBox.width - 64);
+      await input.fill("/");
+      await expect(
+        page.getByTestId("autocomplete-option-help").getByText("Command", { exact: true }),
+      ).toBeVisible();
+      await input.fill("/td");
+      const row = page.getByTestId("autocomplete-option-tdd");
+      await expect(row.getByText("Skill", { exact: true })).toBeVisible();
+      await expect(page.getByTestId("autocomplete-description")).toContainText(
+        TEST_COMMANDS[0].description,
+      );
+      const label = await row.getByText("/tdd", { exact: true }).boundingBox();
+      const description = await row
+        .getByText(TEST_COMMANDS[0].description, { exact: true })
+        .boundingBox();
+      if (!label || !description) throw new Error("Autocomplete row did not have a layout");
+      expect(description.y).toBeGreaterThan(label.y);
+      await page.screenshot({ path: test.info().outputPath("picker.png") });
+      await input.press("Tab");
+      await expect(input).toHaveValue("/tdd ");
+      await input.pressSequentially("review these changes");
+      await expect(input).toHaveValue("/tdd review these changes");
+      await expect(page.locator("[data-command-token]:visible")).toHaveText("/tdd");
+      await expect(page.getByTestId("composer-autocomplete-popover")).toBeHidden();
+      await page.screenshot({ path: test.info().outputPath("inserted-chip.png") });
+      await input.fill("ordinary text");
+      await expect(page.locator("[data-command-token]:visible")).toHaveCount(0);
+      await expect(input).not.toHaveCSS("-webkit-text-fill-color", "rgba(0, 0, 0, 0)");
+    } finally {
+      await agent.cleanup();
+    }
+  });
+
   test("stays visible after returning from app-wide routes", async ({ page }) => {
     await installListCommandsStub(page);
     const serverId = getServerId();
@@ -632,7 +844,7 @@ test.describe("Composer autocomplete", () => {
     const agent = await openReadyMockAgent(page);
 
     try {
-      await expect(page.getByTestId("sidebar-sessions")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId("sidebar-search")).toBeVisible({ timeout: 30_000 });
       const input = composerLocator(page);
       await expect(input).toBeEditable({ timeout: 30_000 });
 

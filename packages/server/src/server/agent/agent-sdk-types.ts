@@ -4,9 +4,9 @@ import type {
   JsonValue,
   ProviderOptions,
   ToolPolicy,
-} from "@getpaseo/protocol/agent-types";
-import type { AgentAttachment } from "@getpaseo/protocol/messages";
-import type { PaseoToolCatalog } from "./tools/types.js";
+} from "@gravity/protocol/agent-types";
+import type { AgentAttachment } from "@gravity/protocol/messages";
+import type { GravityToolCatalog } from "./tools/types.js";
 
 export type { AgentProviderNotice, AgentTaskItem };
 
@@ -186,7 +186,7 @@ export interface AgentCapabilityFlags {
   supportsSessionListing?: boolean;
   supportsDynamicModes: boolean;
   supportsMcpServers: boolean;
-  supportsNativePaseoTools?: boolean;
+  supportsNativeGravityTools?: boolean;
   supportsReasoningStream: boolean;
   supportsToolInvocations: boolean;
   supportsRewindConversation?: boolean;
@@ -402,7 +402,13 @@ export interface PluginTimelineItem {
 }
 
 export type AgentTimelineItem =
-  | { type: "user_message"; text: string; messageId?: string; clientMessageId?: string }
+  | {
+      type: "user_message";
+      text: string;
+      messageId?: string;
+      clientMessageId?: string;
+      inherited?: boolean;
+    }
   | { type: "assistant_message"; text: string; messageId?: string }
   | { type: "reasoning"; text: string }
   | ToolCallTimelineItem
@@ -412,6 +418,7 @@ export type AgentTimelineItem =
       type: "notification";
       level: "info" | "warning" | "error";
       message: string;
+      forkSourceTitle?: string;
     }
   | CompactionTimelineItem
   | PluginTimelineItem;
@@ -629,10 +636,10 @@ export interface AgentLaunchContext {
   agentId?: string;
   env?: Record<string, string>;
   /**
-   * Runtime-only internal Paseo tools. This must never be persisted into
+   * Runtime-only internal Gravity tools. This must never be persisted into
    * AgentSessionConfig; providers may adapt it to their native tool surface.
    */
-  paseoTools?: PaseoToolCatalog;
+  gravityTools?: GravityToolCatalog;
 }
 
 export interface AgentCreateSessionOptions {
@@ -786,12 +793,12 @@ export interface AgentClient {
   getDiagnostic?(): Promise<{ diagnostic: string }>;
   /**
    * Archive a durable native session (best-effort). Runtime release belongs to AgentSession.close().
-   * Called when Paseo archives an agent so the provider's own UI reflects the same state.
+   * Called when Gravity archives an agent so the provider's own UI reflects the same state.
    */
   archiveNativeSession?(handle: AgentPersistenceHandle): Promise<void>;
   /**
    * Unarchive a durable native session in the provider.
-   * Called before Paseo clears its archived flag so provider resume can succeed.
+   * Called before Gravity clears its archived flag so provider resume can succeed.
    */
   unarchiveNativeSession?(handle: AgentPersistenceHandle): Promise<void>;
   /**

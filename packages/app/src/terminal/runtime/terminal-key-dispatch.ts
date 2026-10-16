@@ -1,8 +1,8 @@
 import {
   encodeTerminalKeyInput,
   type TerminalKeyInput,
-} from "@getpaseo/protocol/terminal-key-input";
-import type { TerminalInputModeState } from "@getpaseo/protocol/terminal-input-mode";
+} from "@gravity/protocol/terminal-key-input";
+import type { TerminalInputModeState } from "@gravity/protocol/terminal-input-mode";
 import { normalizeTerminalTransportKey } from "@/utils/terminal-keys";
 
 export interface TerminalKeyModifierState {

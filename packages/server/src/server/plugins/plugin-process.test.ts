@@ -7,10 +7,10 @@ it("keeps React out of the plugin host's runtime dependency graph", async () => 
     build({
       entryPoints: [
         fileURLToPath(new URL("./plugin-process.ts", import.meta.url)),
-        "@getpaseo/plugin",
-        "@getpaseo/plugin/server",
-        "@getpaseo/plugin/server/provider",
-        "@getpaseo/plugin/server/acp",
+        "@gravity/plugin",
+        "@gravity/plugin/server",
+        "@gravity/plugin/server/provider",
+        "@gravity/plugin/server/acp",
       ],
       outdir: "unused",
       conditions: ["source"],

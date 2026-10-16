@@ -7,6 +7,9 @@ import {
   DEFAULT_CLIENT_SETTINGS,
   DEFAULT_CODE_FONT_SIZE,
   DEFAULT_CONTENT_FONT_SIZE,
+  DEFAULT_TERMINAL_FONT_SIZE,
+  MAX_TERMINAL_FONT_SIZE,
+  MIN_TERMINAL_FONT_SIZE,
   DEFAULT_UI_BASE_FONT_SIZE,
   defaultUiBaseFontSize,
   defaultContentFontSize,
@@ -24,7 +27,7 @@ import {
 } from "@/components/sidebar/display-preferences/row-items";
 import { THEME_OPTIONS } from "@/styles/theme";
 
-const LEGACY_SETTINGS_KEY = "@paseo:settings";
+const LEGACY_SETTINGS_KEY = "@gravity:settings";
 
 function makeDeps(
   overrides: {
@@ -42,13 +45,13 @@ function makeDeps(
 }
 
 describe("loadAppSettingsFromStorage", () => {
-  it("preserves a persisted steer send behavior", async () => {
+  it("migrates the previous steer default to queue", async () => {
     const deps = makeDeps({
       storage: createInMemoryKeyValueStorage({
-        "@paseo:app-settings": JSON.stringify({ sendBehavior: "steer" }),
+        "@gravity:app-settings": JSON.stringify({ sendBehavior: "steer" }),
       }),
     });
-    expect((await loadAppSettingsFromStorage(deps)).sendBehavior).toBe("steer");
+    expect((await loadAppSettingsFromStorage(deps)).sendBehavior).toBe("queue");
   });
 
   it("keeps valid settings when another build wrote unknown fields or enum values", async () => {
@@ -72,7 +75,7 @@ describe("loadAppSettingsFromStorage", () => {
     expect(result.sidebarRowItems.host).toBe(false);
     expect(JSON.parse(deps.storage.entries.get(APP_SETTINGS_KEY) ?? "null")).toEqual(stored);
   });
-  it("migrates a stored interrupt to steer and persists it", async () => {
+  it("migrates a stored interrupt to queue and persists it", async () => {
     const deps = makeDeps({
       storage: createInMemoryKeyValueStorage({
         [APP_SETTINGS_KEY]: JSON.stringify({ sendBehavior: "interrupt" }),
@@ -81,9 +84,9 @@ describe("loadAppSettingsFromStorage", () => {
 
     const result = await loadAppSettingsFromStorage(deps);
 
-    expect(result.sendBehavior).toBe("steer");
+    expect(result.sendBehavior).toBe("queue");
     expect(JSON.parse(deps.storage.entries.get(APP_SETTINGS_KEY) ?? "{}").sendBehavior).toBe(
-      "steer",
+      "queue",
     );
     expect(JSON.parse(deps.storage.entries.get(APP_SETTINGS_KEY) ?? "{}")).not.toHaveProperty(
       "needsWrite",
@@ -169,12 +172,9 @@ describe("loadAppSettingsFromStorage", () => {
     expect(result.language).toBe("system");
   });
 
-  it("defaults workspace title source to title when storage is empty", async () => {
-    const deps = makeDeps();
-
-    const result = await loadAppSettingsFromStorage(deps);
-
-    expect(result.workspaceTitleSource).toBe("title");
+  it("has no workspace title preference by default", async () => {
+    const result = await loadAppSettingsFromStorage(makeDeps());
+    expect(result).not.toHaveProperty("workspaceTitleSource");
   });
 
   it("enables the chat outline by default", async () => {
@@ -210,7 +210,7 @@ describe("loadAppSettingsFromStorage", () => {
       storage: createInMemoryKeyValueStorage({
         [APP_SETTINGS_KEY]: JSON.stringify({
           sidebarNavItems: [
-            { key: "history", visible: false },
+            { key: "schedules", visible: false },
             { key: "new-workspace", visible: true },
           ],
         }),
@@ -220,7 +220,7 @@ describe("loadAppSettingsFromStorage", () => {
     const result = await loadAppSettingsFromStorage(deps);
 
     expect(result.sidebarNavItems).toEqual([
-      { key: "history", visible: false },
+      { key: "schedules", visible: false },
       { key: "new-workspace", visible: true },
     ]);
   });
@@ -298,30 +298,6 @@ describe("loadAppSettingsFromStorage", () => {
     const result = await loadAppSettingsFromStorage(deps);
 
     expect(result.terminalScrollbackLines).toBe(42_000);
-  });
-
-  it("loads configured workspace title source from app settings", async () => {
-    const deps = makeDeps({
-      storage: createInMemoryKeyValueStorage({
-        [APP_SETTINGS_KEY]: JSON.stringify({ workspaceTitleSource: "branch" }),
-      }),
-    });
-
-    const result = await loadAppSettingsFromStorage(deps);
-
-    expect(result.workspaceTitleSource).toBe("branch");
-  });
-
-  it("drops an unknown workspace title source back to title", async () => {
-    const deps = makeDeps({
-      storage: createInMemoryKeyValueStorage({
-        [APP_SETTINGS_KEY]: JSON.stringify({ workspaceTitleSource: "directory" }),
-      }),
-    });
-
-    const result = await loadAppSettingsFromStorage(deps);
-
-    expect(result.workspaceTitleSource).toBe("title");
   });
 
   it("normalizes terminal scrollback lines from storage", async () => {
@@ -430,7 +406,7 @@ describe("saveAppSettings", () => {
       saveAppSettings({
         queryClient,
         updates: (current) => ({
-          sidebarNavItems: [...current.sidebarNavItems, { key: "history", visible: false }],
+          sidebarNavItems: [...current.sidebarNavItems, { key: "schedules", visible: false }],
         }),
         deps,
       }),
@@ -445,13 +421,13 @@ describe("saveAppSettings", () => {
 
     expect(queryClient.getQueryData(APP_SETTINGS_QUERY_KEY)).toMatchObject({
       sidebarNavItems: [
-        { key: "history", visible: false },
+        { key: "schedules", visible: false },
         { key: "search", visible: true },
       ],
     });
     expect(JSON.parse(deps.storage.entries.get(APP_SETTINGS_KEY) ?? "null")).toMatchObject({
       sidebarNavItems: [
-        { key: "history", visible: false },
+        { key: "schedules", visible: false },
         { key: "search", visible: true },
       ],
     });
@@ -685,6 +661,7 @@ describe("appearance settings", () => {
     expect(result.uiBaseFontSize).toBe(DEFAULT_UI_BASE_FONT_SIZE);
     expect(result.contentFontSize).toBe(DEFAULT_UI_BASE_FONT_SIZE);
     expect(result.codeFontSize).toBe(DEFAULT_CODE_FONT_SIZE);
+    expect(result.terminalFontSize).toBe(DEFAULT_TERMINAL_FONT_SIZE);
     expect(result.syntaxTheme).toBe("one");
     expect(result.toolCallDetailLevel).toBe("detailed");
   });
@@ -732,9 +709,9 @@ describe("appearance settings", () => {
     expect((await loadAppSettingsFromStorage(deps)).sidebarChecksDisplay).toBe("icon");
   });
 
-  it("uses a 15px mobile base and a 14px web base", () => {
+  it("uses a 15px mobile base and a VS Code-style 13px web base", () => {
     expect(defaultUiBaseFontSize(true)).toBe(15);
-    expect(defaultUiBaseFontSize(false)).toBe(14);
+    expect(defaultUiBaseFontSize(false)).toBe(13);
   });
 
   it("uses a 16px content default on mobile and a 15px default on web", () => {
@@ -850,6 +827,31 @@ describe("appearance settings", () => {
     });
     expect((await loadAppSettingsFromStorage(bogus)).uiBaseFontSize).toBe(
       DEFAULT_UI_BASE_FONT_SIZE,
+    );
+  });
+
+  it("clamps the terminal font size into range and rejects non-numeric values", async () => {
+    const high = makeDeps({
+      storage: createInMemoryKeyValueStorage({
+        [APP_SETTINGS_KEY]: JSON.stringify({ terminalFontSize: 999 }),
+      }),
+    });
+    expect((await loadAppSettingsFromStorage(high)).terminalFontSize).toBe(MAX_TERMINAL_FONT_SIZE);
+
+    const low = makeDeps({
+      storage: createInMemoryKeyValueStorage({
+        [APP_SETTINGS_KEY]: JSON.stringify({ terminalFontSize: 1 }),
+      }),
+    });
+    expect((await loadAppSettingsFromStorage(low)).terminalFontSize).toBe(MIN_TERMINAL_FONT_SIZE);
+
+    const bogus = makeDeps({
+      storage: createInMemoryKeyValueStorage({
+        [APP_SETTINGS_KEY]: JSON.stringify({ terminalFontSize: "abc" }),
+      }),
+    });
+    expect((await loadAppSettingsFromStorage(bogus)).terminalFontSize).toBe(
+      DEFAULT_TERMINAL_FONT_SIZE,
     );
   });
 
