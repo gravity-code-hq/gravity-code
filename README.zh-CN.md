@@ -12,11 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gravity-code-hq/gravity/stargazers">
-    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub stars">
+  <a href="https://github.com/gravity-code-hq/gravity-code/stargazers">
+    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub stars">
   </a>
-  <a href="https://github.com/gravity-code-hq/gravity/releases">
-    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub release">
+  <a href="https://github.com/gravity-code-hq/gravity-code/releases">
+    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub release">
   </a>
 </p>
 
@@ -52,7 +52,7 @@ Gravity 会运行一个名为 daemon 的本地服务，用来管理你的 coding
 
 ### 桌面 app（推荐）
 
-从 [github.com/gravity-code-hq/gravity/download](https://github.com/gravity-code-hq/gravity/download) 或 [GitHub releases 页面](https://github.com/gravity-code-hq/gravity/releases)下载。打开 app 后 daemon 会自动启动，不需要再安装其他东西。
+从 [github.com/gravity-code-hq/gravity-code/download](https://github.com/gravity-code-hq/gravity-code/download) 或 [GitHub releases 页面](https://github.com/gravity-code-hq/gravity-code/releases)下载。打开 app 后 daemon 会自动启动，不需要再安装其他东西。
 
 如果要从手机连接，在 Settings 中扫描显示的二维码。
 
@@ -69,8 +69,8 @@ gravity
 
 完整安装和配置见：
 
-- [文档](https://github.com/gravity-code-hq/gravity/docs)
-- [配置参考](https://github.com/gravity-code-hq/gravity/docs/configuration)
+- [文档](https://github.com/gravity-code-hq/gravity-code/docs)
+- [配置参考](https://github.com/gravity-code-hq/gravity-code/docs/configuration)
 
 ## CLI
 
@@ -88,14 +88,14 @@ gravity send abc123 "also add tests" # 发送后续任务
 gravity --host workstation.local:6767 run "run the full test suite"
 ```
 
-更多内容见[完整 CLI 参考](https://github.com/gravity-code-hq/gravity/docs/cli)。
+更多内容见[完整 CLI 参考](https://github.com/gravity-code-hq/gravity-code/docs/cli)。
 
 ## Skills
 
 Skills 会教你的 agent 使用 Gravity 来编排其他 agents。
 
 ```bash
-npx skills add gravity-code-hq/gravity
+npx skills add gravity-code-hq/gravity-code
 ```
 
 然后在任意 agent 对话中使用：

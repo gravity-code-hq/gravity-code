@@ -20,7 +20,7 @@ Skills give your agents reusable instructions for delegation, handoffs, and revi
 ## Installation
 
 - **In Gravity:** Open **Settings → your host → Agents → Orchestration skills** and choose which skills to install on that host.
-- **From the terminal:** Run `npx skills add gravity-code-hq/gravity` on the machine where your agents run.
+- **From the terminal:** Run `npx skills add gravity-code-hq/gravity-code` on the machine where your agents run.
 
 Use the same settings card to update or uninstall skills. The host also refreshes selected installed Gravity skills on startup.
 

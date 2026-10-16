@@ -89,7 +89,7 @@ Open `~/.gravity/config.json` and set `daemon.listen` to the Tailscale IP:
 
 ```json
 {
-  "$schema": "https://github.com/gravity-code-hq/gravity/schemas/gravity.config.v1.json",
+  "$schema": "https://github.com/gravity-code-hq/gravity-code/schemas/gravity.config.v1.json",
   "version": 1,
   "daemon": {
     "listen": "100.101.102.103:6767"

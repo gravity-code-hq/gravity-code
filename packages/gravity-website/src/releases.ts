@@ -20,7 +20,8 @@ export interface DownloadPlatform {
 
 // Every desktop release uploads these fixed-name assets (.github/workflows/desktop-release.yml),
 // so the links always serve the newest stable build without a site redeploy.
-const LATEST_DOWNLOAD_BASE = "https://github.com/gravity-code-hq/gravity/releases/latest/download";
+const LATEST_DOWNLOAD_BASE =
+  "https://github.com/gravity-code-hq/gravity-code/releases/latest/download";
 
 export const macDownload: DownloadPlatform = {
   id: "mac-arm64",

@@ -75,7 +75,7 @@ function launchDesktop(args: string[]): void {
   const desktopApp = findDesktopApp();
   if (!desktopApp) {
     throw new Error(
-      "Gravity desktop app not found. Install it from https://github.com/gravity-code-hq/gravity/releases",
+      "Gravity desktop app not found. Install it from https://github.com/gravity-code-hq/gravity-code/releases",
     );
   }
 

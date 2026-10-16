@@ -1401,7 +1401,7 @@ export default function contribute(server: { registerProvider(provider: Provider
     const runtime = createTestRuntime();
 
     await expect(runtime.startPlugin("legacy", directory)).rejects.toThrow(
-      "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
+      "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/migration",
     );
   });
 

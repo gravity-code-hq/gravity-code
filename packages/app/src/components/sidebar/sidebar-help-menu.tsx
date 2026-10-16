@@ -27,7 +27,7 @@ import { openChangelog } from "@/changelog";
 import { openGitHubStarPrompt } from "@/github-star";
 import { openExternalUrl } from "@/utils/open-external-url";
 
-const GITHUB_ISSUE_URL = "https://github.com/gravity-code-hq/gravity/issues/new";
+const GITHUB_ISSUE_URL = "https://github.com/gravity-code-hq/gravity-code/issues/new";
 const ThemedActivity = withUnistyles(Activity);
 const ThemedCircleHelp = withUnistyles(CircleHelp);
 const ThemedGift = withUnistyles(Gift);

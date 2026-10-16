@@ -17,7 +17,7 @@ Deploy `packages/gravity-website/dist` to a static host. Each page is its own HT
 
 ## Publish the desktop downloads
 
-Download buttons open `/download/started/?platform=<id>`, which starts the download and shows install steps for that platform. The links are hard-coded in `src/releases.ts` to fixed-name assets on the public `gravity-code-hq/gravity` repo:
+Download buttons open `/download/started/?platform=<id>`, which starts the download and shows install steps for that platform. The links are hard-coded in `src/releases.ts` to fixed-name assets on the public `gravity-code-hq/gravity-code` repo:
 
 | Platform             | Asset                                              |
 | -------------------- | -------------------------------------------------- |

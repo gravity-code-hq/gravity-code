@@ -260,7 +260,7 @@ async function resolveEntryPaths(directory: string): Promise<{
   const legacyEntry = await findEntry(directory, ["index.ts", "index.tsx"]);
   if (legacyEntry) {
     throw new Error(
-      "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration",
+      "This plugin was made for an older version of Gravity and cannot run on Gravity v0.8. Ask its author to update it. Plugin authors can follow the migration guide: https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/migration",
     );
   }
   throw new Error(

@@ -4,4 +4,4 @@ Added
 - Rename and archive conversations from the sidebar, with a confirmation when the agent is still running
 - Caffeine mode: keep a Mac working with the lid closed, globally in Settings → General or per agent from the composer
 
-Full notes: https://github.com/gravity-code-hq/gravity/changelog
+Full notes: https://github.com/gravity-code-hq/gravity-code/changelog

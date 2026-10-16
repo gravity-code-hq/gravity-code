@@ -33,7 +33,7 @@ export function assertPluginCompatibility(input: PluginCompatibilityInput): void
   if (satisfies(version, range) || satisfies(stableCore, range)) return;
   const action =
     input.requirements?.gravity === undefined
-      ? "This plugin has no requirements.gravity and targets Gravity before 0.8. Ask its author to migrate it: https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration"
+      ? "This plugin has no requirements.gravity and targets Gravity before 0.8. Ask its author to migrate it: https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/migration"
       : `Use a compatible plugin version or update the ${input.runtime}.`;
   throw new Error(
     `Plugin "${input.id}" requires Gravity ${range}. Your ${input.runtime} is ${input.version}. ${action}`,

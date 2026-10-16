@@ -136,7 +136,7 @@ test("stays inside the 500 character limit and keeps the full-notes link", () =>
       );
       assert.match(
         contents,
-        /Full notes: https:\/\/github\.com\/gravity-code-hq\/gravity\/changelog\n$/,
+        /Full notes: https:\/\/github\.com\/gravity-code-hq\/gravity-code\/changelog\n$/,
       );
       // Truncation happens at a bullet boundary, never mid-sentence.
       assert.equal(contents.includes("Shipped improvement number 0."), true);
@@ -183,7 +183,7 @@ test("preserves a blockquoted notice ahead of the bullets", () => {
   const contents = formatFdroidChangelog([
     "> **Important update notice**",
     ">",
-    "> If you installed Gravity Desktop 0.1.108, you need to [reinstall manually](https://github.com/gravity-code-hq/gravity/download).",
+    "> If you installed Gravity Desktop 0.1.108, you need to [reinstall manually](https://github.com/gravity-code-hq/gravity-code/download).",
     "",
     "### Fixed",
     "",
@@ -246,11 +246,11 @@ test("renders the real 0.1.109 notice, which is the entry's whole point", () => 
     "",
     "> **Important update notice**",
     ">",
-    "> If you installed Gravity Desktop 0.1.108, you need to [download and reinstall Gravity manually](https://github.com/gravity-code-hq/gravity/download) to get this fix. The bug in 0.1.108 prevents its automatic updater from installing 0.1.109. Users on 0.1.107 or earlier can update normally.",
+    "> If you installed Gravity Desktop 0.1.108, you need to [download and reinstall Gravity manually](https://github.com/gravity-code-hq/gravity-code/download) to get this fix. The bug in 0.1.108 prevents its automatic updater from installing 0.1.109. Users on 0.1.107 or earlier can update normally.",
     "",
     "### Fixed",
     "",
-    "- Gravity Desktop no longer gets stuck connecting or loses native window controls after updating ([#2111](https://github.com/gravity-code-hq/gravity/pull/2111) by [@cleiter](https://github.com/cleiter))",
+    "- Gravity Desktop no longer gets stuck connecting or loses native window controls after updating ([#2111](https://github.com/gravity-code-hq/gravity-code/pull/2111) by [@cleiter](https://github.com/cleiter))",
     "",
   ].join("\n");
 

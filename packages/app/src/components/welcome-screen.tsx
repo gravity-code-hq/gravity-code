@@ -189,7 +189,7 @@ export function WelcomeScreen({ onHostAdded }: WelcomeScreenProps) {
   }, [router]);
 
   const handleOpenGravitySite = useCallback(() => {
-    void openExternalUrl("https://github.com/gravity-code-hq/gravity");
+    void openExternalUrl("https://github.com/gravity-code-hq/gravity-code");
   }, []);
 
   const handleOpenSettings = useCallback(() => {
@@ -292,7 +292,7 @@ export function WelcomeScreen({ onHostAdded }: WelcomeScreenProps) {
             <Text style={styles.subtitle}>{t("onboarding.subtitle")}</Text>
             {isNative ? (
               <Pressable style={styles.setupLink} onPress={handleOpenGravitySite}>
-                <Text style={styles.setupLinkText}>github.com/gravity-code-hq/gravity</Text>
+                <Text style={styles.setupLinkText}>github.com/gravity-code-hq/gravity-code</Text>
                 <ExternalLink size={14} color={theme.colors.accent} />
               </Pressable>
             ) : null}

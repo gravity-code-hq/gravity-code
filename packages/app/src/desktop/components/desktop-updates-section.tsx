@@ -505,7 +505,7 @@ export function LocalDaemonSection() {
 }
 
 const ADVANCED_DAEMON_SETTINGS_URL =
-  "https://github.com/gravity-code-hq/gravity/docs/configuration";
+  "https://github.com/gravity-code-hq/gravity-code/docs/configuration";
 
 const styles = StyleSheet.create((theme) => ({
   actionGroup: {

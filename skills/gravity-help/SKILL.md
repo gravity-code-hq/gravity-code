@@ -11,9 +11,9 @@ You are helping a user understand, configure, or troubleshoot Gravity itself. An
 
 ## Use current documentation
 
-Fetch [https://github.com/gravity-code-hq/gravity/llms.txt](https://github.com/gravity-code-hq/gravity/llms.txt) first. It is the current index of Gravity documentation, with a description and Markdown URL for each page.
+Fetch [https://github.com/gravity-code-hq/gravity-code/llms.txt](https://github.com/gravity-code-hq/gravity-code/llms.txt) first. It is the current index of Gravity documentation, with a description and Markdown URL for each page.
 
-Use that index to select the page that owns the user's question, then fetch the linked `.md` page before answering. For troubleshooting, begin with [Common problems](https://github.com/gravity-code-hq/gravity/docs/troubleshooting.md) and follow its links when the issue belongs to a more specific page.
+Use that index to select the page that owns the user's question, then fetch the linked `.md` page before answering. For troubleshooting, begin with [Common problems](https://github.com/gravity-code-hq/gravity-code/docs/troubleshooting.md) and follow its links when the issue belongs to a more specific page.
 
 Prefer the deployed docs over memory. Answer the user directly, then link the relevant `.md` page as supporting documentation.
 
@@ -87,5 +87,5 @@ Offer to fix the PATH or symlink; do not change shell configuration silently.
 
 If the current docs and diagnostics do not resolve the problem, collect the app and daemon versions, OS, install method, connection method, exact error, minimal reproduction, and a small redacted log excerpt.
 
-- Bugs: [GitHub Issues](https://github.com/gravity-code-hq/gravity/issues)
-- Product workflow discussions: [GitHub Discussions](https://github.com/gravity-code-hq/gravity/discussions)
+- Bugs: [GitHub Issues](https://github.com/gravity-code-hq/gravity-code/issues)
+- Product workflow discussions: [GitHub Discussions](https://github.com/gravity-code-hq/gravity-code/discussions)

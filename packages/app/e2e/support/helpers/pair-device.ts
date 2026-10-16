@@ -210,7 +210,7 @@ export async function openRelaySecurityDocs(page: Page): Promise<void> {
   await page.getByRole("link", { name: "Read how Gravity relay works" }).click();
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("@gravity:e2e-opened-url")))
-    .toBe("https://github.com/gravity-code-hq/gravity/docs/security");
+    .toBe("https://github.com/gravity-code-hq/gravity-code/docs/security");
 }
 
 export function expectDaemonPidUnchanged(

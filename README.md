@@ -14,18 +14,18 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gravity-code-hq/gravity/stargazers">
-    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub stars">
+  <a href="https://github.com/gravity-code-hq/gravity-code/stargazers">
+    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub stars">
   </a>
-  <a href="https://github.com/gravity-code-hq/gravity/releases">
-    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub release">
+  <a href="https://github.com/gravity-code-hq/gravity-code/releases">
+    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub release">
   </a>
 </p>
 
 <p align="center">One interface for Claude Code, Codex, Copilot, OpenCode, and Pi agents.</p>
 
 <p align="center">
-  <a href="https://github.com/gravity-code-hq/gravity/releases/latest/download/gravity-macos-arm64.dmg">
+  <a href="https://github.com/gravity-code-hq/gravity-code/releases/latest/download/gravity-macos-arm64.dmg">
     <img src="https://img.shields.io/badge/Download_for_Mac-Apple_Silicon-262722?style=for-the-badge&logo=apple" alt="Download Gravity for Mac (Apple Silicon)">
   </a>
 </p>
@@ -47,8 +47,8 @@ Run agents in parallel on your own machines. Ship from your phone or your desk.
 Add themes, workspace panels, commands, settings screens, and coding-agent providers with trusted
 TypeScript plugins. Install from a local directory or Git repository with `gravity plugin add <source>`.
 
-See the [plugin docs](https://github.com/gravity-code-hq/gravity/docs/plugins) for your Gravity version, or start with the
-[0.8 beta quickstart](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8). Plugins run with access to your daemon
+See the [plugin docs](https://github.com/gravity-code-hq/gravity-code/docs/plugins) for your Gravity version, or start with the
+[0.8 beta quickstart](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8). Plugins run with access to your daemon
 machine and inside connected clients; install only code you trust.
 
 ## Getting Started
@@ -67,7 +67,7 @@ You need at least one agent CLI installed and configured with your credentials:
 
 ### Desktop app (recommended)
 
-1. Download [Gravity for Mac (Apple Silicon)](https://github.com/gravity-code-hq/gravity/releases/latest/download/gravity-macos-arm64.dmg). Other builds are on the [releases page](https://github.com/gravity-code-hq/gravity/releases).
+1. Download [Gravity for Mac (Apple Silicon)](https://github.com/gravity-code-hq/gravity-code/releases/latest/download/gravity-macos-arm64.dmg). Other builds are on the [releases page](https://github.com/gravity-code-hq/gravity-code/releases).
 2. Open the downloaded `.dmg` and drag **Gravity** into **Applications**.
 3. Open Gravity from Applications. The daemon starts automatically. Nothing else to install.
 
@@ -86,9 +86,9 @@ Gravity starts locally, then asks whether to enable the end-to-end encrypted rel
 
 For full setup and configuration, see:
 
-- [Docs](https://github.com/gravity-code-hq/gravity/docs)
-- [Connectivity guide](https://github.com/gravity-code-hq/gravity/docs/connectivity)
-- [Configuration reference](https://github.com/gravity-code-hq/gravity/docs/configuration)
+- [Docs](https://github.com/gravity-code-hq/gravity-code/docs)
+- [Connectivity guide](https://github.com/gravity-code-hq/gravity-code/docs/connectivity)
+- [Configuration reference](https://github.com/gravity-code-hq/gravity-code/docs/configuration)
 
 ### Docker
 
@@ -121,7 +121,7 @@ gravity send abc123 "also add tests" # follow-up task
 gravity run --host workstation.local:6767 --cwd /workspace "run the full test suite"
 ```
 
-See the [full CLI reference](https://github.com/gravity-code-hq/gravity/docs/cli) for more.
+See the [full CLI reference](https://github.com/gravity-code-hq/gravity-code/docs/cli) for more.
 
 ## TypeScript SDK
 
@@ -145,14 +145,14 @@ console.log(result.lastMessage);
 await client.close();
 ```
 
-See the [SDK quickstart](https://github.com/gravity-code-hq/gravity/docs/sdk/quickstart), [recipes](https://github.com/gravity-code-hq/gravity/docs/sdk/recipes), and [API reference](https://github.com/gravity-code-hq/gravity/docs/sdk/reference).
+See the [SDK quickstart](https://github.com/gravity-code-hq/gravity-code/docs/sdk/quickstart), [recipes](https://github.com/gravity-code-hq/gravity-code/docs/sdk/recipes), and [API reference](https://github.com/gravity-code-hq/gravity-code/docs/sdk/reference).
 
 ## Skills
 
 Skills teach your agent to use Gravity to orchestrate other agents.
 
 ```bash
-npx skills add gravity-code-hq/gravity
+npx skills add gravity-code-hq/gravity-code
 ```
 
 Then use them in any agent conversation:

@@ -14,7 +14,7 @@ import { SettingsSection } from "@/components/settings/headings/settings-section
 import { settingsStyles } from "@/styles/settings";
 
 const METADATA_GENERATION_DOCS_URL =
-  "https://github.com/gravity-code-hq/gravity/docs/metadata-generation";
+  "https://github.com/gravity-code-hq/gravity-code/docs/metadata-generation";
 type SelectionMode = "automatic" | "preferred";
 
 export function MetadataGenerationPage({ serverId }: { serverId: string }) {

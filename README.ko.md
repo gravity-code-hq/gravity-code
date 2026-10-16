@@ -12,11 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gravity-code-hq/gravity/stargazers">
-    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub stars">
+  <a href="https://github.com/gravity-code-hq/gravity-code/stargazers">
+    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub stars">
   </a>
-  <a href="https://github.com/gravity-code-hq/gravity/releases">
-    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub release">
+  <a href="https://github.com/gravity-code-hq/gravity-code/releases">
+    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub release">
   </a>
 </p>
 
@@ -50,7 +50,7 @@ Gravity는 코딩 에이전트를 관리하는 로컬 서버인 데몬을 실행
 
 ### 데스크톱 앱(권장)
 
-[github.com/gravity-code-hq/gravity/download](https://github.com/gravity-code-hq/gravity/download) 또는 [GitHub 릴리스 페이지](https://github.com/gravity-code-hq/gravity/releases)에서 다운로드하세요. 앱을 열면 데몬이 자동으로 시작됩니다. 별도로 설치할 것은 없습니다.
+[github.com/gravity-code-hq/gravity-code/download](https://github.com/gravity-code-hq/gravity-code/download) 또는 [GitHub 릴리스 페이지](https://github.com/gravity-code-hq/gravity-code/releases)에서 다운로드하세요. 앱을 열면 데몬이 자동으로 시작됩니다. 별도로 설치할 것은 없습니다.
 
 휴대폰에서 연결하려면 **설정 → 호스트 → 기기 페어링**을 여세요.
 
@@ -67,9 +67,9 @@ Gravity가 로컬에서 시작된 뒤 기기 페어링을 위한 종단 간 암�
 
 자세한 설치와 설정은 아래 문서를 참고하세요.
 
-- [문서](https://github.com/gravity-code-hq/gravity/docs)
-- [연결 가이드](https://github.com/gravity-code-hq/gravity/docs/connectivity)
-- [설정 레퍼런스](https://github.com/gravity-code-hq/gravity/docs/configuration)
+- [문서](https://github.com/gravity-code-hq/gravity-code/docs)
+- [연결 가이드](https://github.com/gravity-code-hq/gravity-code/docs/connectivity)
+- [설정 레퍼런스](https://github.com/gravity-code-hq/gravity-code/docs/configuration)
 
 ### Docker
 
@@ -102,14 +102,14 @@ gravity send abc123 "also add tests" # 후속 작업 전송
 gravity --host workstation.local:6767 run "run the full test suite"
 ```
 
-자세한 내용은 [전체 CLI 레퍼런스](https://github.com/gravity-code-hq/gravity/docs/cli)를 참고하세요.
+자세한 내용은 [전체 CLI 레퍼런스](https://github.com/gravity-code-hq/gravity-code/docs/cli)를 참고하세요.
 
 ## 스킬
 
 스킬은 에이전트가 Gravity를 통해 다른 에이전트를 오케스트레이션하는 방법을 알려 줍니다.
 
 ```bash
-npx skills add gravity-code-hq/gravity
+npx skills add gravity-code-hq/gravity-code
 ```
 
 그런 다음 어떤 에이전트 대화에서든 아래 명령을 사용할 수 있습니다.

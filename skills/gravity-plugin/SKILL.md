@@ -11,10 +11,10 @@ Build or manage the requested plugin directly. Use the current public docs to ca
 
 ## Check current documentation
 
-Fetch [https://github.com/gravity-code-hq/gravity/llms.txt](https://github.com/gravity-code-hq/gravity/llms.txt) first. Select and fetch the current plugin Markdown pages from that index before changing a plugin:
+Fetch [https://github.com/gravity-code-hq/gravity-code/llms.txt](https://github.com/gravity-code-hq/gravity-code/llms.txt) first. Select and fetch the current plugin Markdown pages from that index before changing a plugin:
 
-- [Plugin quickstart](https://github.com/gravity-code-hq/gravity/docs/plugins.md) ([browser page](https://github.com/gravity-code-hq/gravity/docs/plugins))
-- [Plugin reference](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/reference.md) ([browser page](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/reference))
+- [Plugin quickstart](https://github.com/gravity-code-hq/gravity-code/docs/plugins.md) ([browser page](https://github.com/gravity-code-hq/gravity-code/docs/plugins))
+- [Plugin reference](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/reference.md) ([browser page](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/reference))
 
 Use the deployed docs when they disagree with this skill. Do not send the user away to read them instead of completing the work.
 
@@ -26,27 +26,27 @@ public docs; this skill indexes the references and examples.
 
 Pick the contribution that matches the request. Each row names the registration, when it fits, and where the full contract lives. Most plugins combine several: a slash command that calls an RPC, which appends a timeline row, which a renderer draws.
 
-| Contribution              | Registration                                     | Use it when                                                                                                   | Reference                                                                                                    |
-| ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Sidebar surface           | `addSurface` + `addSidebarItem`                  | A full screen of plugin UI reachable from the sidebar                                                         | reference.md → Surfaces and sidebar items; `plugin-examples/local-plugin`                                    |
-| Workspace panel           | `addWorkspacePanel`                              | UI that lives as a tab beside agents, terminals, files, and diffs; `locations: ["explorer"]` for the Explorer | reference.md → Workspace panels                                                                              |
-| Command Center item       | `addCommandCenterItem`                           | A global, workspace, or agent action reachable from ⌘K                                                        | reference.md → Command Center items                                                                          |
-| Client slash command      | `addSlashCommand`                                | A `/command args` in the composer that runs plugin code instead of prompting the agent                        | reference.md → Client slash commands                                                                         |
-| Composer pill             | `addComposerPill`                                | A per-agent button in the composer track bar next to Tasks and Subagents                                      | reference.md → Composer pills                                                                                |
-| Timeline transformer      | `addTimelineTransformer` + `addTimelineRenderer` | Replace, explode, or hide a built-in timeline item, including while it streams                                | reference.md → Timeline items; `plugin-examples/timeline-items`, `plugin-examples/inline-thinking`           |
-| Timeline row              | `gravity.agents.ref(id).timeline.append(...)`    | Push a plugin-owned row into an agent timeline from a server handler and update it later                      | reference.md → Append a timeline row from the daemon                                                         |
-| Attachment source         | `client.addAttachmentSource` + `server.handle`   | Let the user attach a searchable external resource, such as an issue, to a prompt                             | reference.md → Add a composer attachment source; `plugin-examples/linear`                                    |
-| Theme                     | `addTheme`                                       | A light or dark palette under Settings → Appearance                                                           | reference.md → Contribute a theme; `plugin-examples/catppuccin`                                              |
-| Plugin RPC                | `defineRpc` + `server.handle` + `useRpc`         | Daemon-side work that is not a normal Gravity operation: vendor APIs, credentials, local files                | reference.md → Add plugin-specific backend behavior                                                          |
-| Lifecycle events          | `server.on`                                      | Observe agent/workspace lifecycle, inspect ended turns, and answer permission requests                        | [Lifecycle hooks](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/reference.md#lifecycle-hooks) |
-| Creation and launch hooks | `server.before`                                  | Change agent config, provider options, MCP servers, environment, or workspace isolation before the operation  | [Before hooks](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/reference.md#before-hooks)       |
-| Gravity SDK               | `useGravity()` / handler `{ gravity }`           | Normal Gravity operations: workspaces, agents, providers, config                                              | reference.md → Use the Gravity SDK                                                                           |
+| Contribution              | Registration                                     | Use it when                                                                                                   | Reference                                                                                                         |
+| ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Sidebar surface           | `addSurface` + `addSidebarItem`                  | A full screen of plugin UI reachable from the sidebar                                                         | reference.md → Surfaces and sidebar items; `plugin-examples/local-plugin`                                         |
+| Workspace panel           | `addWorkspacePanel`                              | UI that lives as a tab beside agents, terminals, files, and diffs; `locations: ["explorer"]` for the Explorer | reference.md → Workspace panels                                                                                   |
+| Command Center item       | `addCommandCenterItem`                           | A global, workspace, or agent action reachable from ⌘K                                                        | reference.md → Command Center items                                                                               |
+| Client slash command      | `addSlashCommand`                                | A `/command args` in the composer that runs plugin code instead of prompting the agent                        | reference.md → Client slash commands                                                                              |
+| Composer pill             | `addComposerPill`                                | A per-agent button in the composer track bar next to Tasks and Subagents                                      | reference.md → Composer pills                                                                                     |
+| Timeline transformer      | `addTimelineTransformer` + `addTimelineRenderer` | Replace, explode, or hide a built-in timeline item, including while it streams                                | reference.md → Timeline items; `plugin-examples/timeline-items`, `plugin-examples/inline-thinking`                |
+| Timeline row              | `gravity.agents.ref(id).timeline.append(...)`    | Push a plugin-owned row into an agent timeline from a server handler and update it later                      | reference.md → Append a timeline row from the daemon                                                              |
+| Attachment source         | `client.addAttachmentSource` + `server.handle`   | Let the user attach a searchable external resource, such as an issue, to a prompt                             | reference.md → Add a composer attachment source; `plugin-examples/linear`                                         |
+| Theme                     | `addTheme`                                       | A light or dark palette under Settings → Appearance                                                           | reference.md → Contribute a theme; `plugin-examples/catppuccin`                                                   |
+| Plugin RPC                | `defineRpc` + `server.handle` + `useRpc`         | Daemon-side work that is not a normal Gravity operation: vendor APIs, credentials, local files                | reference.md → Add plugin-specific backend behavior                                                               |
+| Lifecycle events          | `server.on`                                      | Observe agent/workspace lifecycle, inspect ended turns, and answer permission requests                        | [Lifecycle hooks](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/reference.md#lifecycle-hooks) |
+| Creation and launch hooks | `server.before`                                  | Change agent config, provider options, MCP servers, environment, or workspace isolation before the operation  | [Before hooks](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/reference.md#before-hooks)       |
+| Gravity SDK               | `useGravity()` / handler `{ gravity }`           | Normal Gravity operations: workspaces, agents, providers, config                                              | reference.md → Use the Gravity SDK                                                                                |
 
-| Lifecycle task                                                      | Example                                                                                                         |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Log all eleven hooks                                                | [lifecycle-logger](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/lifecycle-logger)       |
-| Follow-ups, permissions, environment, provider switching, worktrees | [lifecycle-actions](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/lifecycle-actions)     |
-| Inject MCP servers and change Codex sandbox/approval options        | [agent-configuration](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/agent-configuration) |
+| Lifecycle task                                                      | Example                                                                                                              |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Log all eleven hooks                                                | [lifecycle-logger](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/lifecycle-logger)       |
+| Follow-ups, permissions, environment, provider switching, worktrees | [lifecycle-actions](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/lifecycle-actions)     |
+| Inject MCP servers and change Codex sandbox/approval options        | [agent-configuration](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/agent-configuration) |
 
 ## Create the project
 
@@ -83,7 +83,7 @@ by the CLI version. Raise the minimum when adopting newer APIs; add an upper bou
 Gravity release is incompatible. Use npm semver ranges and explicitly include beta versions when
 targeting betas. Missing requirements mean `<0.8.0`; complete the 0.8 entry migration before adding
 `>=0.8.0`. Verify compatibility with both the daemon and the app running client contributions.
-See [requirements](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/reference#requirements).
+See [requirements](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/reference#requirements).
 
 Each runtime has its own optional entry. A plugin must have at least one. Both entries accept
 `.ts` or `.tsx`; use `.tsx` when an entry imports components.
@@ -245,7 +245,7 @@ export default function contribute(client: PluginClientContext) {
 Icons are Lucide icon names. `theme` is a typed `PluginTheme` on every surface and panel. Primary text uses `theme.colors.foreground`; labels use `theme.colors.foregroundMuted`; the root view uses `theme.colors.surface0`. `layout.compact` is true on mobile and narrow windows. Gravity owns the route, header, host picker, close action, error boundary, and per-installation query client.
 
 Before writing imports, classify each module as shared, client, or server. Follow the
-[SDK import boundaries](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/reference.md#runtime-modules), including
+[SDK import boundaries](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/reference.md#runtime-modules), including
 transitive and type dependencies. The root is shared-only; hooks and client contexts belong to
 `@gravity/plugin/client`, server contexts to `/server`, and host UI to `/client/react-native` or `/client/ui`.
 Install dependencies locally for typechecking; Gravity supplies host runtime modules. JSX uses the
@@ -306,7 +306,7 @@ function PullRequestAction() {
 }
 ```
 
-The API covers workspaces, agents, providers, and daemon config. It omits connection lifecycle because Gravity owns the connection. Consult the current [SDK reference](https://github.com/gravity-code-hq/gravity/docs/sdk/reference.md) for method details.
+The API covers workspaces, agents, providers, and daemon config. It omits connection lifecycle because Gravity owns the connection. Consult the current [SDK reference](https://github.com/gravity-code-hq/gravity-code/docs/sdk/reference.md) for method details.
 
 ### Add daemon-side behavior
 
@@ -614,7 +614,7 @@ Use `--host <url>` when managing a daemon other than the CLI default. A Git sour
 
 Do not restart the daemon to load source changes. Restarting it can kill the agent performing the work.
 
-For an old mixed entry, follow the standalone [v0.8 runtime-entry migration guide](https://github.com/gravity-code-hq/gravity/docs/plugins/v0.8/migration) mechanically.
+For an old mixed entry, follow the standalone [v0.8 runtime-entry migration guide](https://github.com/gravity-code-hq/gravity-code/docs/plugins/v0.8/migration) mechanically.
 
 ## Verify the outcome
 

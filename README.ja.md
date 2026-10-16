@@ -12,11 +12,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/gravity-code-hq/gravity/stargazers">
-    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub stars">
+  <a href="https://github.com/gravity-code-hq/gravity-code/stargazers">
+    <img src="https://img.shields.io/github/stars/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub stars">
   </a>
-  <a href="https://github.com/gravity-code-hq/gravity/releases">
-    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity?style=flat&logo=github" alt="GitHub release">
+  <a href="https://github.com/gravity-code-hq/gravity-code/releases">
+    <img src="https://img.shields.io/github/v/release/gravity-code-hq/gravity-code?style=flat&logo=github" alt="GitHub release">
   </a>
 </p>
 
@@ -52,7 +52,7 @@ Gravity はコーディングエージェントを管理するローカルサー
 
 ### デスクトップアプリ（推奨）
 
-[github.com/gravity-code-hq/gravity/download](https://github.com/gravity-code-hq/gravity/download) または [GitHub のリリースページ](https://github.com/gravity-code-hq/gravity/releases)からダウンロードしてください。アプリを開くとデーモンが自動的に起動します。追加のインストールは不要です。
+[github.com/gravity-code-hq/gravity-code/download](https://github.com/gravity-code-hq/gravity-code/download) または [GitHub のリリースページ](https://github.com/gravity-code-hq/gravity-code/releases)からダウンロードしてください。アプリを開くとデーモンが自動的に起動します。追加のインストールは不要です。
 
 スマートフォンから接続するには、Settings 画面に表示される QR コードをスキャンしてください。
 
@@ -69,8 +69,8 @@ gravity
 
 詳しいセットアップと設定については以下を参照してください。
 
-- [ドキュメント](https://github.com/gravity-code-hq/gravity/docs)
-- [設定リファレンス](https://github.com/gravity-code-hq/gravity/docs/configuration)
+- [ドキュメント](https://github.com/gravity-code-hq/gravity-code/docs)
+- [設定リファレンス](https://github.com/gravity-code-hq/gravity-code/docs/configuration)
 
 ## CLI
 
@@ -88,14 +88,14 @@ gravity send abc123 "also add tests" # 追加タスクを送信
 gravity --host workstation.local:6767 run "run the full test suite"
 ```
 
-詳細は[完全な CLI リファレンス](https://github.com/gravity-code-hq/gravity/docs/cli)を参照してください。
+詳細は[完全な CLI リファレンス](https://github.com/gravity-code-hq/gravity-code/docs/cli)を参照してください。
 
 ## スキル
 
 スキルはエージェントに Gravity を使って他のエージェントをオーケストレーションする方法を教えます。
 
 ```bash
-npx skills add gravity-code-hq/gravity
+npx skills add gravity-code-hq/gravity-code
 ```
 
 どのエージェントとの会話でも使用できます。

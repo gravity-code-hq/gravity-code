@@ -90,4 +90,4 @@ Gravity only talks to a forge host that is either a known cloud host or one the 
 
 ## Reporting vulnerabilities
 
-If you discover a security vulnerability, please report it privately through [GitHub private vulnerability reporting](https://github.com/gravity-code-hq/gravity/security/advisories/new). Do not open a public issue.
+If you discover a security vulnerability, please report it privately through [GitHub private vulnerability reporting](https://github.com/gravity-code-hq/gravity-code/security/advisories/new). Do not open a public issue.

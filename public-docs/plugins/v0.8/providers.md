@@ -24,9 +24,9 @@ Choose one implementation path:
 
 The examples are:
 
-- [`provider-direct`](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/provider-direct): sessions, settings, prompts, persistence, child sessions, and a provider-owned timeline renderer;
-- [`provider-acp-transformer`](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/provider-acp-transformer): an ACP command template with a Zod-validated vendor edit transformer. Replace `example-acp --stdio` with an installed ACP agent before loading it;
-- [`inline-thinking`](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/inline-thinking): a renderer-only plugin that does not implement a provider.
+- [`provider-direct`](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/provider-direct): sessions, settings, prompts, persistence, child sessions, and a provider-owned timeline renderer;
+- [`provider-acp-transformer`](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/provider-acp-transformer): an ACP command template with a Zod-validated vendor edit transformer. Replace `example-acp --stdio` with an installed ACP agent before loading it;
+- [`inline-thinking`](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/inline-thinking): a renderer-only plugin that does not implement a provider.
 
 ## Register a direct provider
 

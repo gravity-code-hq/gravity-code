@@ -398,7 +398,7 @@ function SchedulesEmptyState({
         <Text style={styles.emptyTitle}>No automations yet</Text>
         <Text style={styles.emptyDescription}>Automations run agents on a cadence.</Text>
         <ExternalLink
-          href="https://github.com/gravity-code-hq/gravity/docs/schedules"
+          href="https://github.com/gravity-code-hq/gravity-code/docs/schedules"
           label="See docs"
         />
       </View>

@@ -119,8 +119,8 @@ function printNextSteps(pairingUrl: string | null, gravityHome: string, richUi: 
       ? "1. Open Gravity and scan the QR code above, or paste the pairing link."
       : "1. Open Gravity and connect to your daemon.",
     "2. Web app: https://app.gravity.example",
-    "3. Desktop app: https://github.com/gravity-code-hq/gravity/releases/latest",
-    "4. Docs: https://github.com/gravity-code-hq/gravity/docs",
+    "3. Desktop app: https://github.com/gravity-code-hq/gravity-code/releases/latest",
+    "4. Docs: https://github.com/gravity-code-hq/gravity-code/docs",
     `5. Example: gravity run --home ${JSON.stringify(gravityHome)} --output-schema schema.json "extract fields"`,
   ];
   const quickReferenceLines = [

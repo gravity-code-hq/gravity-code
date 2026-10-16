@@ -26,7 +26,7 @@ tool injection globally, then add `gravityTools` to the exact provider IDs you l
 
 ```json
 {
-  "$schema": "https://github.com/gravity-code-hq/gravity/schemas/gravity.config.v1.json",
+  "$schema": "https://github.com/gravity-code-hq/gravity-code/schemas/gravity.config.v1.json",
   "version": 1,
   "daemon": {
     "mcp": {

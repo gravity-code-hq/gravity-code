@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 const CHANGELOG_SOURCE_URL =
-  "https://raw.githubusercontent.com/gravity-code-hq/gravity/main/CHANGELOG.md";
+  "https://raw.githubusercontent.com/gravity-code-hq/gravity-code/main/CHANGELOG.md";
 
 /**
  * Serves a changelog to the app instead of the repository's.

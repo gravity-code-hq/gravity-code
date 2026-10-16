@@ -35,7 +35,7 @@ export interface PairingOffer {
 }
 
 const PAIRING_DAEMON_RPC_TIMEOUT_MS = 1500;
-const RELAY_DOCS_URL = "https://github.com/gravity-code-hq/gravity/docs/security";
+const RELAY_DOCS_URL = "https://github.com/gravity-code-hq/gravity-code/docs/security";
 
 function createProcessOutput(): PairCommandOutput {
   return {

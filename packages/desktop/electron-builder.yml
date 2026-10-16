@@ -36,7 +36,7 @@ extraResources:
 publish:
   provider: github
   owner: gravity-code-hq
-  repo: gravity
+  repo: gravity-code
 mac:
   artifactName: "Gravity-${version}-${arch}.${ext}"
   minimumSystemVersion: "13.0.0"

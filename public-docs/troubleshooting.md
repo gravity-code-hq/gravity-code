@@ -98,5 +98,5 @@ Run `gravity daemon restart` only when reload requests it. In the app, open **Se
 
 - [Custom providers](/docs/custom-providers) — endpoints, profiles, binaries, ACP agents.
 - [Configuration](/docs/configuration) — `config.json`, environment variables, logging.
-- [How Gravity resolves your login shell](https://github.com/gravity-code-hq/gravity/blob/main/packages/desktop/src/login-shell-env.ts) — the exact code that loads your shell environment.
-- [Report an issue](https://github.com/gravity-code-hq/gravity/issues).
+- [How Gravity resolves your login shell](https://github.com/gravity-code-hq/gravity-code/blob/main/packages/desktop/src/login-shell-env.ts) — the exact code that loads your shell environment.
+- [Report an issue](https://github.com/gravity-code-hq/gravity-code/issues).

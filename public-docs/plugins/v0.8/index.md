@@ -12,7 +12,7 @@ category: Plugins
 > if you run the stable release.
 
 > **Experimental:** The plugin API is still evolving, so expect breaking changes and updates to
-> your plugins as Gravity evolves. See the [plugin roadmap](https://github.com/gravity-code-hq/gravity/labels/plugins)
+> your plugins as Gravity evolves. See the [plugin roadmap](https://github.com/gravity-code-hq/gravity-code/labels/plugins)
 > for planned contribution surfaces.
 
 A plugin is a TypeScript project installed into one Gravity daemon. It can add

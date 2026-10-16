@@ -26,4 +26,4 @@ Either way, **you install the underlying CLI**. Gravity runs it.
 - [Supported providers](/docs/supported-providers), the full list with install links.
 - [Agent profiles](/docs/agent-profiles), save model, mode, and thinking settings together, with notes to guide delegation.
 - [Custom providers](/docs/custom-providers), add your own provider, point an existing one at a different endpoint, configure multiple provider aliases, or override the binary in `~/.gravity/config.json`.
-- [github.com/gravity-code-hq/gravity/agents](/agents), per-agent landing page for each supported provider.
+- [github.com/gravity-code-hq/gravity-code/agents](/agents), per-agent landing page for each supported provider.

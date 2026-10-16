@@ -2,4 +2,4 @@
 - Provider customizations and improved workspace controls.
 - Fixed agent drafts crashing on duplicate catalog choices, duplicate workspaces and agents on retries, and out-of-memory errors from long tool histories.
 
-Full notes: https://github.com/gravity-code-hq/gravity/changelog
+Full notes: https://github.com/gravity-code-hq/gravity-code/changelog

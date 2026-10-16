@@ -34,4 +34,4 @@ Gravity はデーモンと呼ばれるローカルサーバーをあなたのコ
 
 このアプリは単体では機能しません。コードとエージェント CLI があるコンピューターに Gravity デーモンをインストールし、設定画面からこのアプリをペアリングしてください。デスクトップアプリにはデーモンが同梱されています。npm、Docker、Nix から実行することもできます。
 
-セットアップ手順: https://github.com/gravity-code-hq/gravity
+セットアップ手順: https://github.com/gravity-code-hq/gravity-code

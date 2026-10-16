@@ -247,7 +247,7 @@ buildNpmPackage {
 
   meta = {
     description = "Gravity desktop app (Electron wrapper)";
-    homepage = "https://github.com/gravity-code-hq/gravity";
+    homepage = "https://github.com/gravity-code-hq/gravity-code";
     license = lib.licenses.agpl3Plus;
     mainProgram = "gravity-desktop";
     platforms = lib.platforms.linux ++ lib.platforms.darwin;

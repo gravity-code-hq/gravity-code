@@ -54,7 +54,7 @@ API failures use RFC 9457 problem details. Missing, invalid, or revoked credenti
 
 ```json
 {
-  "type": "https://github.com/gravity-code-hq/gravity/problems/unauthorized",
+  "type": "https://github.com/gravity-code-hq/gravity-code/problems/unauthorized",
   "title": "Authentication required",
   "status": 401,
   "detail": "Provide an active Gravity organization credential in the Authorization: Bearer header.",

@@ -18,13 +18,13 @@ Read the [product philosophy](docs/product.md) for the reasoning behind these ch
 
 Most specialized workflows and integrations are better served by plugins.
 
-Plugins let you build what you need, share it, and maintain it independently. Start with the [plugin documentation](https://github.com/gravity-code-hq/gravity/docs/plugins). For applications and integrations built around Gravity, see the [SDK documentation](https://github.com/gravity-code-hq/gravity/docs/sdk).
+Plugins let you build what you need, share it, and maintain it independently. Start with the [plugin documentation](https://github.com/gravity-code-hq/gravity-code/docs/plugins). For applications and integrations built around Gravity, see the [SDK documentation](https://github.com/gravity-code-hq/gravity-code/docs/sdk).
 
-If an extension point is missing, describe the workflow in [Discussions](https://github.com/gravity-code-hq/gravity/discussions). A reusable capability that enables several plugins may be a better addition than implementing one particular workflow in core.
+If an extension point is missing, describe the workflow in [Discussions](https://github.com/gravity-code-hq/gravity-code/discussions). A reusable capability that enables several plugins may be a better addition than implementing one particular workflow in core.
 
 ## Report bugs
 
-Open a [GitHub issue](https://github.com/gravity-code-hq/gravity/issues) and fill out the bug report template.
+Open a [GitHub issue](https://github.com/gravity-code-hq/gravity-code/issues) and fill out the bug report template.
 
 Include:
 
@@ -38,7 +38,7 @@ Focused fixes for reproducible bugs are welcome. If you submit one, follow the p
 
 ## Discuss workflows before proposing features
 
-Product discussions, including feature requests, belong in [GitHub Discussions](https://github.com/gravity-code-hq/gravity/discussions). Feature requests opened as issues will be closed.
+Product discussions, including feature requests, belong in [GitHub Discussions](https://github.com/gravity-code-hq/gravity-code/discussions). Feature requests opened as issues will be closed.
 
 Explain:
 

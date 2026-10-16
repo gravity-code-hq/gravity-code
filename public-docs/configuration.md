@@ -32,7 +32,7 @@ Minimal example that configures listening address, hostnames, and MCP:
 
 ```json
 {
-  "$schema": "https://github.com/gravity-code-hq/gravity/schemas/gravity.config.v1.json",
+  "$schema": "https://github.com/gravity-code-hq/gravity-code/schemas/gravity.config.v1.json",
   "version": 1,
   "daemon": {
     "listen": "127.0.0.1:6767",
@@ -82,7 +82,7 @@ Deployment environment variables and legacy supervisor flags remain authoritativ
 
 Agent providers, both the first-class ones Gravity ships with and custom entries you add under `agents.providers`, are documented on their own page.
 
-See [Providers](/docs/providers) for the mental model and [Supported providers](/docs/supported-providers) for the full list of agents Gravity can launch. For pointing Claude at Anthropic-compatible endpoints (Z.AI, Alibaba/Qwen), multiple profiles, custom binaries, ACP agents, and the `additionalModels` merge behavior, see [Custom providers](/docs/custom-providers). The full field reference lives on GitHub at [docs/custom-providers.md](https://github.com/gravity-code-hq/gravity/blob/main/docs/custom-providers.md).
+See [Providers](/docs/providers) for the mental model and [Supported providers](/docs/supported-providers) for the full list of agents Gravity can launch. For pointing Claude at Anthropic-compatible endpoints (Z.AI, Alibaba/Qwen), multiple profiles, custom binaries, ACP agents, and the `additionalModels` merge behavior, see [Custom providers](/docs/custom-providers). The full field reference lives on GitHub at [docs/custom-providers.md](https://github.com/gravity-code-hq/gravity-code/blob/main/docs/custom-providers.md).
 
 ## Worktrees
 
@@ -269,5 +269,5 @@ Set the persisted value in `config.json`:
 For editor autocomplete/validation, set `$schema` to:
 
 ```
-https://github.com/gravity-code-hq/gravity/schemas/gravity.config.v1.json
+https://github.com/gravity-code-hq/gravity-code/schemas/gravity.config.v1.json
 ```

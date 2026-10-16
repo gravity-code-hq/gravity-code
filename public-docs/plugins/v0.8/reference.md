@@ -343,7 +343,7 @@ and directory lookup/import operations are unaffected.
 
 ### Send a follow-up when a turn ends
 
-Copy [server/inspect.ts](https://github.com/gravity-code-hq/gravity/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts)
+Copy [server/inspect.ts](https://github.com/gravity-code-hq/gravity-code/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts)
 into your plugin. The helper imports types from `@gravity/protocol/agent-types`; add
 `@gravity/protocol` at the same version as your plugin SDK to your development dependencies
 and install them before loading the plugin. `latestOutputText` joins text chunks after the latest user message.
@@ -379,7 +379,7 @@ add limits or delays in your plugin when needed. Attachments and tool effects ar
 
 ### Answer a permission request
 
-Using `shellCommand` from the same [helper file](https://github.com/gravity-code-hq/gravity/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts):
+Using `shellCommand` from the same [helper file](https://github.com/gravity-code-hq/gravity-code/blob/main/plugin-examples/lifecycle-actions/server/inspect.ts):
 
 ```ts
 import type { PluginServerContext } from "@gravity/plugin/server";
@@ -553,11 +553,11 @@ saved; environment overrides are not persisted with it.
 
 ### Complete examples
 
-| Plugin                                                                                                          | Includes                                                                     |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [lifecycle-logger](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/lifecycle-logger)       | All eleven hooks; JSON logs with environment values redacted                 |
-| [lifecycle-actions](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/lifecycle-actions)     | Follow-ups, permissions, environment, provider switching, worktree selection |
-| [agent-configuration](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/agent-configuration) | MCP injection and Codex sandbox/approval options                             |
+| Plugin                                                                                                               | Includes                                                                     |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [lifecycle-logger](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/lifecycle-logger)       | All eleven hooks; JSON logs with environment values redacted                 |
+| [lifecycle-actions](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/lifecycle-actions)     | Follow-ups, permissions, environment, provider switching, worktree selection |
+| [agent-configuration](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/agent-configuration) | MCP injection and Codex sandbox/approval options                             |
 
 Read logger output with `gravity plugin logs lifecycle-logger` or the host's `daemon.log`.
 
@@ -775,7 +775,7 @@ Paste too, but does not register focus with the sheet; the keyboard can cover it
 API is needed for OS Paste. Avoid DOM clipboard code in native plugins and the deprecated
 `Clipboard` export from `react-native`.
 
-The runnable [modal UI example](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/modal-ui)
+The runnable [modal UI example](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/modal-ui)
 contains a padded form, full-width rows, a virtualized list, horizontal tabs, and a copy/paste input.
 
 ### Toasts
@@ -1119,7 +1119,7 @@ versions produce `invalid` without silently resetting the file. Successful migra
 the new version once. These documents are ordinary host-side JSON, not a credential vault.
 Settings RPCs use the existing `daemon.manage` permission for plugin execution.
 
-See the complete [settings example](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/settings)
+See the complete [settings example](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/settings)
 for immediate controls, a draft editor with validation, custom content, and Command Center navigation.
 
 ## Workspace panels
@@ -1328,7 +1328,7 @@ order wins a collision between plugins. Commands do not run while the composer h
 
 ## Header buttons
 
-Try the [button example](https://github.com/gravity-code-hq/gravity/tree/main/plugin-examples/buttons) for
+Try the [button example](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/buttons) for
 actions, menus, custom icons and content, and visibility updates in both the header and composer.
 It switches one header button between modes; additional actions use a named Tools menu.
 
@@ -1389,7 +1389,7 @@ const pill = client.addComposerPill({
 ```
 
 For pills that follow the agent directory, use an explicit [owned list subscription](/docs/sdk/events#follow-one-agents-status).
-The [local plugin example](https://github.com/gravity-code-hq/gravity/blob/main/plugin-examples/local-plugin/client/main.tsx)
+The [local plugin example](https://github.com/gravity-code-hq/gravity-code/blob/main/plugin-examples/local-plugin/client/main.tsx)
 replaces registrations on each snapshot and aborts the observation during entry cleanup, including pending bootstrap.
 
 ## Button descriptor

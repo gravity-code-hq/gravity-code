@@ -90,7 +90,7 @@ describe("plugin scaffold", () => {
       );
       await expect(
         readFile(path.join(directory, "client/greeting.tsx"), "utf8"),
-      ).resolves.toContain(`openExternal("https://github.com/gravity-code-hq/gravity")`);
+      ).resolves.toContain(`openExternal("https://github.com/gravity-code-hq/gravity-code")`);
       await expect(readFile(path.join(directory, "server/greeting.ts"), "utf8")).resolves.toContain(
         '"Hello, " + name + "!"',
       );

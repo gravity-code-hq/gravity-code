@@ -133,7 +133,7 @@ as described in **Fixing a failed release build**.
 The `release:*` scripts below publish npm packages and push the release tag. Neither applies
 here: the `@gravity/*` packages are not on npm, and a `v*` tag push would run the full
 private-repo pipeline (two Mac runners, Windows, Android, Docker) and create the release in
-the private repo instead of `gravity-code-hq/gravity`. The public release is assembled by
+the private repo instead of `gravity-code-hq/gravity-code`. The public release is assembled by
 hand from no-publish CI builds:
 
 1. Prepare as usual: changelog entry committed, `npm run release:prepare` churn committed,
@@ -445,7 +445,7 @@ The GitHub Release body is populated automatically by the `Release Notes Sync` w
 
 ## Website behavior
 
-- The website (`packages/gravity-website`, deployed by Vercel on every push to `main`) links straight to fixed-name assets under `github.com/gravity-code-hq/gravity/releases/latest/download/`: `gravity-macos-arm64.dmg` for Mac and `gravity-linux-x64.deb` for Linux. Publishing a release doesn't need a website deploy.
+- The website (`packages/gravity-website`, deployed by Vercel on every push to `main`) links straight to fixed-name assets under `github.com/gravity-code-hq/gravity-code/releases/latest/download/`: `gravity-macos-arm64.dmg` for Mac and `gravity-linux-x64.deb` for Linux. Publishing a release doesn't need a website deploy.
 - The site picks the default button from the visitor's user agent: Linux gets the `.deb`, everything else (macOS, iOS, Windows, unknown) gets the DMG. The other platform stays one click away on the download card.
 - GitHub's `latest` skips drafts and prereleases, so the download buttons only move when a stable release is published. A beta never replaces them.
 - The fixed-name `gravity-macos-<arch>.dmg` and `gravity-linux-x64.deb` assets are uploaded by `desktop-release.yml` next to the versioned artifacts. Rename either and that button breaks for every visitor.
@@ -462,7 +462,7 @@ Every push to `origin` and every GitHub Release action (create, upload, edit) ru
 
 ```bash
 export GH_TOKEN="$(gh auth token --user shreeshiv)"
-gh release upload vX.Y.Z packages/desktop/release/gravity-linux-x64.deb --repo gravity-code-hq/gravity --clobber
+gh release upload vX.Y.Z packages/desktop/release/gravity-linux-x64.deb --repo gravity-code-hq/gravity-code --clobber
 ```
 
 - Commits carry `22559884+shreeshiv@users.noreply.github.com` as the author email through the
@@ -535,12 +535,12 @@ If you decide to publish a release without working desktop builds, inspect its
 assets first, then publish it manually:
 
 ```bash
-RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo gravity-code-hq/gravity --tag vX.Y.Z)
+RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo gravity-code-hq/gravity-code --tag vX.Y.Z)
 gh release view "$RELEASE_LOOKUP" --json isDraft,isPrerelease,assets
 gh release edit "$RELEASE_LOOKUP" --tag vX.Y.Z --draft=false
 
 # Keep a beta marked as a prerelease:
-RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo gravity-code-hq/gravity --tag vX.Y.Z-beta.N)
+RELEASE_LOOKUP=$(node scripts/github-release.mjs --repo gravity-code-hq/gravity-code --tag vX.Y.Z-beta.N)
 gh release edit "$RELEASE_LOOKUP" --tag vX.Y.Z-beta.N --draft=false --prerelease
 ```
 
@@ -632,15 +632,15 @@ Every bullet must be scannable at a glance. The changelog is not release documen
 
 Every changelog bullet must credit contributors and link to the PR(s) that delivered the change. This is not one-PR-per-line — a single bullet describes a user-facing change and may reference multiple PRs.
 
-Format: append `([#123](https://github.com/gravity-code-hq/gravity/pull/123) by [@user](https://github.com/user))` at the end of each bullet. For changes spanning multiple PRs or contributors:
+Format: append `([#123](https://github.com/gravity-code-hq/gravity-code/pull/123) by [@user](https://github.com/user))` at the end of each bullet. For changes spanning multiple PRs or contributors:
 
 ```markdown
-- Voice mode now works on tablets with proper microphone permissions. ([#210](https://github.com/gravity-code-hq/gravity/pull/210), [#215](https://github.com/gravity-code-hq/gravity/pull/215) by [@alice](https://github.com/alice), [@bob](https://github.com/bob))
+- Voice mode now works on tablets with proper microphone permissions. ([#210](https://github.com/gravity-code-hq/gravity-code/pull/210), [#215](https://github.com/gravity-code-hq/gravity-code/pull/215) by [@alice](https://github.com/alice), [@bob](https://github.com/bob))
 ```
 
 Rules:
 
-- **Always link the PR number** as `[#N](https://github.com/gravity-code-hq/gravity/pull/N)`.
+- **Always link the PR number** as `[#N](https://github.com/gravity-code-hq/gravity-code/pull/N)`.
 - **Always link the contributor's GitHub profile** as `[@user](https://github.com/user)`.
 - **One bullet = one user-facing change**, regardless of how many PRs went into it. Group related PRs on the same bullet.
 - **De-duplicate contributors.** If the same person authored multiple PRs in one bullet, list them once.

@@ -219,7 +219,7 @@ Self-hosting the web UI puts you in charge of who can reach the daemon. The esse
 - **Keep the daemon on localhost when you can** and let a reverse proxy or tunnel be the only exposed surface.
 - **Review your host allowlist** when serving on a custom domain.
 
-For the full threat model, relay encryption, and DNS-rebinding details, see [Security](/docs/security) and [SECURITY.md](https://github.com/gravity-code-hq/gravity/blob/main/SECURITY.md).
+For the full threat model, relay encryption, and DNS-rebinding details, see [Security](/docs/security) and [SECURITY.md](https://github.com/gravity-code-hq/gravity-code/blob/main/SECURITY.md).
 
 ## Troubleshooting
 

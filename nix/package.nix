@@ -144,7 +144,7 @@ buildNpmPackage rec {
 
   meta = {
     description = "Self-hosted daemon for Claude Code, Codex, and OpenCode";
-    homepage = "https://github.com/gravity-code-hq/gravity";
+    homepage = "https://github.com/gravity-code-hq/gravity-code";
     license = lib.licenses.agpl3Plus;
     mainProgram = "gravity";
     platforms = lib.platforms.linux ++ lib.platforms.darwin;

@@ -13,7 +13,7 @@ category: Plugins
 > **Experimental:** The plugin API is still evolving, so expect breaking changes and updates to
 > your plugins as Gravity evolves.
 
-See the [plugin roadmap](https://github.com/gravity-code-hq/gravity/labels/plugins) for planned contribution
+See the [plugin roadmap](https://github.com/gravity-code-hq/gravity-code/labels/plugins) for planned contribution
 surfaces and their current status.
 
 Gravity plugins add native workspace panels, composer pills, Command Center items, global surfaces, app themes, daemon behavior, and composer attachment sources. They run on every Gravity client connected to the host, including mobile.

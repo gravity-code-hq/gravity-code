@@ -102,9 +102,9 @@ export function GreetingSurface({ theme, layout }: PluginSurfaceProps) {
         accessibilityRole="link"
         accessibilityLabel="Open the Gravity website"
         style={styles.button}
-        onPress={() => openExternal("https://github.com/gravity-code-hq/gravity")}
+        onPress={() => openExternal("https://github.com/gravity-code-hq/gravity-code")}
       >
-        <Text style={styles.buttonText}>Open github.com/gravity-code-hq/gravity</Text>
+        <Text style={styles.buttonText}>Open github.com/gravity-code-hq/gravity-code</Text>
       </Pressable>
     </View>
   );
