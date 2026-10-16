@@ -99,14 +99,14 @@ function initClonedRepo(): string {
   execFileSync("git", ["init", "--bare", "-b", "main", remote], { cwd: root, stdio: "pipe" });
   execFileSync("git", ["clone", "--quiet", remote, seed], { cwd: root, stdio: "pipe" });
   run(seed, "config", "user.email", "test@example.com");
-  run(seed, "config", "user.name", "Paseo Test");
+  run(seed, "config", "user.name", "Gravity Test");
   writeFileSync(join(seed, "README.md"), "hello\n");
   run(seed, "add", "-A");
   run(seed, "commit", "-m", "init");
   run(seed, "push", "--quiet", "-u", "origin", "main");
   execFileSync("git", ["clone", "--quiet", remote, work], { cwd: root, stdio: "pipe" });
   run(work, "config", "user.email", "test@example.com");
-  run(work, "config", "user.name", "Paseo Test");
+  run(work, "config", "user.name", "Gravity Test");
   return work;
 }
 
@@ -228,8 +228,8 @@ describe("createBranchFromBase", () => {
   });
 
   // https://github.com/getpaseo/paseo/issues/5213 — a branch that tracks origin/main sends the
-  // next push to main: `git push` under push.default=tracking and Paseo's own push both read
-  // branch.<name>.merge. A branch Paseo creates must carry no upstream, exactly as the worktree
+  // next push to main: `git push` under push.default=tracking and Gravity's own push both read
+  // branch.<name>.merge. A branch Gravity creates must carry no upstream, exactly as the worktree
   // path already guarantees with `git worktree add -b <branch> --no-track <base>`.
   test("leaves no upstream when the base is a remote-tracking ref (real repo)", async () => {
     const dir = initClonedRepo();

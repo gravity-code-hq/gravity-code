@@ -1844,7 +1844,7 @@ describe("Codex app-server provider", () => {
 
   test("rewinds a legacy conversation with a bounded fork on Codex without thread/rollback", async () => {
     const appServer = createFakeCodexAppServer({
-      initialize: () => ({ userAgent: "paseo/0.159.0 (Ubuntu 26.4.0; x86_64) (paseo; 0)" }),
+      initialize: () => ({ userAgent: "gravity/0.159.0 (Ubuntu 26.4.0; x86_64) (gravity; 0)" }),
       "thread/read": () => ({
         thread: { id: "thread-1", historyMode: "legacy", turns: [] },
       }),
@@ -1986,7 +1986,10 @@ describe("Codex app-server provider", () => {
         createConfig({
           cwd: "/workspace/project",
           mcpServers: {
-            paseo: { type: "http", url: "http://127.0.0.1:6767/mcp/agents?callerAgentId=agent-1" },
+            gravity: {
+              type: "http",
+              url: "http://127.0.0.1:6767/mcp/agents?callerAgentId=agent-1",
+            },
           },
         }),
         null,
@@ -2020,7 +2023,7 @@ describe("Codex app-server provider", () => {
         expect.objectContaining({
           ...customCodexConfig,
           mcp_servers: {
-            paseo: expect.objectContaining({
+            gravity: expect.objectContaining({
               url: "http://127.0.0.1:6767/mcp/agents?callerAgentId=agent-1",
             }),
           },
