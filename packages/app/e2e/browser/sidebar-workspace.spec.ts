@@ -82,6 +82,102 @@ test("workspace sidebar includes terminals alongside chats and follows terminal 
   }
 });
 
+test("closing an agent tab keeps its conversation in the sidebar until explicitly archived", async ({
+  page,
+}, testInfo) => {
+  const workspace = await seedWorkspace({ repoPrefix: "sidebar-close-agent-" });
+  try {
+    const agent = await createMockIdleAgent(workspace.client, {
+      cwd: workspace.repoPath,
+      workspaceId: workspace.workspaceId,
+      title: "Keep this conversation",
+    });
+    await gotoWorkspace(page, workspace.workspaceId);
+    const row = page.getByTestId(`sidebar-agent-${getServerId()}:${agent.id}`);
+    const tab = page
+      .getByTestId(`workspace-tab-agent_${agent.id}`)
+      .filter({ visible: true })
+      .first();
+    await row.click();
+    await tab.hover();
+    await page.getByTestId(`workspace-agent-close-${agent.id}`).filter({ visible: true }).click();
+    await expect(tab).toHaveCount(0);
+    await expect(row).toBeVisible();
+    expect((await workspace.client.fetchAgent({ agentId: agent.id }))?.agent.archivedAt).toBeNull();
+    await page.reload();
+    await expect(row).toBeVisible();
+    await expect(tab).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath("closed-tab-conversation-retained.png") });
+    await row.click();
+    await expect(tab).toHaveAttribute("aria-selected", "true");
+    await row.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Archive", exact: true }).click();
+    await expect(row).toHaveCount(0);
+    await expect(tab).toHaveCount(0);
+    expect(
+      (await workspace.client.fetchAgent({ agentId: agent.id }))?.agent.archivedAt,
+    ).not.toBeNull();
+  } finally {
+    await workspace.cleanup();
+  }
+});
+
+test("closing a running agent tab keeps it running and bulk close preserves conversations", async ({
+  page,
+}) => {
+  const session = await seedRunningMockAgentWorkspace({
+    repoPrefix: "sidebar-close-running-",
+    title: "Keep working after close",
+    model: "five-minute-stream",
+    initialPrompt: "Keep working",
+  });
+  try {
+    await openAgentRoute(page, session);
+    const row = page.getByTestId(`sidebar-agent-${getServerId()}:${session.agentId}`);
+    const tab = page
+      .getByTestId(`workspace-tab-agent_${session.agentId}`)
+      .filter({ visible: true })
+      .first();
+    await tab.click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Close", exact: true }).click();
+    await expect(tab).toHaveCount(0);
+    await expect(row).toBeVisible();
+    const agent = await session.client.fetchAgent({ agentId: session.agentId });
+    expect(agent?.agent.archivedAt).toBeNull();
+    const active = await session.client.fetchAgents({ scope: "active" });
+    expect(active.entries.find((entry) => entry.agent.id === session.agentId)?.agent.status).toBe(
+      "running",
+    );
+    await row.click();
+    const kept = await createMockIdleAgent(session.client, {
+      cwd: session.cwd,
+      workspaceId: session.workspaceId,
+      title: "Keep this tab open",
+    });
+    const keptRow = page.getByTestId(`sidebar-agent-${getServerId()}:${kept.id}`);
+    await keptRow.click();
+    const keptTab = page
+      .getByTestId(`workspace-tab-agent_${kept.id}`)
+      .filter({ visible: true })
+      .first();
+    await keptTab.click({ button: "right" });
+    page.once("dialog", (dialog) => void dialog.accept());
+    await page.getByRole("menuitem", { name: "Close other tabs", exact: true }).click();
+    await expect(tab).toHaveCount(0);
+    await expect(row).toBeVisible();
+    await expect(keptTab).toBeVisible();
+    const afterBulkClose = await session.client.fetchAgent({ agentId: session.agentId });
+    const activeAfterBulkClose = await session.client.fetchAgents({ scope: "active" });
+    expect(
+      activeAfterBulkClose.entries.find((entry) => entry.agent.id === session.agentId)?.agent
+        .status,
+    ).toBe("running");
+    expect(afterBulkClose?.agent.archivedAt).toBeNull();
+  } finally {
+    await session.cleanup();
+  }
+});
+
 test("workspace sidebar shows six chats, expands, and selects the matching tab", async ({
   page,
 }, testInfo) => {

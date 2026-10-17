@@ -5,6 +5,7 @@ import { TextInput } from "./text-input";
 import { copyText } from "./clipboard";
 import { useToast } from "./toast";
 import { useRevealedText } from "@/hooks/use-revealed-text";
+import { openExternalUrl } from "@/utils/open-external-url";
 
 export const pluginReactNativeRuntime = {
   Icon,
@@ -13,6 +14,7 @@ export const pluginReactNativeRuntime = {
   FlatList,
   TextInput,
   copyText,
+  openUrl: openExternalUrl,
   useRevealedText,
   useToast,
 };

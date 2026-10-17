@@ -207,6 +207,15 @@ em {
   gap: 15px;
   align-items: center;
 }
+.github-link {
+  display: inline-flex;
+  padding: 6px;
+  font-size: 20px;
+  color: var(--ink);
+}
+.github-link:hover {
+  color: var(--orange);
+}
 .menu-toggle {
   display: none;
   border: 0;

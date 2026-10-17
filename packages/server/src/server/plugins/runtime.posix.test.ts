@@ -1391,6 +1391,27 @@ export default function contribute(server: { registerProvider(provider: Provider
     await runtime.stopAll();
   });
 
+  it("loads the Sentry example and keeps the token and API out of the client bundle", async () => {
+    const directory = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../../../../plugin-examples/sentry",
+    );
+    const settingsDirectory = await mkdtemp(path.join(tmpdir(), "gravity-plugin-settings-"));
+    temporaryDirectories.push(settingsDirectory);
+    const runtime = createTestRuntime({ settingsDirectory }, undefined, "0.8.0");
+
+    await runtime.startPlugin("sentry", directory);
+
+    const clientBundle = runtime.catalog()[0]?.clientBundle ?? "";
+    expect(runtime.catalog().map((plugin) => plugin.id)).toEqual(["sentry"]);
+    expect(clientBundle).toContain("Connect Sentry");
+    expect(clientBundle).not.toContain("SENTRY_AUTH_TOKEN =");
+    expect(clientBundle).toContain("Create a personal token");
+    expect(clientBundle).not.toContain("Bearer ");
+    expect(clientBundle).not.toContain("/api/0");
+    await runtime.stopAll();
+  });
+
   it("explains that an index.ts plugin was made for an older Gravity version", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "gravity-plugin-"));
     temporaryDirectories.push(directory);

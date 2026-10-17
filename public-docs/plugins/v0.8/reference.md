@@ -149,7 +149,7 @@ in your browser and crashes on a phone is the most common plugin bug. The rules:
 | `View`, `Text`, `Pressable`, `ScrollView`, `TextInput` from `react-native` | `<div>`, `<span>`, `<button>`, or any HTML element                          |
 | `style` objects built from `theme.colors` and `layout.compact`             | `className`, CSS strings, or hardcoded colors                               |
 | `onPress`                                                                  | `onClick`, `onMouseEnter`, or other DOM handlers                            |
-| `Linking`, `Clipboard`-style React Native APIs                             | `window`, `document`, `localStorage`, `navigator`, `location` in components |
+| `openUrl` and `copyText` from `@gravity/plugin/client/react-native`        | `window`, `document`, `localStorage`, `navigator`, `location` in components |
 
 The scaffold's `tsconfig.json` omits the DOM library, so `document` and `window` are type errors
 everywhere by default. The one place browser APIs are allowed is `client/web.ts`. It declares the
@@ -159,23 +159,22 @@ alternative:
 `client/web.ts`:
 
 ```ts
-import { Linking, Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 
 // This plugin typechecks without the DOM library. Declare only what this module uses.
-declare const window: { open(url: string, target: string, features: string): unknown };
+declare const document: { visibilityState: "visible" | "hidden" };
 
-export async function openExternal(url: string): Promise<void> {
+export function isAppVisible(): boolean {
   if (Platform.OS === "web") {
-    window.open(url, "_blank", "noopener,noreferrer");
-    return;
+    return document.visibilityState === "visible";
   }
-  await Linking.openURL(url);
+  return AppState.currentState === "active";
 }
 ```
 
 Do not add `/// <reference lib="dom" />` or `"DOM"` to `lib`; either one turns DOM types back on
-for the whole project and hides the next mistake. Components import `openExternal` and never touch
-`window` themselves. `layout.platform` on surface and panel props carries the same value as
+for the whole project and hides the next mistake. Components import `isAppVisible` and never touch
+`document` themselves. `layout.platform` on surface and panel props carries the same value as
 `Platform.OS` for rendering decisions.
 
 Use the [settings API](#settings-screens) for typed host-scoped persistence across clients.
@@ -678,6 +677,7 @@ the `open` state.
 | -------------- | ------------------------- | -------- | -------------------------------------------- |
 | `title`        | `string`                  | Yes      | Labels the modal and its visible header.     |
 | `icon`         | `ReactNode`               | No       | Renders before the title in the header.      |
+| `size`         | `"default" \| "wide"`     | No       | `wide` widens the desktop dialog to 720px.   |
 | `open`         | `boolean`                 | Yes      | Shows the modal content when `true`.         |
 | `onOpenChange` | `(open: boolean) => void` | Yes      | Receives `false` when the user dismisses it. |
 | `children`     | `ReactNode`               | Yes      | Contains `Modal.Content`.                    |
@@ -777,6 +777,21 @@ API is needed for OS Paste. Avoid DOM clipboard code in native plugins and the d
 
 The runnable [modal UI example](https://github.com/gravity-code-hq/gravity-code/tree/main/plugin-examples/modal-ui)
 contains a padded form, full-width rows, a virtualized list, horizontal tabs, and a copy/paste input.
+
+### Open links
+
+`openUrl(url): Promise<void>` opens an http(s) URL in the user's default browser on desktop, a new
+tab on web, and the system handler on iOS and Android. It ignores other schemes. Do not call
+`window.open` or `Linking.openURL` for links: in the desktop app, `window.open` opens an Electron
+window that has none of the user's browser sign-ins.
+
+```tsx
+import { openUrl } from "@gravity/plugin/client/react-native";
+
+<Pressable accessibilityRole="link" onPress={() => void openUrl(issue.url)}>
+  <Text style={{ color: theme.colors.accent }}>Open in tracker</Text>
+</Pressable>;
+```
 
 ### Toasts
 

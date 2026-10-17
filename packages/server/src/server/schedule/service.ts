@@ -19,6 +19,7 @@ import { ScheduleStore } from "./store.js";
 import { computeNextRunAt, validateScheduleCadence } from "./cron.js";
 import type {
   CreateScheduleInput,
+  ScheduleCadence,
   ScheduleExecutionResult,
   ScheduleRun,
   ScheduleTarget,
@@ -328,10 +329,9 @@ export class ScheduleService {
   }
 
   /**
-   * Create every default template as a paused schedule, once per Gravity home.
+   * Seed defaults once per Gravity home, with only the inbox digest active.
    * The marker file records that seeding happened, so a template the user
-   * deletes stays deleted on the next start. Paused means nothing runs until
-   * the user opens one, points it at a project, and resumes it.
+   * deletes stays deleted on the next start.
    */
   async seedDefaultTemplates(input: {
     provider: AgentProvider;
@@ -351,12 +351,20 @@ export class ScheduleService {
       if (existingNames.has(template.name)) {
         continue;
       }
-      const now = this.now().toISOString();
+      const now = this.now();
+      const timestamp = now.toISOString();
+      const isActive = template.id === "inbox-digest";
+      const cadence: ScheduleCadence = {
+        type: "cron",
+        expression: template.cronExpression,
+        timezone: input.timezone,
+      };
+      const nextRunAt = isActive ? computeNextRunAt(cadence, now).toISOString() : null;
       created.push(
         await this.store.create({
           name: template.name,
           prompt: template.prompt,
-          cadence: { type: "cron", expression: template.cronExpression, timezone: input.timezone },
+          cadence,
           target: {
             type: "new-agent",
             config: {
@@ -369,12 +377,12 @@ export class ScheduleService {
               archiveOnFinish: false,
             },
           },
-          status: "paused",
-          createdAt: now,
-          updatedAt: now,
-          nextRunAt: null,
+          status: isActive ? "active" : "paused",
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          nextRunAt,
           lastRunAt: null,
-          pausedAt: now,
+          pausedAt: isActive ? null : timestamp,
           expiresAt: null,
           maxRuns: null,
           runs: [],

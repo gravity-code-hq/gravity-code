@@ -107,20 +107,19 @@ export const baseColors = {
   },
 } as const;
 
-// Diff colors — the +/- inside a diff view, where the color *is* the signal and has to
-// survive being scanned line by line, so it stays saturated. Light uses muted tones, dark
-// uses the brighter palette values.
-//
-// A diff *stat* — the "+12 −3" footnote next to a title — is not this. It is a status
-// signal, so it uses statusSuccess/statusDanger below rather than a tier of its own.
+// Diff rows use fresh green and coral; diff stats keep the shared status colors.
 const lightDiffColors = {
-  diffAddition: "#15803d", // green-700 — readable on white without screaming
-  diffDeletion: "#b91c1c", // red-700
+  diffAddition: "#19743e",
+  diffDeletion: "#b34842",
+  diffAdditionBackground: "#e7f7ec",
+  diffDeletionBackground: "#ffedea",
 };
 
 const darkDiffColors = {
-  diffAddition: "#4ade80", // green-400
-  diffDeletion: "#ef4444", // red-500
+  diffAddition: "#7fdca0",
+  diffDeletion: "#f29a90",
+  diffAdditionBackground: "#193526",
+  diffDeletionBackground: "#3d2524",
 };
 
 export const cursorCharcoalDiffColors = {
@@ -132,12 +131,12 @@ export const cursorCharcoalDiffColors = {
   headerBorder: "#303030",
   foreground: "#d4d4d4",
   foregroundMuted: "#929292",
-  addition: "#93c99b",
-  deletion: "#e3a1ab",
-  additionBackground: "#243e2e",
-  deletionBackground: "#41232d",
-  additionGutterBackground: "#243e2e",
-  deletionGutterBackground: "#41232d",
+  addition: darkDiffColors.diffAddition,
+  deletion: darkDiffColors.diffDeletion,
+  additionBackground: darkDiffColors.diffAdditionBackground,
+  deletionBackground: darkDiffColors.diffDeletionBackground,
+  additionGutterBackground: darkDiffColors.diffAdditionBackground,
+  deletionGutterBackground: darkDiffColors.diffDeletionBackground,
   emptyBackground: "#191919",
   syntax: {
     keyword: "#80cbc4",

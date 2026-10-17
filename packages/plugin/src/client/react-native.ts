@@ -22,6 +22,8 @@ import type { PluginIconProps } from "./contracts.js";
 export interface ModalProps {
   title: string;
   icon?: ReactNode;
+  /** Desktop dialog width. `wide` suits detail views; compact layouts always use a full-width sheet. */
+  size?: "default" | "wide";
   open: boolean;
   onOpenChange(open: boolean): void;
   children: ReactNode;
@@ -69,6 +71,11 @@ export declare function FlatList<Item>(
 ): ReactElement;
 /** Copies text to this client's clipboard. Rejects when copying is unavailable or denied. */
 export declare function copyText(text: string): Promise<void>;
+/**
+ * Opens an http(s) URL outside Gravity: the default browser on desktop, a new tab
+ * on web, and the system handler on mobile. Other schemes are ignored.
+ */
+export declare function openUrl(url: string): Promise<void>;
 
 /** Native input focus integrated with modal keyboard positioning. */
 export declare const TextInput: ForwardRefExoticComponent<

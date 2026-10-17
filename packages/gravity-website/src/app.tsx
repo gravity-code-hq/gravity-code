@@ -14,9 +14,16 @@ import {
 } from "lucide-react";
 import { Brand, GravityMark } from "./components/brand";
 import { Downloads, DownloadLink } from "./components/downloads";
-import { ClaudeLogo, CodexLogo, OpenCodeLogo, PiLogo } from "./components/provider-logos";
+import {
+  ClaudeLogo,
+  CodexLogo,
+  GitHubLogo,
+  OpenCodeLogo,
+  PiLogo,
+} from "./components/provider-logos";
 import { Orbit } from "./components/orbit";
 import { WorkspacePreview } from "./components/workspace-preview";
+import { GITHUB_REPO_URL } from "./releases";
 
 function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,6 +43,15 @@ function Header() {
         <a href="#faq">FAQs</a>
       </nav>
       <div className="header-actions">
+        <a
+          className="github-link"
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Gravity on GitHub"
+        >
+          <GitHubLogo />
+        </a>
         <DownloadLink small />
         <button
           type="button"
@@ -63,6 +79,9 @@ function Header() {
           </a>
           <a href="#faq">
             FAQs <ArrowRight size={16} />
+          </a>
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+            GitHub <ArrowUpRightSmall />
           </a>
           <a href="#download">
             Get Gravity <ArrowDown size={16} />
@@ -407,6 +426,9 @@ function Footer() {
           <a href="#features">Why Gravity</a>
           <a href="#workflow">How it works</a>
           <a href="#faq">FAQs</a>
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+            GitHub <ArrowUpRightSmall />
+          </a>
           <a href="#download">
             Get Gravity <ArrowUpRightSmall />
           </a>

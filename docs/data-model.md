@@ -397,7 +397,7 @@ Gravity uses these paths under the configured OpenAI base URL:
 
 One file per schedule. ID is 8 hex characters.
 
-The daemon seeds the default automations (`packages/protocol/src/schedule/templates.ts`) as paused schedules the first time it starts with a provider installed, then writes `schedules/.defaults-seeded`. The marker, not the schedule files, is what stops reseeding, so a user who deletes a default does not get it back. Delete the marker to seed again.
+The daemon seeds the default automations (`packages/protocol/src/schedule/templates.ts`) the first time it starts with a provider installed, then writes `schedules/.defaults-seeded`. Only Daily inbox digest starts active; Weekday repo health check and Daily change review start paused. The marker, not the schedule files, is what stops reseeding, so a user who deletes a default does not get it back. Delete the marker to seed again.
 
 | Field       | Type                                  | Description                      |
 | ----------- | ------------------------------------- | -------------------------------- |

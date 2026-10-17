@@ -3,9 +3,10 @@ import { Text, View } from "react-native";
 import { ExternalLink, Star } from "lucide-react-native";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
-import { GRAVITY_GITHUB_REPO_URL } from "@gravity/protocol/gravity-repo";
+import { GRAVITY_GITHUB_REPO, GRAVITY_GITHUB_REPO_URL } from "@gravity/protocol/gravity-repo";
 import { AdaptiveModalSheet, type SheetHeader } from "@/components/adaptive-modal-sheet";
 import { Button } from "@/components/ui/button";
+import { ExternalLink as RepositoryLink } from "@/components/ui/external-link";
 import { getHostRuntimeStore, useHosts } from "@/runtime/host-runtime";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import { openExternalUrl } from "@/utils/open-external-url";
@@ -116,6 +117,11 @@ function StarPromptSheetContent({ prompt, visible }: { prompt: OpenStarPrompt; v
         <Text style={styles.description}>
           {status === "starred" ? t("githubStar.thanks") : t("githubStar.description")}
         </Text>
+        <RepositoryLink
+          href={GRAVITY_GITHUB_REPO_URL}
+          label={GRAVITY_GITHUB_REPO}
+          testID="github-star-prompt-repository"
+        />
         {status !== "starred" ? (
           <StarPromptHint mode={mode} hostLabel={hostLabel} directStarFailed={directStarFailed} />
         ) : null}

@@ -462,6 +462,7 @@ describe("workspace-layout-store version 2 migration", () => {
       expect(Object.keys(persisted.state).sort()).toEqual([
         "explorerPaneIdByWorkspace",
         "explorerSidebarWidthByWorkspace",
+        "hiddenAgentIdsByWorkspace",
         "layoutByWorkspace",
         "pinnedAgentIdsByWorkspace",
         "sidePaneIdByWorkspace",
@@ -1134,6 +1135,42 @@ describe("workspace-layout-store actions", () => {
     const state = restored.getState();
     expect(state.layoutByWorkspace.renamed).toBeTruthy();
     expect(state.explorerSidebarPaneIdByWorkspace.renamed).toBe("explorer");
+  });
+
+  it("keeps dismissed agent tabs closed after reload and allows reopening them", async () => {
+    await AsyncStorage.removeItem("workspace-layout-state");
+    const workspaceKey = createWorkspaceKey();
+    const source = createWorkspaceLayoutStore(createDeterministicWorkspaceLayoutIds());
+    await source.persist.rehydrate();
+    const tabId = source.getState().openTab({
+      workspaceKey,
+      target: { kind: "agent", agentId: "agent-1" },
+      intent: "reveal",
+    });
+    if (!tabId) throw new Error("Agent tab was not opened");
+    source.getState().hideAgent(workspaceKey, "agent-1");
+    source.getState().closeTab(workspaceKey, tabId);
+    await vi.waitFor(async () => {
+      expect(await AsyncStorage.getItem("workspace-layout-state")).not.toBeNull();
+    });
+    const restored = createWorkspaceLayoutStore(createDeterministicWorkspaceLayoutIds());
+    await restored.persist.rehydrate();
+    restored.getState().reconcileTabs(workspaceKey, {
+      agentsHydrated: true,
+      terminalsHydrated: true,
+      activeAgentIds: ["agent-1"],
+      autoOpenAgentIds: ["agent-1"],
+      standaloneTerminalIds: [],
+    });
+    expect(contentTabs(restored.getState().getWorkspaceTabs(workspaceKey))).toEqual([]);
+    restored.getState().openTab({
+      workspaceKey,
+      target: { kind: "agent", agentId: "agent-1" },
+      intent: "reveal",
+    });
+    expect(
+      contentTabs(restored.getState().getWorkspaceTabs(workspaceKey)).map((tab) => tab.target),
+    ).toEqual([{ kind: "agent", agentId: "agent-1" }]);
   });
 
   it("persists first-class pane targets, visibility, and focus", async () => {
@@ -2942,6 +2979,7 @@ describe("workspace-layout-store actions", () => {
     expect(persisted).toEqual({
       layoutByWorkspace: { [workspaceKey]: layout },
       pinnedAgentIdsByWorkspace: {},
+      hiddenAgentIdsByWorkspace: {},
       splitSizesByWorkspace: currentState.splitSizesByWorkspace,
       explorerSidebarWidthByWorkspace: currentState.explorerSidebarWidthByWorkspace,
       explorerPaneIdByWorkspace: {},
@@ -3135,7 +3173,7 @@ describe("workspace-layout-store actions", () => {
     });
   });
 
-  it("keeps hidden agent intents in memory per workspace without persisting them", () => {
+  it("persists hidden agent intents independently per workspace", () => {
     const workspaceKey = createWorkspaceKey();
     const otherWorkspaceKey = buildWorkspaceTabPersistenceKey({
       serverId: SERVER_ID,
@@ -3168,6 +3206,7 @@ describe("workspace-layout-store actions", () => {
     expect(partialize?.(state)).toEqual({
       layoutByWorkspace: {},
       pinnedAgentIdsByWorkspace: {},
+      hiddenAgentIdsByWorkspace: { [otherWorkspaceKey as string]: ["agent-2"] },
       splitSizesByWorkspace: {},
       explorerSidebarWidthByWorkspace: {},
       explorerPaneIdByWorkspace: {},

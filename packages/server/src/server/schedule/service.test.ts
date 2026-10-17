@@ -217,7 +217,7 @@ describe("ScheduleService", () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  test("seeds default templates paused once and respects later deletions", async () => {
+  test("seeds only the inbox digest active once and respects later deletions", async () => {
     const service = createScheduleService({
       gravityHome: tempDir,
       logger: createTestLogger(),
@@ -235,11 +235,13 @@ describe("ScheduleService", () => {
       "Weekday repo health check",
       "Daily change review",
     ]);
+    expect(seeded).toMatchObject([
+      { status: "active", nextRunAt: "2026-01-01T07:00:00.000Z", pausedAt: null },
+      { status: "paused", nextRunAt: null, pausedAt: now.toISOString() },
+      { status: "paused", nextRunAt: null, pausedAt: now.toISOString() },
+    ]);
     for (const schedule of seeded) {
       expect(schedule).toMatchObject({
-        status: "paused",
-        nextRunAt: null,
-        pausedAt: now.toISOString(),
         cadence: { type: "cron", timezone: "Europe/Paris" },
         target: {
           type: "new-agent",
@@ -254,10 +256,14 @@ describe("ScheduleService", () => {
       });
     }
 
-    // Nothing runs while paused.
-    now = new Date("2026-01-02T08:00:00.000Z");
     await service.tick();
     expect((await service.inspect(seeded[0]!.id)).runs).toHaveLength(0);
+
+    now = new Date("2026-01-02T08:00:00.000Z");
+    await service.tick();
+    expect((await service.inspect(seeded[0]!.id)).runs).toHaveLength(1);
+    expect((await service.inspect(seeded[1]!.id)).runs).toHaveLength(0);
+    expect((await service.inspect(seeded[2]!.id)).runs).toHaveLength(0);
 
     // Seeding is one-shot: a deleted default stays deleted.
     await service.delete(seeded[0]!.id);

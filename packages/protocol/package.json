@@ -1,6 +1,6 @@
 {
   "name": "@gravity/protocol",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Gravity shared protocol schemas and wire types",
   "files": [
     "dist",

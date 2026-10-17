@@ -8,8 +8,12 @@ import { usePluginRuntimeContextBridge } from "@gravity/plugin/client/host";
 import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
 import { ToastApiProvider, useToast as useAppToast } from "@/contexts/toast-api-context";
 
+/** Matches the first-party wide sheets, such as provider settings. */
+const WIDE_DESKTOP_MAX_WIDTH = 720;
+
 interface ModalContextValue {
   open: boolean;
+  desktopMaxWidth: number | undefined;
   dismiss(): void;
   header: {
     title: string;
@@ -19,12 +23,16 @@ interface ModalContextValue {
 
 const ModalContext = createContext<ModalContextValue | null>(null);
 
-function ModalRoot({ title, icon, open, onOpenChange, children }: ModalProps) {
+function ModalRoot({ title, icon, size, open, onOpenChange, children }: ModalProps) {
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
   const dismiss = useCallback(() => onOpenChangeRef.current(false), []);
   const header = useMemo(() => ({ title, leading: icon }), [icon, title]);
-  const value = useMemo(() => ({ open, dismiss, header }), [dismiss, header, open]);
+  const desktopMaxWidth = size === "wide" ? WIDE_DESKTOP_MAX_WIDTH : undefined;
+  const value = useMemo(
+    () => ({ open, dismiss, header, desktopMaxWidth }),
+    [desktopMaxWidth, dismiss, header, open],
+  );
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
 }
 
@@ -65,6 +73,7 @@ function ModalContent({
       contentStyle={contentContainerStyle}
       scrollable={scrollable}
       desktopHeight={scrollable ? undefined : "85%"}
+      desktopMaxWidth={modal.desktopMaxWidth}
     >
       {children}
     </AdaptiveModalSheet>

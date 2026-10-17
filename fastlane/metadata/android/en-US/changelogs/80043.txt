@@ -1,0 +1,10 @@
+Added
+- Sentry plugin example for browsing issues, inspecting stack traces, and starting an agent to investigate or fix a bug
+- Wide plugin dialogs and support for opening links in your browser
+
+Changed
+- Closing an agent tab keeps its conversation available and remembers the closed tab after restarting
+- The inbox digest automation starts enabled on fresh setups
+- Updated addition and deletion colors in file diffs
+
+Full notes: https://github.com/gravity-code-hq/gravity-code/changelog

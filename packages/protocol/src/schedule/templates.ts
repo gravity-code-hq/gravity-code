@@ -1,6 +1,6 @@
 /**
- * Default automations. The daemon seeds every one of these as a paused
- * schedule on first start (`ScheduleService.seedDefaultTemplates`), and the
+ * Default automations. The daemon seeds these on first start
+ * (`ScheduleService.seedDefaultTemplates`), and the
  * app offers the same list as starting points in the create form. A template
  * only fixes name, prompt, and cadence; host, project, and model stay the
  * user's choice. Prompts avoid repo-specific assumptions because the same

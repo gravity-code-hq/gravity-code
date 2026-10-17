@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.8.4 - 2026-10-16
+
+### Added
+
+- Sentry plugin example for browsing issues, inspecting stack traces, and starting an agent to investigate or fix a bug
+- Wide plugin dialogs and support for opening links in your browser
+
+### Changed
+
+- Closing an agent tab keeps its conversation available and remembers the closed tab after restarting
+- The inbox digest automation starts enabled on fresh setups
+- Updated addition and deletion colors in file diffs
+
+### Fixed
+
+- Claude conversation rewind with custom configuration directories and unanswered turns
+- Claude context meter limits for custom models and usage reported late
+- Background Claude subagent labels after streaming and daemon restarts
+- Codex approval handling for repeated callbacks and declined commands
+- Codex rewind on older versions and preservation of custom provider settings
+- Missing file changes with custom Git diff settings, renamed files, or subdirectory workspaces
+- New branches inheriting an upstream that could send their first push to main
+- Directory searches timing out or blocking other searches
+- Daemon startup with stale PID files and crashes when log output cannot be written
+- Daemon memory growth after sessions close and excess watcher work in ignored directories
+- Stalled encrypted relay connections remaining open indefinitely
+
 ## 0.8.3 - 2026-10-12
 
 ### Added

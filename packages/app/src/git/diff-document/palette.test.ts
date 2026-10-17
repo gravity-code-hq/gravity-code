@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { darkPureBlackTheme, darkTheme, lightTheme } from "@/styles/theme";
-import { hexColorWithAlpha } from "@/utils/color";
 import { codeLineNumberTone, codeTextColor, createDiffPalette, retainDiffPalette } from "./palette";
 import type { DiffCell, DiffPalette } from "./types";
 
@@ -37,15 +36,20 @@ describe("diff palette retention", () => {
 });
 
 describe("diff colors", () => {
-  it("preserves light mode's semantic gutter text and row tints", () => {
+  it("uses fresh green and coral without changing light mode's surfaces or syntax", () => {
     const theme = lightTheme;
     const created = createDiffPalette(theme);
 
-    expect(created.addition).toBe(theme.colors.statusSuccess);
-    expect(created.deletion).toBe(theme.colors.statusDanger);
-    expect(created.additionBackground).toBe(hexColorWithAlpha(theme.colors.statusSuccess, 0.15));
-    expect(created.deletionBackground).toBe(hexColorWithAlpha(theme.colors.statusDanger, 0.1));
+    expect(created.addition).toBe("#19743e");
+    expect(created.deletion).toBe("#b34842");
+    expect(created.additionBackground).toBe("#e7f7ec");
+    expect(created.deletionBackground).toBe("#ffedea");
+    expect(created.additionGutterBackground).toBe(created.additionBackground);
+    expect(created.deletionGutterBackground).toBe(created.deletionBackground);
     expect(created.surface).toBe(theme.colors.surface0);
+    expect(created.headerSurface).toBe(theme.colors.surface1);
+    expect(created.statusSuccess).toBe(theme.colors.statusSuccess);
+    expect(created.statusDanger).toBe(theme.colors.statusDanger);
     expect(created.syntax).toBe(theme.colors.syntax);
   });
 
@@ -55,8 +59,10 @@ describe("diff colors", () => {
       const created = createDiffPalette(theme);
 
       expect(created.surface).toBe("#191919");
-      expect(created.additionBackground).toBe("#243e2e");
-      expect(created.deletionBackground).toBe("#41232d");
+      expect(created.addition).toBe("#7fdca0");
+      expect(created.deletion).toBe("#f29a90");
+      expect(created.additionBackground).toBe("#193526");
+      expect(created.deletionBackground).toBe("#3d2524");
       expect(created.additionGutterBackground).toBe(created.additionBackground);
       expect(created.deletionGutterBackground).toBe(created.deletionBackground);
       expect(created.emptyBackground).toBe(created.surface);

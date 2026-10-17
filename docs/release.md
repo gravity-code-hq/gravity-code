@@ -130,39 +130,50 @@ as described in **Fixing a failed release build**.
 
 ## Shipping from this fork
 
-The `release:*` scripts below publish npm packages and push the release tag. Neither applies
-here: the `@gravity/*` packages are not on npm, and a `v*` tag push would run the full
-private-repo pipeline (two Mac runners, Windows, Android, Docker) and create the release in
-the private repo instead of `gravity-code-hq/gravity-code`. The public release is assembled by
-hand from no-publish CI builds:
+Build and publish desktop releases in `gravity-code-hq/gravity-code`. Use the
+`puremetall` identity described below. The personal Codex `/gravity-deploy` command
+uses `/Users/shreeshiv/github/coding-agent/gravity-code` and this desktop-only flow.
+Do not run `release:*` scripts: they publish npm packages and push tags.
 
-1. Prepare as usual: changelog entry committed, `npm run release:prepare` churn committed,
-   then `npm run version:all:patch` (or `minor`). This creates the `chore(release): cut X.Y.Z`
-   commit and a local `vX.Y.Z` tag. Push `main` only. Never push the tag.
-2. Dispatch `desktop-release.yml` once per platform with `publish=false`, `tag=vX.Y.Z`, and
-   `checkout_ref=<full release commit sha>`. Use `platform=macos` with `mac_arch=arm64` for
-   Apple Silicon and `platform=linux` for the `.deb`. No-publish runs get a concurrency group per
-   platform, so both build in parallel. Short SHAs fail at checkout.
-3. Download the `desktop-macos-arm64` and `desktop-linux` run artifacts. They contain the
-   versioned installers, blockmaps, the fixed-name `gravity-macos-arm64.dmg` and
-   `gravity-linux-x64.deb`, and the raw `latest-mac.yml` and `latest-linux.yml`.
-4. Finish the manifests the way `finalize-rollout` would:
+1. Fetch `origin`, verify the release source, and run format, lint, and typecheck.
+   Include local commits only when the user authorizes them. Prepare a patch-version
+   changelog, then run `npm version X.Y.Z --include-workspace-root --no-git-tag-version`.
+   Verify every workspace version. Commit all authorized changes once and push `main`
+   once. Do not push a tag or publish npm packages.
+2. Dispatch `desktop-release.yml` twice in `gravity-code-hq/gravity-code`, both from
+   `main` with `publish=false`, `tag=vX.Y.Z`, and `checkout_ref=<full release commit sha>`.
+   Use `platform=macos` with `mac_arch=arm64` and `platform=linux` for x64. Dispatch both
+   before waiting for either. The no-publish concurrency groups include the platform,
+   so the runs can overlap without canceling each other. Do not select `all` or enable
+   other workflows. Local Docker and Rosetta are not required.
+3. Download `desktop-macos-arm64` and `desktop-linux` into separate empty directories.
+   Preserve the hosted workflow's smoke checks. Mount the DMG read-only and verify
+   `spctl` reports `Notarized Developer ID` and `xcrun stapler validate` passes, then detach.
+   Collect the six Mac and six Linux assets in one fresh upload directory, excluding
+   builder diagnostics.
+4. From the repository, finish the manifests using absolute paths:
 
    ```bash
-   node scripts/merge-mac-manifest.mjs latest-mac.yml latest-mac.yml latest-mac.yml   # adds minimumSystemVersion
+   node scripts/merge-mac-manifest.mjs "$upload/latest-mac.yml" "$upload/latest-mac.yml" "$upload/latest-mac.yml"
    ts="$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
-   node scripts/stamp-rollout.mjs --release-date "$ts" --rollout-hours 36 latest-mac.yml latest-linux.yml
-   node scripts/validate-desktop-manifests.mjs --release-date "$ts" --rollout-hours 36 latest-mac.yml latest-linux.yml
+   node scripts/stamp-rollout.mjs --release-date "$ts" --rollout-hours 0 "$upload/latest-mac.yml" "$upload/latest-linux.yml"
+   node scripts/validate-desktop-manifests.mjs --release-date "$ts" --rollout-hours 0 "$upload/latest-mac.yml" "$upload/latest-linux.yml"
    ```
 
-5. Create the public release as a draft with the changelog entry as its body, upload every
-   installer, blockmap, fixed-name asset, and both manifests, confirm the asset list, then
-   clear the draft flag. `latest` only moves once the release is published, so the website
-   buttons never see a half-uploaded release. Run every `gh` step with the `shreeshiv` token
-   (see **GitHub identity for pushes and releases**).
+5. Create the public release as a draft without assets, targeting the exact release
+   commit. Record its numeric ID, then upload the 12 assets individually with up to
+   three retries. Address drafts by ID or upload URL; duplicate draft tags are ambiguous.
+   Verify every asset is uploaded and its size matches the local file before publishing
+   with `draft=false` and `make_latest=true`. Delete only stray drafts created by this
+   attempt, by ID. Verify the fixed-name Mac and Linux downloads and the Mac manifest;
+   its version must match and `rolloutHours` must be zero.
+
+Report both run IDs and durations, whether they overlapped, the release commit, URL,
+and asset names. If a run fails immediately, read its check-run annotations. Stop on
+billing or spending-limit failures. Do not bump the version to retry a failed build.
 
 Not applicable to this fork: npm dist-tags, EAS mobile builds, the Docker image, and
-`Release Notes Sync`. The 0.8.2 release on 2026-10-08 was the first cut through this path.
+`Release Notes Sync`. The upstream release flows below do not override this fork flow.
 
 ## Standard release (stable)
 
@@ -453,20 +464,19 @@ The GitHub Release body is populated automatically by the `Release Notes Sync` w
 
 ## GitHub identity for pushes and releases
 
-Every push to `origin` and every GitHub Release action (create, upload, edit) runs as the
-`shreeshiv` account.
+Use `puremetall` for release commits, pushes, builds, and GitHub Release actions.
 
-- Git pushes go over HTTPS through `gh auth git-credential`.
-- `gh` keeps several logins. Release commands take the `shreeshiv` token explicitly so the
-  active account never matters:
+- Set the repository-local name to `puremetall` and email to
+  `229878242+puremetall@users.noreply.github.com`. Do not change global Git identity.
+- Push over SSH with `~/.ssh/id_gravity` and `IdentitiesOnly=yes`. Verify the key
+  authenticates as `puremetall` before pushing.
+- Prefix every `gh` call with the explicit token selection; never switch the active login:
 
 ```bash
-export GH_TOKEN="$(gh auth token --user shreeshiv)"
-gh release upload vX.Y.Z packages/desktop/release/gravity-linux-x64.deb --repo gravity-code-hq/gravity-code --clobber
+GH_TOKEN="$(gh auth token --user puremetall)" gh api user --jq .login
 ```
 
-- Commits carry `22559884+shreeshiv@users.noreply.github.com` as the author email through the
-  repo-level `user.email`.
+Do not add Claude attribution to commits.
 
 ## Fixing a failed release build
 

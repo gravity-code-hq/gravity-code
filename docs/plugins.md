@@ -509,5 +509,6 @@ preference instead of painting the reserved slot's placeholder colors.
 Existing plugin authors should follow the standalone [v0.8 runtime-entry migration guide](../public-docs/plugins/v0.8/migration.md).
 
 See `plugin-examples/local-plugin` for a native surface, `plugin-examples/linear` for a complete
-attachment-source example, `plugin-examples/timeline-items` for timeline projection, and
+attachment-source example, `plugin-examples/sentry` for a sidebar screen backed by a vendor API that
+starts agents through `useGravity()`, `plugin-examples/timeline-items` for timeline projection, and
 `plugin-examples/catppuccin` for a theme.
