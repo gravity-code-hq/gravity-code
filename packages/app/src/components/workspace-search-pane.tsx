@@ -10,16 +10,13 @@ import {
   type TextInputKeyPressEventData,
 } from "react-native";
 import {
-  CaseSensitive,
   ChevronsDownUp,
   ChevronsUpDown,
   CopyMinus,
   Ellipsis,
-  Regex,
   RefreshCw,
   Search,
   TriangleAlert,
-  WholeWord,
   X,
 } from "lucide-react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
@@ -39,6 +36,10 @@ import {
   ToolbarButton,
   ToolbarControls,
 } from "@/components/ui/pane-content-toolbar";
+import {
+  SearchOptionToggles,
+  type SearchOption as OptionToggle,
+} from "@/components/ui/search-option-toggles";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   EditingTextInput as TextInput,
@@ -69,9 +70,6 @@ import type { Theme } from "@/styles/theme";
 
 const ThemedSearch = withUnistyles(Search);
 const ThemedX = withUnistyles(X);
-const ThemedCaseSensitive = withUnistyles(CaseSensitive);
-const ThemedWholeWord = withUnistyles(WholeWord);
-const ThemedRegex = withUnistyles(Regex);
 const ThemedEllipsis = withUnistyles(Ellipsis);
 const ThemedRefreshCw = withUnistyles(RefreshCw);
 const ThemedCopyMinus = withUnistyles(CopyMinus);
@@ -101,8 +99,6 @@ export interface WorkspaceSearchLocation {
   path: string;
   line?: number;
 }
-
-type OptionToggle = "caseSensitive" | "wholeWord" | "regex";
 
 export interface WorkspaceSearchController {
   query: string;
@@ -341,50 +337,6 @@ function FilterField({
   );
 }
 
-/** One of the three toggles VS Code's FindInput draws inside the field. */
-function InlineToggle({
-  option,
-  label,
-  selected,
-  onToggle,
-  Icon,
-  testID,
-}: {
-  option: OptionToggle;
-  label: string;
-  selected: boolean;
-  onToggle: (option: OptionToggle) => void;
-  Icon: typeof ThemedCaseSensitive;
-  testID: string;
-}) {
-  const handlePress = useCallback(() => onToggle(option), [onToggle, option]);
-  const accessibilityState = useMemo(() => ({ checked: selected }), [selected]);
-  const toggleStyle = useCallback(
-    ({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) => [
-      styles.inlineToggle,
-      (Boolean(hovered) || pressed) && styles.inlineToggleHovered,
-      selected && styles.inlineToggleSelected,
-    ],
-    [selected],
-  );
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={toggleStyle}
-      accessibilityRole="checkbox"
-      accessibilityState={accessibilityState}
-      accessibilityLabel={label}
-      hitSlop={4}
-      testID={testID}
-    >
-      <Icon
-        size={INLINE_TOGGLE_ICON_SIZE}
-        uniProps={selected ? foregroundIconColorMapping : mutedIconColorMapping}
-      />
-    </Pressable>
-  );
-}
-
 function SearchQueryField({
   query,
   mode,
@@ -456,32 +408,7 @@ function SearchQueryField({
         </Pressable>
       ) : null}
       {mode === "contents" ? (
-        <View style={styles.inlineToggles}>
-          <InlineToggle
-            option="caseSensitive"
-            label={t("panels.search.options.caseSensitive")}
-            selected={options.caseSensitive}
-            onToggle={onToggleOption}
-            Icon={ThemedCaseSensitive}
-            testID="search-toggle-case"
-          />
-          <InlineToggle
-            option="wholeWord"
-            label={t("panels.search.options.wholeWord")}
-            selected={options.wholeWord}
-            onToggle={onToggleOption}
-            Icon={ThemedWholeWord}
-            testID="search-toggle-word"
-          />
-          <InlineToggle
-            option="regex"
-            label={t("panels.search.options.regex")}
-            selected={options.regex}
-            onToggle={onToggleOption}
-            Icon={ThemedRegex}
-            testID="search-toggle-regex"
-          />
-        </View>
+        <SearchOptionToggles options={options} onToggle={onToggleOption} testIDPrefix="search" />
       ) : null}
     </View>
   );
@@ -980,25 +907,6 @@ const styles = StyleSheet.create((theme) => ({
     outlineWidth: 0,
     color: theme.colors.foreground,
     fontSize: theme.fontSize.base,
-  },
-  inlineToggles: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing[0.5],
-    flexShrink: 0,
-  },
-  inlineToggle: {
-    width: 22,
-    height: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.borderRadius.base,
-  },
-  inlineToggleHovered: {
-    backgroundColor: theme.colors.interactionHighlight,
-  },
-  inlineToggleSelected: {
-    backgroundColor: theme.colors.surface3,
   },
   modeRow: {
     flexDirection: "row",

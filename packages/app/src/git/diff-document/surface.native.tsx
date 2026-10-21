@@ -22,6 +22,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { InlineReviewThread } from "@/review";
 import { useKeyboardShift } from "@/hooks/keyboard-shift-context";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
+import { diffFileHeaderTrailingInset } from "@/git/file-header-presentation";
 import { DocumentFileHeader } from "./document-file-header";
 import {
   diffInteractionWindowTop,
@@ -390,9 +391,10 @@ function NativeCanvasFileHeader({
   onSelectPath: DiffSurfaceProps["onSelectPath"];
 }) {
   const [active, setActive] = useState(false);
+  const trailingInset = diffFileHeaderTrailingInset(mode);
   const picture = useMemo(
-    () => recordNativeHeaderPicture({ file, viewportWidth, textLayout, paints }),
-    [file, paints, textLayout, viewportWidth],
+    () => recordNativeHeaderPicture({ file, viewportWidth, textLayout, paints, trailingInset }),
+    [file, paints, textLayout, trailingInset, viewportWidth],
   );
   const { top, bottom, headerHeight } = file;
   const stickyStyle = useAnimatedStyle(() => {

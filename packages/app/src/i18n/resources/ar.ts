@@ -154,6 +154,10 @@ export const ar: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "استخدام",
+      acceptLabel: "استخدام الرسالة المقترحة",
+    },
     placeholders: {
       desktop: "أرسل رسالة إلى الوكيل أو ضع علامة على @files أو استخدم /commands و /skills",
       mobile: "الرسالة، @files ، /commands",
@@ -2657,6 +2661,16 @@ export const ar: TranslationResources = {
           update: "تحديث المهارة",
           delete: "حذف المهارة",
         },
+      },
+      promptSuggestions: {
+        title: "اقتراحات الرسائل",
+        hint: "بعد كل دور، يتوقع رسالتك التالية ويعرضها في مربع الإدخال الفارغ. كل اقتراح هو طلب قصير واحد إلى نموذج.",
+        model: "نموذج الاقتراحات",
+        modelAgent: "مثل الوكيل",
+        modelMetadata: "نموذج البيانات الوصفية",
+        modelAgentHint: "يستخدم مزوّد الوكيل نفسه ويفضّل أصغر نماذجه. تبقى المحادثة لدى ذلك المزوّد.",
+        modelMetadataHint: "يستخدم نموذج توليد البيانات الوصفية، وقد يكون من مزوّد مختلف عن الوكيل.",
+        saveFailed: "تعذّر الحفظ: {{message}}",
       },
       orchestration: {
         title: "التنسيق",

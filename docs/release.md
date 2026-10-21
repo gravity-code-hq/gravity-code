@@ -130,9 +130,9 @@ as described in **Fixing a failed release build**.
 
 ## Shipping from this fork
 
-Build and publish desktop releases in `gravity-code-hq/gravity-code`. Use the
-`puremetall` identity described below. The personal Codex `/gravity-deploy` command
-uses `/Users/shreeshiv/github/coding-agent/gravity-code` and this desktop-only flow.
+Build and publish desktop releases in `gravity-code-hq/gravity-code`. Follow
+[GitHub identity for pushes and releases](#github-identity-for-pushes-and-releases). The personal Codex `/gravity-deploy` command
+uses `gravity-code` and this desktop-only flow.
 Do not run `release:*` scripts: they publish npm packages and push tags.
 
 1. Fetch `origin`, verify the release source, and run format, lint, and typecheck.
@@ -461,22 +461,6 @@ The GitHub Release body is populated automatically by the `Release Notes Sync` w
 - GitHub's `latest` skips drafts and prereleases, so the download buttons only move when a stable release is published. A beta never replaces them.
 - The fixed-name `gravity-macos-<arch>.dmg` and `gravity-linux-x64.deb` assets are uploaded by `desktop-release.yml` next to the versioned artifacts. Rename either and that button breaks for every visitor.
 - A stable release is incomplete for the website until both fixed-name assets exist on it. If only one platform built, the other button serves a 404 until that platform is rebuilt (see **Fixing a failed release build**).
-
-## GitHub identity for pushes and releases
-
-Use `puremetall` for release commits, pushes, builds, and GitHub Release actions.
-
-- Set the repository-local name to `puremetall` and email to
-  `229878242+puremetall@users.noreply.github.com`. Do not change global Git identity.
-- Push over SSH with `~/.ssh/id_gravity` and `IdentitiesOnly=yes`. Verify the key
-  authenticates as `puremetall` before pushing.
-- Prefix every `gh` call with the explicit token selection; never switch the active login:
-
-```bash
-GH_TOKEN="$(gh auth token --user puremetall)" gh api user --jq .login
-```
-
-Do not add Claude attribution to commits.
 
 ## Fixing a failed release build
 

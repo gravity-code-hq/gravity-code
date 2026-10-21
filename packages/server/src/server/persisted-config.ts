@@ -17,6 +17,7 @@ import {
   TerminalProfileSchema,
 } from "@gravity/protocol/messages";
 import { GravityServicePortAllocationSchema } from "@gravity/protocol/gravity-config-schema";
+import { PromptSuggestionModelSourceSchema } from "@gravity/protocol/messages";
 
 export const LogLevelSchema = z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
 export const LogFormatSchema = z.enum(["pretty", "json"]);
@@ -177,6 +178,13 @@ const AgentMetadataGenerationSchema = z
   })
   .strict();
 
+const AgentPromptSuggestionsSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    model: PromptSuggestionModelSourceSchema.optional(),
+  })
+  .strict();
+
 const BUILTIN_PROVIDER_IDS = ["claude", "codex", "copilot", "opencode", "pi", "omp"] as const;
 
 function isLegacyProviderEntry(value: unknown): boolean {
@@ -318,6 +326,7 @@ export const PersistedConfigSchema = z
         providers: z.preprocess(normalizeAgentProviders, ProviderOverridesSchema).optional(),
         catalogRefreshTimeoutMs: z.number().int().positive().max(2_147_483_647).optional(),
         metadataGeneration: AgentMetadataGenerationSchema.optional(),
+        promptSuggestions: AgentPromptSuggestionsSchema.optional(),
         skills: z.object({ selection: AgentSkillSelectionSchema.optional() }).strict().optional(),
       })
       .strict()

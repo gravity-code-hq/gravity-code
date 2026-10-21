@@ -153,6 +153,10 @@ export const en = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "Use",
+      acceptLabel: "Use suggested message",
+    },
     placeholders: {
       desktop: "Message the agent, tag @files, or use /commands and /skills",
       mobile: "Message, @files, /commands",
@@ -2785,6 +2789,18 @@ export const en = {
           update: "Update skill",
           delete: "Delete skill",
         },
+      },
+      promptSuggestions: {
+        title: "Prompt suggestions",
+        hint: "After a turn, guess your next message and show it in the empty message box. Each guess is one short model request.",
+        model: "Suggestion model",
+        modelAgent: "Same as agent",
+        modelMetadata: "Metadata model",
+        modelAgentHint:
+          "Uses the agent's own provider, preferring its smallest model. The conversation stays with that provider.",
+        modelMetadataHint:
+          "Uses the metadata generation model, which can be a different provider than the agent.",
+        saveFailed: "Could not save: {{message}}",
       },
       orchestration: {
         title: "Orchestration",

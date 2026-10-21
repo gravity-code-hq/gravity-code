@@ -155,6 +155,10 @@ export const ja: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "使う",
+      acceptLabel: "提案されたメッセージを使う",
+    },
     placeholders: {
       desktop: "エージェントにメッセージ、@ファイル、/コマンドや/スキルを入力",
       mobile: "メッセージ、@ファイル、/コマンド",
@@ -2685,6 +2689,18 @@ export const ja: TranslationResources = {
           update: "スキルを更新",
           delete: "スキルを削除",
         },
+      },
+      promptSuggestions: {
+        title: "プロンプト候補",
+        hint: "ターンの後に次のメッセージを予測し、空の入力欄に表示します。予測ごとにモデルへ短いリクエストを1回送ります。",
+        model: "候補のモデル",
+        modelAgent: "エージェントと同じ",
+        modelMetadata: "メタデータ用モデル",
+        modelAgentHint:
+          "エージェント自身のプロバイダーを使い、最小のモデルを優先します。会話はそのプロバイダーの外に出ません。",
+        modelMetadataHint:
+          "メタデータ生成用のモデルを使います。エージェントとは別のプロバイダーになる場合があります。",
+        saveFailed: "保存できませんでした: {{message}}",
       },
       orchestration: {
         title: "オーケストレーション",

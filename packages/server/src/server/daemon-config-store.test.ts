@@ -120,6 +120,29 @@ describe("DaemonConfigStore", () => {
     expect(loadPersistedConfig(gravityHome).daemon?.relay?.enabled).toBe(true);
   });
 
+  test("patching the suggestion model keeps suggestions enabled and persists under agents", () => {
+    const gravityHome = mkdtempSync(path.join(tmpdir(), "gravity-daemon-config-store-"));
+    tempDirs.push(gravityHome);
+    const store = new DaemonConfigStore(gravityHome, {
+      relay: { enabled: false },
+      mcp: { injectIntoAgents: false },
+      browserTools: { enabled: false },
+      providers: {},
+      metadataGeneration: { providers: [] },
+      promptSuggestions: { enabled: true, model: "agent" },
+      autoArchiveAfterMerge: false,
+      enableTerminalAgentHooks: false,
+      appendSystemPrompt: "",
+    });
+
+    const next = store.patch({ promptSuggestions: { model: "metadata" } });
+
+    expect(next.promptSuggestions).toEqual({ enabled: true, model: "metadata" });
+    expect(loadPersistedConfig(gravityHome).agents?.promptSuggestions).toEqual({
+      model: "metadata",
+    });
+  });
+
   test("patch round-trips agent profiles through the strictly-parsed persisted config", () => {
     const gravityHome = mkdtempSync(path.join(tmpdir(), "gravity-daemon-config-store-"));
     tempDirs.push(gravityHome);

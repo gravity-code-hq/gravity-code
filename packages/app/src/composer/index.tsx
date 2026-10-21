@@ -146,6 +146,9 @@ import { readClipboardImage } from "./clipboard-image";
 import { normalizeNativePastedImages, type NativePastedFile } from "./native-pasted-image";
 import { PluginResourceAttachmentPill, usePluginAttachmentPicker } from "@/plugins";
 import { resolveClientSlashCommand, type ClientSlashCommand } from "@/client-slash-commands";
+import { PromptSuggestionAcceptButton } from "./prompt-suggestion/accept-button";
+import { resolvePromptSuggestionKeyAction } from "./prompt-suggestion/model";
+import { usePromptSuggestion } from "./prompt-suggestion/use-prompt-suggestion";
 import {
   appendWorkspaceFileAttachment,
   createWorkspaceFileAttachment,
@@ -1457,6 +1460,47 @@ function ComposerContentImpl({
     hasPendingPermission,
   );
   const hasAgent = agentState.status !== null;
+  const promptSuggestion = usePromptSuggestion({
+    serverId,
+    agentId,
+    client,
+    isConnected,
+    enabled: hasAgent && inputMode === "chat" && !readOnly,
+    isAgentRunning,
+    isInputEmpty: userInput.length === 0,
+  });
+  // Latest-value cache for the stable key and change handlers below.
+  const promptSuggestionRef = useRef(promptSuggestion);
+  promptSuggestionRef.current = promptSuggestion;
+
+  const acceptPromptSuggestion = useCallback(() => {
+    const suggestion = promptSuggestionRef.current.suggestion;
+    if (!suggestion) return;
+    replaceUserInput(suggestion, { start: suggestion.length, end: suggestion.length });
+    messageInputRef.current?.focus();
+  }, [replaceUserInput]);
+
+  // Typing anything, accepting included, retires the suggestion for this turn.
+  const handleUserInputChange = useCallback(
+    (text: string) => {
+      if (text.length > 0 && promptSuggestionRef.current.suggestion) {
+        promptSuggestionRef.current.dismiss();
+      }
+      setUserInput(text);
+    },
+    [setUserInput],
+  );
+
+  const promptSuggestionAction = useMemo(
+    () =>
+      promptSuggestion.suggestion ? (
+        <PromptSuggestionAcceptButton
+          showTabKey={isWeb && !isCompactLayout}
+          onPress={acceptPromptSuggestion}
+        />
+      ) : undefined,
+    [acceptPromptSuggestion, isCompactLayout, promptSuggestion.suggestion],
+  );
 
   const queueWriter = useMemo<QueueWriter>(
     () => ({
@@ -1887,9 +1931,22 @@ function ComposerContentImpl({
   const hasSendableContent = userInput.trim().length > 0 || selectedAttachments.length > 0;
 
   // Handle keyboard navigation for command autocomplete.
+  // Autocomplete owns Tab and Escape while its menu is open; the suggestion
+  // only gets them otherwise.
   const handleCommandKeyPress = useCallback(
-    (event: ComposerKeyPressEvent) => autocompleteOnKeyPressRef.current(event),
-    [],
+    (event: ComposerKeyPressEvent) => {
+      if (autocompleteOnKeyPressRef.current(event)) return true;
+      const action = resolvePromptSuggestionKeyAction(
+        event,
+        promptSuggestionRef.current.suggestion,
+      );
+      if (action === null) return false;
+      event.preventDefault();
+      if (action === "accept") acceptPromptSuggestion();
+      else promptSuggestionRef.current.dismiss();
+      return true;
+    },
+    [acceptPromptSuggestion],
   );
 
   const cancelButtonStyle = useMemo(
@@ -2314,7 +2371,7 @@ function ComposerContentImpl({
                   commands={mode.showAutocomplete ? autocomplete.commands : undefined}
                   ref={messageInputRef}
                   value={userInput}
-                  onChangeText={setUserInput}
+                  onChangeText={handleUserInputChange}
                   onSubmit={handleSubmit}
                   hasExternalContent={hasExternalContent}
                   allowEmptySubmit={allowEmptySubmit}
@@ -2332,7 +2389,8 @@ function ComposerContentImpl({
                   onPasteImages={handleNativePasteImages}
                   client={client}
                   isReadyForDictation={isDictationReady}
-                  placeholder={messagePlaceholder}
+                  placeholder={promptSuggestion.suggestion ?? messagePlaceholder}
+                  placeholderAction={promptSuggestionAction}
                   autoFocus={messageInputAutoFocus}
                   autoFocusKey={`${serverId}:${agentId}:${autoFocusKey ?? ""}`}
                   disabled={isSubmitLoading}

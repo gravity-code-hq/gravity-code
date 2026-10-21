@@ -257,6 +257,7 @@ export class WorkspaceFilesSession {
         include: request.include,
         exclude: request.exclude,
         maxResults: request.maxResults,
+        excludeHidden: request.excludeHidden,
       });
       this.host.emit({
         type: "fs.content.search.response",

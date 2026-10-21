@@ -28,6 +28,9 @@ const palette: DiffPalette = {
   statusSuccess: "green",
   statusDanger: "red",
   statusWarning: "orange",
+  searchMatch: "search-match",
+  searchMatchActive: "search-match-active",
+  searchMatchActiveBorder: "search-match-border",
   syntax: { keyword: "purple" },
 };
 

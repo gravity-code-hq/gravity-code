@@ -71,8 +71,10 @@ would show. Helpers lifted verbatim sit in `content-search-vscode.ts` under the 
 its binary from the asar), then PATH; without either the engine falls back to `git grep`, which
 sees only tracked and untracked-but-not-ignored files inside a repository. Include and exclude
 boxes read like VS Code's: comma-separated, `.ts` means `*.ts`, a bare name matches at any depth,
-`./dir` anchors to the root, and `**/node_modules` is always excluded on top of ignore files. The
-pane renders previews with VS Code's `lcut` rule so the match stays visible in a narrow dock.
+`./dir` anchors to the root. Ignore files and VS Code's default `search.exclude` and
+`files.exclude` always apply. The latter keeps `.git` out: `--hidden` would otherwise walk it,
+and its reflogs match nearly every author or branch query. Dotfiles follow the Files pane's hidden-files toggle (off by
+default): the app sends `excludeHidden`, gated on `fsContentSearchExcludeHidden`. The pane renders previews with VS Code's `lcut` rule so the match stays visible in a narrow dock.
 
 ## Side pane
 

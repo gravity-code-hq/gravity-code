@@ -212,6 +212,27 @@ const MutableBrowserToolsConfigSchema = z
     enabled: z.boolean().default(false),
   })
   .passthrough();
+
+// "agent" keeps suggestion generation inside the agent's own provider; "metadata"
+// uses the shared metadata-generation chain.
+export const PromptSuggestionModelSourceSchema = z.enum(["agent", "metadata"]);
+export type PromptSuggestionModelSource = z.infer<typeof PromptSuggestionModelSourceSchema>;
+
+const MutablePromptSuggestionsConfigSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    model: PromptSuggestionModelSourceSchema.default("agent"),
+  })
+  .passthrough();
+
+// Separate from the config schema on purpose: Zod 4 applies leaf defaults even
+// under .partial(), so a patch that sets only `model` would also reset `enabled`.
+const MutablePromptSuggestionsConfigPatchSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    model: PromptSuggestionModelSourceSchema.optional(),
+  })
+  .passthrough();
 const MutableRelayConfigSchema = z
   .object({
     enabled: z.boolean(),
@@ -270,6 +291,10 @@ export const MutableDaemonConfigSchema = z
     browserTools: MutableBrowserToolsConfigSchema.default({ enabled: false }),
     providers: z.record(z.string(), MutableDaemonProviderConfigSchema).default({}),
     metadataGeneration: MutableMetadataGenerationConfigSchema.default({ providers: [] }),
+    promptSuggestions: MutablePromptSuggestionsConfigSchema.default({
+      enabled: false,
+      model: "agent",
+    }),
     autoArchiveAfterMerge: z.boolean().default(false),
     enableTerminalAgentHooks: z.boolean().default(false),
     appendSystemPrompt: z.string().default(""),
@@ -291,6 +316,7 @@ export const MutableDaemonConfigPatchSchema = z
       .optional(),
     removeProviders: z.array(z.string().min(1)).optional(),
     metadataGeneration: MutableMetadataGenerationConfigSchema.partial().optional(),
+    promptSuggestions: MutablePromptSuggestionsConfigPatchSchema.optional(),
     autoArchiveAfterMerge: z.boolean().optional(),
     enableTerminalAgentHooks: z.boolean().optional(),
     appendSystemPrompt: z.string().optional(),
@@ -1925,6 +1951,12 @@ export const AgentTimelineListPromptsRequestMessageSchema = z.object({
   requestId: z.string(),
 });
 
+export const AgentPromptSuggestionGetRequestMessageSchema = z.object({
+  type: z.literal("agent.prompt_suggestion.get.request"),
+  agentId: z.string(),
+  requestId: z.string(),
+});
+
 export const ProviderSubagentListRequestMessageSchema = z.object({
   type: z.literal("agent.provider_subagents.list.request"),
   parentAgentId: z.string(),
@@ -2874,6 +2906,8 @@ export const FileContentSearchRequestSchema = z.object({
   include: z.string().optional(),
   exclude: z.string().optional(),
   maxResults: z.number().int().positive().optional(),
+  // Unset searches dotfiles, as daemons before v0.8.5 always did.
+  excludeHidden: z.boolean().optional(),
   requestId: z.string(),
 });
 
@@ -3332,6 +3366,7 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   DaemonUpdateRequestMessageSchema,
   FetchAgentTimelineRequestMessageSchema,
   AgentTimelineListPromptsRequestMessageSchema,
+  AgentPromptSuggestionGetRequestMessageSchema,
   ProviderSubagentListRequestMessageSchema,
   ProviderSubagentTimelineRequestMessageSchema,
   SetAgentTimelineSubscriptionRequestMessageSchema,
@@ -3697,6 +3732,8 @@ export const ServerInfoStatusPayloadSchema = z
         rewind: z.boolean().optional(),
         // COMPAT(agentTimelinePromptIndex): added in v0.2.X, drop the gate when floor >= v0.2.X.
         agentTimelinePromptIndex: z.boolean().optional(),
+        // COMPAT(promptSuggestions): added in v0.8.5, remove gate after 2027-04-20.
+        promptSuggestions: z.boolean().optional(),
         // COMPAT(agentHistorySearch): added in v0.3.0, remove gate after 2027-02-07.
         agentHistorySearch: z.boolean().optional(),
         // COMPAT(checkoutRefresh): added in v0.1.86, remove gate after 2026-11-29.
@@ -3787,6 +3824,8 @@ export const ServerInfoStatusPayloadSchema = z
         fsEntryDuplicate: z.boolean().optional(),
         // COMPAT(fsContentSearch): added in v0.8.3, remove gate after 2027-04-09.
         fsContentSearch: z.boolean().optional(),
+        // COMPAT(fsContentSearchExcludeHidden): added in v0.8.5, remove gate after 2027-04-19.
+        fsContentSearchExcludeHidden: z.boolean().optional(),
         // COMPAT(checkoutDiscardChanges): added in v0.3.0, remove gate after 2027-02-08.
         checkoutDiscardChanges: z.boolean().optional(),
         // COMPAT(agentProfiles): added in v0.3.2, remove gate after 2027-02-11.
@@ -4725,6 +4764,20 @@ export const AgentTimelineListPromptsResponseMessageSchema = z.object({
         preview: z.string(),
       }),
     ),
+    error: z.string().nullable(),
+  }),
+});
+
+// Null suggestion with a null error means there was nothing to suggest for:
+// the feature is off, the agent is mid-turn, or generation came back empty.
+export const AgentPromptSuggestionGetResponseMessageSchema = z.object({
+  type: z.literal("agent.prompt_suggestion.get.response"),
+  payload: z.object({
+    requestId: z.string(),
+    agentId: z.string(),
+    // Identifies the finished turn the suggestion answers; a new turn moves it.
+    turnKey: z.string().nullable(),
+    suggestion: z.string().nullable(),
     error: z.string().nullable(),
   }),
 });
@@ -6967,6 +7020,7 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   FetchAgentTimelineResponseMessageSchema,
   AgentTimelineReplacementMessageSchema,
   AgentTimelineListPromptsResponseMessageSchema,
+  AgentPromptSuggestionGetResponseMessageSchema,
   ProviderSubagentListResponseMessageSchema,
   ProviderSubagentTimelineResponseMessageSchema,
   ProviderSubagentUpdateMessageSchema,

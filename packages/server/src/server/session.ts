@@ -127,6 +127,7 @@ import { parsePluginClientId } from "./plugins/plugin-session-identity.js";
 import { buildAgentForkContextAttachment } from "./agent/activity-curator.js";
 import { buildAgentPrompt } from "./agent/prompt-attachments.js";
 import type { StructuredGenerationDaemonConfig } from "./agent/structured-generation-providers.js";
+import type { PromptSuggestionService } from "./agent/prompt-suggestions/service.js";
 import {
   getAgentStreamEventTurnId,
   type AgentPersistenceHandle,
@@ -518,6 +519,7 @@ export interface SessionOptions {
   tts: Resolvable<TextToSpeechProvider | null>;
   terminalManager: TerminalManager | null;
   providerSnapshotManager: ProviderSnapshotManager;
+  promptSuggestions?: PromptSuggestionService;
   providerUsageService: ProviderUsageService;
   providerAccountsService: ProviderAccountsService;
   linearService: LinearService;
@@ -768,6 +770,7 @@ export class Session {
   private readonly workspaceUpdateTails = new Map<string, Promise<void>>();
   private readonly terminalManager: TerminalManager | null;
   private readonly providerSnapshotManager: ProviderSnapshotManager;
+  private readonly promptSuggestions: PromptSuggestionService | undefined;
   private readonly serviceProxy: ServiceProxySubsystem | null;
   private readonly scriptRuntimeStore: WorkspaceScriptRuntimeStore | null;
   private readonly getDaemonTcpPort: (() => number | null) | null;
@@ -837,6 +840,7 @@ export class Session {
       tts,
       terminalManager,
       providerSnapshotManager,
+      promptSuggestions,
       providerUsageService,
       providerAccountsService,
       linearService,
@@ -1137,6 +1141,7 @@ export class Session {
       logger: this.sessionLogger,
     });
     this.providerSnapshotManager = providerSnapshotManager;
+    this.promptSuggestions = promptSuggestions;
     this.serviceProxy = serviceProxy ?? null;
     this.scriptRuntimeStore = scriptRuntimeStore ?? null;
     this.workspaceSetupSnapshots = workspaceSetupSnapshots ?? new Map();
@@ -2614,6 +2619,8 @@ export class Session {
         return this.handleAgentTimelineAppendRequest(msg);
       case "agent.timeline.list_prompts.request":
         return this.handleAgentTimelineListPromptsRequest(msg, source);
+      case "agent.prompt_suggestion.get.request":
+        return this.handleAgentPromptSuggestionGetRequest(msg, source);
       case "agent.provider_subagents.list.request":
         return this.handleProviderSubagentListRequest(msg);
       case "agent.provider_subagents.timeline.get.request":
@@ -7837,6 +7844,46 @@ export class Session {
       type: "agent.timeline.append.response",
       payload: { requestId: msg.requestId, seq, epoch },
     });
+  }
+
+  private async handleAgentPromptSuggestionGetRequest(
+    msg: Extract<SessionInboundMessage, { type: "agent.prompt_suggestion.get.request" }>,
+    source?: object,
+  ): Promise<void> {
+    const respond = (payload: {
+      turnKey: string | null;
+      suggestion: string | null;
+      error: string | null;
+    }) =>
+      this.emitForSource(
+        {
+          type: "agent.prompt_suggestion.get.response",
+          payload: { requestId: msg.requestId, agentId: msg.agentId, ...payload },
+        },
+        source,
+      );
+    if (!this.promptSuggestions) {
+      respond({ turnKey: null, suggestion: null, error: "Prompt suggestions are unavailable" });
+      return;
+    }
+    try {
+      const result = await this.promptSuggestions.suggest(msg.agentId);
+      respond({
+        turnKey: result?.turnKey ?? null,
+        suggestion: result?.suggestion ?? null,
+        error: null,
+      });
+    } catch (error) {
+      this.sessionLogger.warn(
+        { err: error, agentId: msg.agentId },
+        "Failed to handle agent.prompt_suggestion.get.request",
+      );
+      respond({
+        turnKey: null,
+        suggestion: null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async handleAgentTimelineListPromptsRequest(

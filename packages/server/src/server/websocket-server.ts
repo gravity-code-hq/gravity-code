@@ -55,6 +55,10 @@ import type { GitCommandRuntimeMetricsSnapshot } from "../utils/git-command-runt
 import { snapshotGitCommandRuntimeMetrics } from "../utils/run-git-command.js";
 import { createPluginClientId, isPluginClientId } from "./plugins/plugin-session-identity.js";
 import type { WorkspaceAutoName } from "./workspace-auto-name.js";
+import {
+  createPromptSuggestionGenerator,
+  PromptSuggestionService,
+} from "./agent/prompt-suggestions/service.js";
 import { deriveProjectSlug } from "./workspace-git-metadata.js";
 import {
   createPushNotifications,
@@ -569,6 +573,8 @@ export class VoiceAssistantWebSocketServer {
   private readonly workspaceSetupSnapshots = new Map<string, WorkspaceSetupSnapshot>();
   private readonly workspaceSetupRuntime: WorkspaceSetupRuntime;
   private readonly providerSnapshotManager: ProviderSnapshotManager;
+  // Shared across sessions so every client viewing one turn reuses one generation.
+  private readonly promptSuggestions: PromptSuggestionService;
   private onLifecycleIntent!: ((intent: SessionLifecycleIntent) => void) | null;
   private onBranchChanged!:
     | ((workspaceId: string, oldBranch: string | null, newBranch: string | null) => void)
@@ -719,6 +725,17 @@ export class VoiceAssistantWebSocketServer {
       throw new Error("providerSnapshotManager is required");
     }
     this.providerSnapshotManager = providerSnapshotManager;
+    const promptSuggestionLogger = this.logger.child({ module: "prompt-suggestions" });
+    this.promptSuggestions = new PromptSuggestionService({
+      agents: this.agentManager,
+      providerSnapshotManager: this.providerSnapshotManager,
+      readConfig: () => this.daemonConfigStore.get(),
+      generate: createPromptSuggestionGenerator({
+        agentManager: this.agentManager,
+        logger: promptSuggestionLogger,
+      }),
+      logger: promptSuggestionLogger,
+    });
     this.serverCapabilities = buildServerCapabilities({
       readiness: this.speech?.getReadiness() ?? null,
     });
@@ -1485,6 +1502,7 @@ export class VoiceAssistantWebSocketServer {
       tts: () => this.speech?.resolveTts() ?? null,
       terminalManager: this.terminalManager,
       providerSnapshotManager: this.providerSnapshotManager,
+      promptSuggestions: this.promptSuggestions,
       providerUsageService: this.providerUsageService,
       providerAccountsService: this.providerAccountsService,
       linearService: this.linearService,
@@ -1754,6 +1772,8 @@ export class VoiceAssistantWebSocketServer {
         rewind: true,
         // COMPAT(agentTimelinePromptIndex): added in v0.2.X, drop the gate when floor >= v0.2.X.
         agentTimelinePromptIndex: true,
+        // COMPAT(promptSuggestions): added in v0.8.5, remove gate after 2027-04-20.
+        promptSuggestions: true,
         // COMPAT(agentHistorySearch): added in v0.3.0, remove gate after 2027-02-07.
         agentHistorySearch: true,
         // COMPAT(checkoutRefresh): added in v0.1.86, remove gate after 2026-11-29.
@@ -1842,6 +1862,8 @@ export class VoiceAssistantWebSocketServer {
         fsEntryDuplicate: true,
         // COMPAT(fsContentSearch): added in v0.8.3, remove gate after 2027-04-09.
         fsContentSearch: true,
+        // COMPAT(fsContentSearchExcludeHidden): added in v0.8.5, remove gate after 2027-04-19.
+        fsContentSearchExcludeHidden: true,
         // COMPAT(checkoutDiscardChanges): added in v0.3.0, remove gate after 2027-02-08.
         checkoutDiscardChanges: true,
         // COMPAT(agentProfiles): added in v0.3.2, remove gate after 2027-02-11.

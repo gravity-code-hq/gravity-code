@@ -154,6 +154,10 @@ export const ko: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "사용",
+      acceptLabel: "제안된 메시지 사용",
+    },
     placeholders: {
       desktop: "에이전트에게 메시지를 보내거나 @files 태그, /commands, /skills를 사용하세요",
       mobile: "메시지, @files, /commands",
@@ -2674,6 +2678,17 @@ export const ko: TranslationResources = {
           update: "스킬 업데이트",
           delete: "스킬 삭제",
         },
+      },
+      promptSuggestions: {
+        title: "프롬프트 제안",
+        hint: "턴이 끝나면 다음 메시지를 예측해 빈 입력창에 보여줍니다. 제안마다 모델에 짧은 요청을 한 번 보냅니다.",
+        model: "제안 모델",
+        modelAgent: "에이전트와 동일",
+        modelMetadata: "메타데이터 모델",
+        modelAgentHint:
+          "에이전트의 제공자를 사용하며 가장 작은 모델을 우선합니다. 대화는 해당 제공자 밖으로 나가지 않습니다.",
+        modelMetadataHint: "메타데이터 생성 모델을 사용하며, 에이전트와 다른 제공자일 수 있습니다.",
+        saveFailed: "저장하지 못했습니다: {{message}}",
       },
       orchestration: {
         title: "오케스트레이션",

@@ -94,6 +94,9 @@ const palette: DiffPalette = {
   statusSuccess: "success",
   statusDanger: "danger",
   statusWarning: "warning",
+  searchMatch: "search-match",
+  searchMatchActive: "search-match-active",
+  searchMatchActiveBorder: "search-match-border",
   syntax: {},
 };
 

@@ -39,6 +39,8 @@ export interface ContentSearchParams {
   include?: string;
   exclude?: string;
   maxResults?: number;
+  /** Skip dotfiles and dot-directories. Unset searches them, as VS Code does. */
+  excludeHidden?: boolean;
 }
 
 export interface ContentSearchMatch {
@@ -73,11 +75,21 @@ export const CONTENT_SEARCH_MAX_RESULTS = 20_000;
 export const CONTENT_SEARCH_MAX_QUERY_LENGTH = 4_096;
 const CONTENT_SEARCH_TIMEOUT_MS = 30_000;
 
-/** VS Code's default `search.exclude`, applied on top of ignore files. */
+/**
+ * VS Code's default `search.exclude` followed by its default `files.exclude`,
+ * both applied on top of ignore files. `--hidden` would otherwise walk `.git`,
+ * whose reflogs match nearly every author or branch query.
+ */
 export const CONTENT_SEARCH_DEFAULT_EXCLUDES = [
   "**/node_modules",
   "**/bower_components",
   "**/*.code-search",
+  "**/.git",
+  "**/.svn",
+  "**/.hg",
+  "**/CVS",
+  "**/.DS_Store",
+  "**/Thumbs.db",
 ];
 
 const which: {
@@ -198,7 +210,8 @@ function spreadGlobComponents(globComponent: string): string[] {
 }
 
 export function buildRipgrepArgs(params: NormalizedParams): string[] {
-  const args = ["--hidden", "--no-require-git"];
+  const args = params.excludeHidden ? [] : ["--hidden"];
+  args.push("--no-require-git");
   args.push(params.caseSensitive ? "--case-sensitive" : "--ignore-case");
   if (process.platform !== "linux") {
     args.push("--glob-case-insensitive");
@@ -673,7 +686,9 @@ export function buildGitGrepArgs(params: NormalizedParams): string[] {
   for (const pattern of parseSearchGlobs(params.include)) {
     args.push(toGitPathspec(pattern, false));
   }
-  for (const pattern of [...CONTENT_SEARCH_DEFAULT_EXCLUDES, ...parseSearchGlobs(params.exclude)]) {
+  const excludes = [...CONTENT_SEARCH_DEFAULT_EXCLUDES, ...parseSearchGlobs(params.exclude)];
+  if (params.excludeHidden) excludes.push("**/.*", "**/.*/**");
+  for (const pattern of excludes) {
     args.push(toGitPathspec(pattern, true));
   }
   return args;

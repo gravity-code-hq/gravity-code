@@ -14,7 +14,9 @@ import { useStableEvent } from "@/hooks/use-stable-event";
 import { InlineReviewAddButton, InlineReviewThread } from "@/review";
 import { copyToClipboard } from "@/utils/copy-to-clipboard";
 import type { ReviewableDiffTarget } from "@/utils/diff-layout";
+import { diffFileHeaderTrailingInset } from "@/git/file-header-presentation";
 import { DocumentFileHeader } from "./document-file-header";
+import { DiffFindWidget } from "./find-widget.web";
 import {
   diffInteractionWindowTop,
   diffMaterializationWindow,
@@ -32,6 +34,8 @@ import { buildDiffDocumentModel, FILE_HEADER_HEIGHT, resolveRelayoutScrollTop } 
 import { paintWebFileHeader, paintWebViewport } from "./paint.web";
 import { hasPointerDragStarted } from "./pointer-gesture";
 import { createMeasuredAdvances } from "./text-measurement";
+import { firstDiffSearchMatchFrom, locateDiffSearchMatch, type DiffSearchMatch } from "./search";
+import { useDiffFind } from "./use-diff-find";
 import { retainDiffViewport } from "./viewport";
 import type {
   DiffHit,
@@ -52,6 +56,7 @@ interface StickyHeaderCanvasSlot {
   file: DiffFileSection | null;
   active: boolean;
   width: number;
+  trailingInset: number;
   ratio: number;
   palette: DiffSurfaceProps["palette"] | null;
   typography: DiffSurfaceProps["headerTypography"] | null;
@@ -64,6 +69,7 @@ function emptyStickyHeaderCanvasSlot(): StickyHeaderCanvasSlot {
     file: null,
     active: false,
     width: 0,
+    trailingInset: 0,
     ratio: 0,
     palette: null,
     typography: null,
@@ -116,6 +122,16 @@ export function DiffSurface(props: DiffSurfaceProps) {
     top: number;
   } | null>(null);
   const hasHoveredAffordanceRef = useRef(false);
+  const find = useDiffFind(props.files);
+  const searchPaintRef = useRef<{
+    result: typeof find.result;
+    activeIndex: number | null;
+  } | null>(null);
+  searchPaintRef.current =
+    find.isOpen && find.result.matches.length > 0
+      ? { result: find.result, activeIndex: find.activeIndex }
+      : null;
+  const pendingSearchRevealRef = useRef<{ match: DiffSearchMatch; attempts: number } | null>(null);
   const family = props.displayPreferences.monoFontFamily.trim() || DEFAULT_MONO_STACK;
   useLayoutEffect(() => {
     const stats = (window as typeof window & { __GRAVITY_DIFF_REACT_STATS__?: { commits: number } })
@@ -159,6 +175,7 @@ export function DiffSurface(props: DiffSurfaceProps) {
   const measurement =
     readyTypographyResource === typographyResource ? typographyResource.measureText : null;
   const reviewActions = props.mode.kind === "working" ? props.mode.reviewActions : undefined;
+  const headerTrailingInset = diffFileHeaderTrailingInset(props.mode);
   const model = useMemo(() => {
     if (!loadedTypography || !measurement) {
       return emptyDiffDocumentModel({
@@ -237,6 +254,7 @@ export function DiffSurface(props: DiffSurfaceProps) {
           slot.file === file &&
           slot.active === active &&
           slot.width === viewport.width &&
+          slot.trailingInset === headerTrailingInset &&
           slot.ratio === ratio &&
           slot.palette === props.palette &&
           slot.typography === props.headerTypography;
@@ -260,16 +278,18 @@ export function DiffSurface(props: DiffSurfaceProps) {
           viewportWidth: viewport.width,
           y: 0,
           activePath: activeHeaderPathRef.current,
+          trailingInset: headerTrailingInset,
         });
         slot.file = file;
         slot.active = active;
         slot.width = viewport.width;
+        slot.trailingInset = headerTrailingInset;
         slot.ratio = ratio;
         slot.palette = props.palette;
         slot.typography = props.headerTypography;
       }
     },
-    [props.headerTypography, props.palette, viewport.height, viewport.width],
+    [headerTrailingInset, props.headerTypography, props.palette, viewport.height, viewport.width],
   );
 
   const paint = useCallback(() => {
@@ -339,11 +359,20 @@ export function DiffSurface(props: DiffSurfaceProps) {
       horizontalOffsets: horizontalOffsetsRef.current,
       selection: selectionRef.current,
       activeHeaderPath: activeHeaderPathRef.current,
+      headerTrailingInset,
+      search: searchPaintRef.current,
       devicePixelRatio: ratio,
       paintTop,
       paintHeight,
     });
-  }, [loadedTypography, measurement, props.headerTypography, props.palette, viewport.height]);
+  }, [
+    headerTrailingInset,
+    loadedTypography,
+    measurement,
+    props.headerTypography,
+    props.palette,
+    viewport.height,
+  ]);
   const schedulePaint = useCallback(
     (force = true) => {
       if (force) forcePaintRef.current = true;
@@ -351,6 +380,9 @@ export function DiffSurface(props: DiffSurfaceProps) {
     },
     [paint],
   );
+  useEffect(() => {
+    schedulePaint();
+  }, [find.activeIndex, find.isOpen, find.result, schedulePaint]);
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -747,6 +779,121 @@ export function DiffSurface(props: DiffSurfaceProps) {
       );
     }
   }, [contextHit?.position, setSelection]);
+  // Revealing a match can need two models: expanding a collapsed file adds its rows, and
+  // scrolling far moves the materialization window before the match's text has a width.
+  const finishSearchReveal = useStableEvent(() => {
+    const pending = pendingSearchRevealRef.current;
+    const currentModel = modelRef.current;
+    const scroll = scrollRef.current;
+    if (!pending || !currentModel || !scroll) return;
+    const location = locateDiffSearchMatch({ model: currentModel, match: pending.match });
+    if (!location) {
+      if (!currentModel.files[pending.match.fileIndex]?.isCollapsed) {
+        pendingSearchRevealRef.current = null;
+      }
+      return;
+    }
+    pending.attempts += 1;
+    // The sticky file header and the find widget cover the top of the viewport.
+    const visibleTop = scroll.scrollTop + FILE_HEADER_HEIGHT * 2;
+    const visibleBottom = scroll.scrollTop + viewport.height - currentModel.lineHeight;
+    if (location.top < visibleTop || location.top > visibleBottom) {
+      scroll.scrollTop = Math.max(0, location.top - viewport.height / 2);
+    }
+    if (location.x === null) {
+      if (pending.attempts > 2) pendingSearchRevealRef.current = null;
+      return;
+    }
+    pendingSearchRevealRef.current = null;
+    const path = currentModel.files[pending.match.fileIndex]?.path;
+    if (currentModel.wrapLines || !path) return;
+    const offset = horizontalOffsetsRef.current.get(path) ?? 0;
+    if (location.x >= offset && location.x + location.width <= offset + location.visibleWidth) {
+      return;
+    }
+    const nextOffset = Math.max(0, location.x - location.visibleWidth / 2);
+    horizontalOffsetsRef.current.set(path, nextOffset);
+    const horizontalScroll = rootRef.current?.querySelector<HTMLDivElement>(
+      `[data-diff-horizontal-path="${CSS.escape(path)}"]`,
+    );
+    if (horizontalScroll) horizontalScroll.scrollLeft = nextOffset;
+    schedulePaint();
+  });
+  useEffect(() => {
+    finishSearchReveal();
+  }, [finishSearchReveal, model]);
+  const revealSearchMatch = useStableEvent((index: number) => {
+    const match = find.result.matches[index];
+    if (!match) return;
+    find.setActiveIndex(index);
+    pendingSearchRevealRef.current = { match, attempts: 0 };
+    const file = modelRef.current?.files[match.fileIndex];
+    if (file?.isCollapsed) {
+      props.onToggleFile(file.path);
+      return;
+    }
+    finishSearchReveal();
+  });
+  const firstSearchMatchInView = useStableEvent(() => {
+    const currentModel = modelRef.current;
+    if (!currentModel) return null;
+    return firstDiffSearchMatchFrom({
+      model: currentModel,
+      result: find.result,
+      documentTop: scrollTopRef.current + FILE_HEADER_HEIGHT,
+    });
+  });
+  // A new query or option jumps to the first match from the viewport down; a diff update
+  // under an unchanged query leaves the reader where they are.
+  const jumpToFirstSearchMatch = useStableEvent(() => {
+    if (!find.isOpen) return;
+    const index = firstSearchMatchInView();
+    if (index === null) find.setActiveIndex(null);
+    else revealSearchMatch(index);
+  });
+  useEffect(() => {
+    jumpToFirstSearchMatch();
+  }, [find.queryIdentity, jumpToFirstSearchMatch]);
+  const stepSearch = useStableEvent((direction: 1 | -1) => {
+    const count = find.result.matches.length;
+    if (count === 0) return;
+    const current = find.activeIndex;
+    if (current === null) {
+      const first = firstSearchMatchInView() ?? 0;
+      revealSearchMatch(direction === 1 ? first : (first - 1 + count) % count);
+      return;
+    }
+    revealSearchMatch((current + direction + count) % count);
+  });
+  const nextSearchMatch = useCallback(() => stepSearch(1), [stepSearch]);
+  const previousSearchMatch = useCallback(() => stepSearch(-1), [stepSearch]);
+  const closeSearch = useCallback(() => {
+    find.close();
+    scrollRef.current?.focus({ preventScroll: true });
+  }, [find]);
+  const openSearch = useStableEvent(() => {
+    const currentModel = modelRef.current;
+    const selection = selectionRef.current;
+    const selected = currentModel && selection ? selectedSourceText(currentModel, selection) : "";
+    // VS Code seeds the query from a single-line selection only.
+    find.open(selected && !selected.includes("\n") ? selected : null);
+  });
+  const rootKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const modifier = event.metaKey || event.ctrlKey;
+      if (modifier && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        event.stopPropagation();
+        openSearch();
+        return;
+      }
+      if (event.key === "F3" && find.isOpen) {
+        event.preventDefault();
+        stepSearch(event.shiftKey ? -1 : 1);
+      }
+    },
+    [find.isOpen, openSearch, stepSearch],
+  );
   const keyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       const target = event.target;
@@ -802,7 +949,7 @@ export function DiffSurface(props: DiffSurfaceProps) {
   );
 
   const surface = (
-    <div data-testid="git-diff-canvas-root" ref={rootRef} style={rootStyle}>
+    <div data-testid="git-diff-canvas-root" ref={rootRef} style={rootStyle} onKeyDown={rootKeyDown}>
       <div
         ref={scrollRef}
         data-testid="git-diff-scroll"
@@ -875,6 +1022,14 @@ export function DiffSurface(props: DiffSurfaceProps) {
         </div>
       </div>
       <DomOverlayScrollbar scrollContainerRef={scrollRef} onUserScrollUp={noop} />
+      {find.isOpen ? (
+        <DiffFindWidget
+          find={find}
+          onNext={nextSearchMatch}
+          onPrevious={previousSearchMatch}
+          onClose={closeSearch}
+        />
+      ) : null}
       {hoveredAffordance?.hit.target && reviewActions ? (
         <InlineReviewAddButton onPress={addHoveredComment} style={affordanceStyle} />
       ) : null}

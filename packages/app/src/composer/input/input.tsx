@@ -179,6 +179,8 @@ export interface MessageInputProps {
   textReplacement: TextReplacement;
   /** Replaces the submit icon with this label, still inside the composer's own toolbar row. */
   submitLabel?: string;
+  /** Control pinned to the end of the input row while the placeholder shows (e.g. accept a suggestion). */
+  placeholderAction?: React.ReactNode;
 }
 
 export interface MessageInputRef {
@@ -627,6 +629,13 @@ function MessageInputOverlay({
   return null;
 }
 
+function resolveVisiblePlaceholderAction(
+  action: React.ReactNode,
+  hasLiveText: boolean,
+): React.ReactNode {
+  return hasLiveText ? null : (action ?? null);
+}
+
 function FocusHint({
   visible,
   focusInputKeys,
@@ -667,6 +676,7 @@ interface ComposerTextSurfaceProps {
   focusHintVisible: boolean;
   focusInputKeys: ShortcutChord | null | undefined;
   focusHintLabel: string;
+  placeholderAction: React.ReactNode;
 }
 
 /**
@@ -706,11 +716,13 @@ function ComposerTextSurface(props: ComposerTextSurfaceProps): React.ReactElemen
         onPasteError={props.onPasteError}
         autoFocus={props.autoFocus}
       />
-      <FocusHint
-        visible={props.focusHintVisible}
-        focusInputKeys={props.focusInputKeys}
-        label={props.focusHintLabel}
-      />
+      {props.placeholderAction ?? (
+        <FocusHint
+          visible={props.focusHintVisible}
+          focusInputKeys={props.focusInputKeys}
+          label={props.focusHintLabel}
+        />
+      )}
     </View>
   );
 }
@@ -1110,6 +1122,7 @@ interface ResolvedMessageInputProps {
   readOnly: boolean;
   textReplacement: TextReplacement;
   submitLabel: string | undefined;
+  placeholderAction: React.ReactNode;
 }
 
 function resolveMessageInputProps(props: MessageInputProps): ResolvedMessageInputProps {
@@ -1158,6 +1171,7 @@ function resolveMessageInputProps(props: MessageInputProps): ResolvedMessageInpu
     readOnly: props.readOnly ?? false,
     textReplacement: props.textReplacement,
     submitLabel: props.submitLabel,
+    placeholderAction: props.placeholderAction,
   };
 }
 
@@ -1214,6 +1228,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
       readOnly,
       textReplacement,
       submitLabel,
+      placeholderAction,
     } = resolveMessageInputProps(props);
     const mode = resolveComposerInputMode(inputMode);
     const { t } = useTranslation();
@@ -1795,9 +1810,19 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
     // `.css-textinput-*` class and loses on source order — so a themed
     // `fontFamily` here is silently dropped while every other property lands.
     // An inline style outranks both classes. See docs/unistyles.md.
+    const visiblePlaceholderAction = resolveVisiblePlaceholderAction(
+      placeholderAction,
+      hasLiveText,
+    );
+    const hasPlaceholderAction = visiblePlaceholderAction !== null;
     const textInputStyle = useMemo(
-      () => [styles.textInput, mode.isMonospace && styles.textInputMonospace, composerHeightStyle],
-      [composerHeightStyle, mode.isMonospace],
+      () => [
+        styles.textInput,
+        mode.isMonospace && styles.textInputMonospace,
+        hasPlaceholderAction && styles.textInputWithPlaceholderAction,
+        composerHeightStyle,
+      ],
+      [composerHeightStyle, hasPlaceholderAction, mode.isMonospace],
     );
     // Static content has no textarea to mirror, so it grows with its own text
     // instead of the measured input height.
@@ -1889,6 +1914,7 @@ export const MessageInput = forwardRef<MessageInputRef, MessageInputProps>(
               focusHintLabel={t("composer.input.focusHint", {
                 shortcut: focusInputKeys ? formatShortcut(focusInputKeys[0], getShortcutOs()) : "",
               })}
+              placeholderAction={visiblePlaceholderAction}
             />
           </RenderProfile>
 
@@ -2017,6 +2043,10 @@ const styles = StyleSheet.create((theme: Theme) => ({
   textInputScrollWrapper: {
     flexShrink: 1,
     position: "relative",
+  },
+  textInputWithPlaceholderAction: {
+    // Keeps placeholder text clear of the action pinned to the row's end.
+    paddingRight: 56,
   },
   focusHintText: {
     position: "absolute",

@@ -95,6 +95,8 @@ export function recordNativeHeaderPicture(input: {
   viewportWidth: number;
   textLayout: NativeHeaderTextLayout;
   paints: NativePaints;
+  /** Width reserved at the header's right edge for interactive actions. */
+  trailingInset?: number;
 }): SkPicture {
   const recorder = Skia.PictureRecorder();
   const canvas = recorder.beginRecording(
@@ -117,7 +119,11 @@ export function recordNativeHeaderPicture(input: {
     canvas.drawLine(17, centerY + 2, 21, centerY - 2, chevron);
   }
   chevron.dispose();
-  const iconX = input.viewportWidth - DIFF_FILE_HEADER_RIGHT - DIFF_FILE_HEADER_ICON_SIZE;
+  const iconX =
+    input.viewportWidth -
+    DIFF_FILE_HEADER_RIGHT -
+    (input.trailingInset ?? 0) -
+    DIFF_FILE_HEADER_ICON_SIZE;
   const additions = `+${formatDiffCount(input.file.file.additions)}`;
   const deletions = `-${formatDiffCount(input.file.file.deletions)}`;
   const additionsText = shapeNativeHeaderText({

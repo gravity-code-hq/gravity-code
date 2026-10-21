@@ -158,6 +158,10 @@ export const es: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "Usar",
+      acceptLabel: "Usar el mensaje sugerido",
+    },
     placeholders: {
       desktop: "Envíe un mensaje al agente, etiquete@fileso use/commandsy/skills",
       mobile: "Mensaje,@files,/commands",
@@ -2723,6 +2727,18 @@ export const es: TranslationResources = {
           update: "Actualizar habilidad",
           delete: "Eliminar habilidad",
         },
+      },
+      promptSuggestions: {
+        title: "Sugerencias de mensajes",
+        hint: "Tras cada turno, adivina tu próximo mensaje y lo muestra en el cuadro vacío. Cada sugerencia es una breve solicitud a un modelo.",
+        model: "Modelo de sugerencias",
+        modelAgent: "Igual que el agente",
+        modelMetadata: "Modelo de metadatos",
+        modelAgentHint:
+          "Usa el proveedor del propio agente y prefiere su modelo más pequeño. La conversación se queda con ese proveedor.",
+        modelMetadataHint:
+          "Usa el modelo de generación de metadatos, que puede ser de un proveedor distinto al del agente.",
+        saveFailed: "No se pudo guardar: {{message}}",
       },
       orchestration: {
         title: "Orquestación",

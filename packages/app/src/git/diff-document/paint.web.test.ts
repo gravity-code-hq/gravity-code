@@ -1,85 +1,95 @@
 import { describe, expect, it } from "vitest";
 import { paintWebViewport } from "./paint.web";
+import { diffSearchLineKey } from "./search";
 import type { DiffCell, DiffDocumentModel, DiffLineRow, DiffPalette, DiffSelection } from "./types";
+
+function recordingHeaderContext() {
+  const fills: Array<{ color: string; x: number; y: number; width: number; height: number }> = [];
+  const labels: Array<{ text: string; x: number; y: number; color: string; font: string }> = [];
+  let fillStyle = "";
+  let font = "";
+  const context = {
+    setTransform() {},
+    clearRect() {},
+    fillRect(x: number, y: number, width: number, height: number) {
+      fills.push({ color: fillStyle, x, y, width, height });
+    },
+    save() {},
+    restore() {},
+    beginPath() {},
+    rect() {},
+    clip() {},
+    translate() {},
+    scale() {},
+    roundRect() {},
+    moveTo() {},
+    lineTo() {},
+    stroke() {},
+    measureText(text: string) {
+      return {
+        width: text.length * 6,
+        actualBoundingBoxAscent: 8,
+        actualBoundingBoxDescent: 2,
+      } as TextMetrics;
+    },
+    fillText(text: string, x: number, y: number) {
+      labels.push({ text, x, y, color: fillStyle, font });
+    },
+    get fillStyle() {
+      return fillStyle;
+    },
+    set fillStyle(value: string | CanvasGradient | CanvasPattern) {
+      fillStyle = String(value);
+    },
+    get font() {
+      return font;
+    },
+    set font(value: string) {
+      font = value;
+    },
+    strokeStyle: "",
+    lineWidth: 1,
+    lineCap: "butt",
+    lineJoin: "miter",
+  } as unknown as CanvasRenderingContext2D;
+  return { context, fills, labels };
+}
+
+function paintSingleHeader(context: CanvasRenderingContext2D, headerTrailingInset?: number) {
+  paintWebViewport({
+    context,
+    model: {
+      ...model,
+      files: [
+        {
+          ...model.files[0]!,
+          headerHeight: 40,
+          bodyTop: 40,
+          bodyHeight: 18,
+          bottom: 58,
+        },
+      ],
+      height: 58,
+    },
+    palette,
+    typography: { family: "monospace", size: 12, lineHeight: 18 },
+    headerTypography: { family: "system-ui", size: 14, statSize: 12 },
+    measureText: { measure: () => 0 },
+    scrollTop: 0,
+    viewportWidth: 200,
+    viewportHeight: 100,
+    horizontalOffsets: new Map(),
+    selection: null,
+    devicePixelRatio: 1,
+    activeHeaderPath: null,
+    headerTrailingInset,
+  });
+}
 
 describe("web diff text shaping", () => {
   it("matches the 40px file-header alignment rails exactly", () => {
-    const fills: Array<{ color: string; x: number; y: number; width: number; height: number }> = [];
-    const labels: Array<{ text: string; x: number; y: number; color: string; font: string }> = [];
-    let fillStyle = "";
-    let font = "";
-    const context = {
-      setTransform() {},
-      clearRect() {},
-      fillRect(x: number, y: number, width: number, height: number) {
-        fills.push({ color: fillStyle, x, y, width, height });
-      },
-      save() {},
-      restore() {},
-      beginPath() {},
-      rect() {},
-      clip() {},
-      translate() {},
-      scale() {},
-      roundRect() {},
-      moveTo() {},
-      lineTo() {},
-      stroke() {},
-      measureText(text: string) {
-        return {
-          width: text.length * 6,
-          actualBoundingBoxAscent: 8,
-          actualBoundingBoxDescent: 2,
-        } as TextMetrics;
-      },
-      fillText(text: string, x: number, y: number) {
-        labels.push({ text, x, y, color: fillStyle, font });
-      },
-      get fillStyle() {
-        return fillStyle;
-      },
-      set fillStyle(value: string | CanvasGradient | CanvasPattern) {
-        fillStyle = String(value);
-      },
-      get font() {
-        return font;
-      },
-      set font(value: string) {
-        font = value;
-      },
-      strokeStyle: "",
-      lineWidth: 1,
-      lineCap: "butt",
-      lineJoin: "miter",
-    } as unknown as CanvasRenderingContext2D;
-
-    paintWebViewport({
-      context,
-      model: {
-        ...model,
-        files: [
-          {
-            ...model.files[0]!,
-            headerHeight: 40,
-            bodyTop: 40,
-            bodyHeight: 18,
-            bottom: 58,
-          },
-        ],
-        height: 58,
-      },
-      palette,
-      typography: { family: "monospace", size: 12, lineHeight: 18 },
-      headerTypography: { family: "system-ui", size: 14, statSize: 12 },
-      measureText: { measure: () => 0 },
-      scrollTop: 0,
-      viewportWidth: 200,
-      viewportHeight: 100,
-      horizontalOffsets: new Map(),
-      selection: null,
-      devicePixelRatio: 1,
-      activeHeaderPath: null,
-    });
+    const { context, fills, labels } = recordingHeaderContext();
+    paintSingleHeader(context);
 
     expect(
       fills.filter((fill) => fill.color === "header" || fill.color === "header-border"),
@@ -92,6 +102,25 @@ describe("web diff text shaping", () => {
       { text: "-0", x: 158, y: 23.5, color: "danger", font: "12px system-ui" },
       { text: "src/", x: 36, y: 23.5, color: "muted", font: "14px system-ui" },
       { text: "a.ts", x: 60, y: 23.5, color: "foreground", font: "14px system-ui" },
+    ]);
+  });
+
+  it("leaves the reserved trailing inset free for header actions", () => {
+    const { context, labels } = recordingHeaderContext();
+    paintSingleHeader(context, 28);
+
+    expect(labels.filter((label) => label.font === "12px system-ui")).toEqual([
+      { text: "+1", x: 114, y: 23.5, color: "success", font: "12px system-ui" },
+      { text: "-0", x: 130, y: 23.5, color: "danger", font: "12px system-ui" },
+    ]);
+  });
+
+  it("paints search matches behind the text, scrolled with the file, on both split sides", () => {
+    expect(paintSearchFills(createSelectionModel("split"))).toEqual([
+      { color: "search-match", x: -2, width: 30 },
+      { color: "search-match-active", x: 38, width: 20 },
+      { color: "search-match", x: 98, width: 30 },
+      { color: "search-match-active", x: 138, width: 20 },
     ]);
   });
 
@@ -297,6 +326,67 @@ interface SelectionPaint extends Rectangle {
   clip: Rectangle | null;
 }
 
+function paintSearchFills(
+  model: DiffDocumentModel,
+): Array<{ color: string; x: number; width: number }> {
+  const fills: Array<{ color: string; x: number; width: number }> = [];
+  let fillStyle = "";
+  const context = {
+    setTransform() {},
+    clearRect() {},
+    fillRect(x: number, _y: number, width: number) {
+      if (fillStyle.startsWith("search-match")) fills.push({ color: fillStyle, x, width });
+    },
+    strokeRect() {},
+    save() {},
+    restore() {},
+    beginPath() {},
+    rect() {},
+    clip() {},
+    fillText() {},
+    get fillStyle() {
+      return fillStyle;
+    },
+    set fillStyle(value: string | CanvasGradient | CanvasPattern) {
+      fillStyle = String(value);
+    },
+    strokeStyle: "",
+    lineWidth: 1,
+    globalAlpha: 1,
+    font: "",
+    textBaseline: "alphabetic",
+  } as unknown as CanvasRenderingContext2D;
+  const matches = [
+    { fileIndex: 0, hunkIndex: 0, lineIndex: 1, start: 2, end: 5 },
+    { fileIndex: 0, hunkIndex: 0, lineIndex: 1, start: 6, end: 8 },
+  ];
+  paintWebViewport({
+    context,
+    model,
+    palette,
+    typography: { family: "monospace", size: 12, lineHeight: 18 },
+    headerTypography,
+    measureText: { measure: () => 0 },
+    scrollTop: 0,
+    viewportWidth: 200,
+    viewportHeight: 100,
+    horizontalOffsets: new Map([["src/selection.ts", 50]]),
+    selection: null,
+    activeHeaderPath: null,
+    search: {
+      result: {
+        matches,
+        matchesByLine: new Map([[diffSearchLineKey(0, 0, 1), [0, 1]]]),
+        limitHit: false,
+        invalid: false,
+      },
+      activeIndex: 1,
+    },
+    devicePixelRatio: 1,
+  });
+  return fills;
+}
+
 function paintSelection(model: DiffDocumentModel, selection: DiffSelection): SelectionPaint[] {
   const paints: SelectionPaint[] = [];
   const clipStack: Array<Rectangle | null> = [];
@@ -465,6 +555,9 @@ const palette: DiffPalette = {
   statusSuccess: "success",
   statusDanger: "danger",
   statusWarning: "warning",
+  searchMatch: "search-match",
+  searchMatchActive: "search-match-active",
+  searchMatchActiveBorder: "search-match-border",
   syntax: { first: "red", second: "blue" },
 };
 

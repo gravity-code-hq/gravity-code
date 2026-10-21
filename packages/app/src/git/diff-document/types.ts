@@ -71,6 +71,9 @@ export interface DiffPalette {
   statusSuccess: string;
   statusDanger: string;
   statusWarning: string;
+  searchMatch: string;
+  searchMatchActive: string;
+  searchMatchActiveBorder: string;
   syntax: Record<string, string>;
 }
 

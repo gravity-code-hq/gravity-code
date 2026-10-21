@@ -75,11 +75,11 @@ describe("filterShortcutHelpSections", () => {
   });
 
   it("matches a row by the rendered badge", () => {
-    expect(matchedRowIds("⌘n")).toContain("new-workspace");
+    expect(matchedRowIds("⌥⌘n")).toContain("new-workspace");
   });
 
   it("matches a row by a spelled-out modifier", () => {
-    expect(matchedRowIds("command+n")).toContain("new-workspace");
+    expect(matchedRowIds("command+option+n")).toContain("new-workspace");
   });
 
   // The reported bug, from the search side: the cheat sheet has to stop finding
@@ -88,14 +88,14 @@ describe("filterShortcutHelpSections", () => {
     const overrides = { [NEW_WORKSPACE_BINDING]: "Cmd+Shift+K" };
 
     expect(matchedRowIds("cmd+shift+k", overrides)).toContain("new-workspace");
-    expect(matchedRowIds("cmd+n", overrides)).not.toContain("new-workspace");
+    expect(matchedRowIds("cmd+alt+n", overrides)).not.toContain("new-workspace");
   });
 
   it("still finds an unassigned row by its label", () => {
     const overrides = { [NEW_WORKSPACE_BINDING]: UNASSIGNED_COMBO };
 
     expect(matchedRowIds("new workspace", overrides)).toContain("new-workspace");
-    expect(matchedRowIds("cmd+n", overrides)).not.toContain("new-workspace");
+    expect(matchedRowIds("cmd+alt+n", overrides)).not.toContain("new-workspace");
   });
 
   it("keeps every row of a section whose own title matches", () => {

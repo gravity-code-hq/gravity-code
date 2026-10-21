@@ -42,6 +42,7 @@ export const HorizontalScroll = memo(function HorizontalScroll({
     <div
       ref={scrollRef}
       data-testid={`diff-file-${file.fileIndex}-horizontal-scroll`}
+      data-diff-horizontal-path={file.path}
       onScroll={scroll}
       style={rootStyle}
     >

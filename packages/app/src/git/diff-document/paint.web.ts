@@ -20,6 +20,7 @@ import {
   formatDiffCount,
 } from "@/git/file-header-presentation";
 import { reviewBackgroundPaint, reviewDividerHeight, reviewGapTop } from "./review-paint";
+import { diffSearchLineKey, type DiffSearchResult } from "./search";
 import type {
   DiffCell,
   DiffDocumentModel,
@@ -47,6 +48,9 @@ export interface PaintWebViewportInput {
   horizontalOffsets: ReadonlyMap<string, number>;
   selection: DiffSelection | null;
   activeHeaderPath: string | null;
+  /** Width reserved at the header's right edge for interactive actions. */
+  headerTrailingInset?: number;
+  search?: { result: DiffSearchResult; activeIndex: number | null } | null;
   devicePixelRatio: number;
   paintTop?: number;
   paintHeight?: number;
@@ -115,6 +119,7 @@ export function paintWebViewport(input: PaintWebViewportInput): void {
       viewportWidth: input.viewportWidth,
       y: file.top - input.scrollTop,
       activePath: input.activeHeaderPath,
+      trailingInset: input.headerTrailingInset,
     });
   }
 
@@ -130,6 +135,7 @@ export function paintWebFileHeader(input: {
   viewportWidth: number;
   y: number;
   activePath: string | null;
+  trailingInset?: number;
 }): void {
   const { context, file, palette, typography, viewportWidth, y } = input;
   context.fillStyle =
@@ -156,7 +162,11 @@ export function paintWebFileHeader(input: {
   context.stroke();
   context.restore();
 
-  const iconX = viewportWidth - DIFF_FILE_HEADER_RIGHT - DIFF_FILE_HEADER_ICON_SIZE;
+  const iconX =
+    viewportWidth -
+    DIFF_FILE_HEADER_RIGHT -
+    (input.trailingInset ?? 0) -
+    DIFF_FILE_HEADER_ICON_SIZE;
   const statLabels = [
     `+${formatDiffCount(file.file.additions)}`,
     `-${formatDiffCount(file.file.deletions)}`,
@@ -338,6 +348,7 @@ function paintLine(
       input.row.height - input.row.reviewHeight,
     );
     input.context.clip();
+    paintSearchMatches({ ...input, cell, x: x + file.gutterWidth + CODE_LEFT_PADDING });
     paintCellText({ ...input, cell, x: x + file.gutterWidth + CODE_LEFT_PADDING });
     input.context.restore();
   });
@@ -371,6 +382,45 @@ function paintCellText(
       // syntax color without breaking ligatures, kerning, or contextual forms into new runs.
       input.context.fillText(fragment.text, textX, baseline);
       input.context.restore();
+    }
+  }
+}
+
+function paintSearchMatches(
+  input: PaintWebViewportInput & {
+    row: DiffLineRow;
+    cell: DiffCell;
+    x: number;
+    y: number;
+    horizontalOffset: number;
+  },
+): void {
+  const search = input.search;
+  if (!search || input.cell.type === "header") return;
+  const { hunkIndex, lineIndex } = input.cell.sourceIdentity;
+  const indexes = search.result.matchesByLine.get(
+    diffSearchLineKey(input.row.fileIndex, hunkIndex, lineIndex),
+  );
+  if (!indexes) return;
+  const textX = input.x - (input.model.wrapLines ? 0 : input.horizontalOffset);
+  const { context, palette } = input;
+  for (const index of indexes) {
+    const match = search.result.matches[index];
+    if (!match) continue;
+    const active = index === search.activeIndex;
+    for (const fragment of input.cell.fragments) {
+      const start = Math.max(fragment.start, match.start);
+      const end = Math.min(fragment.end, match.end);
+      if (end <= start) continue;
+      const x = textX + fragmentWidthForRange(fragment, fragment.start, start);
+      const y = input.y + fragment.top;
+      const width = fragmentWidthForRange(fragment, start, end);
+      context.fillStyle = active ? palette.searchMatchActive : palette.searchMatch;
+      context.fillRect(x, y, width, input.model.lineHeight);
+      if (!active) continue;
+      context.strokeStyle = palette.searchMatchActiveBorder;
+      context.lineWidth = 1;
+      context.strokeRect(x + 0.5, y + 0.5, width - 1, input.model.lineHeight - 1);
     }
   }
 }

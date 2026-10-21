@@ -158,6 +158,10 @@ export const ru: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "Вставить",
+      acceptLabel: "Вставить предложенное сообщение",
+    },
     placeholders: {
       desktop: "Напишите агенту сообщение, отметьте @files или используйте /commands и /skills.",
       mobile: "Сообщение,@files,/commands",
@@ -2709,6 +2713,18 @@ export const ru: TranslationResources = {
           update: "Обновить навык",
           delete: "Удалить навык",
         },
+      },
+      promptSuggestions: {
+        title: "Подсказки сообщений",
+        hint: "После каждого хода угадывает ваше следующее сообщение и показывает его в пустом поле ввода. Каждая подсказка — один короткий запрос к модели.",
+        model: "Модель подсказок",
+        modelAgent: "Как у агента",
+        modelMetadata: "Модель метаданных",
+        modelAgentHint:
+          "Использует провайдера самого агента и предпочитает его самую маленькую модель. Переписка остаётся у этого провайдера.",
+        modelMetadataHint:
+          "Использует модель генерации метаданных, которая может быть у другого провайдера, чем агент.",
+        saveFailed: "Не удалось сохранить: {{message}}",
       },
       orchestration: {
         title: "Оркестрация",

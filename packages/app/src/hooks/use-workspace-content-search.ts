@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FileContentSearchFile } from "@gravity/protocol/messages";
+import { usePanelStore } from "@/stores/panel-store";
 import { useSessionStore } from "@/stores/session-store";
 
 export interface WorkspaceContentSearchOptions {
@@ -53,11 +54,19 @@ export function useWorkspaceContentSearch(input: {
 }): WorkspaceContentSearchState {
   const { serverId, workspaceRoot, query, options, enabled, runId } = input;
   const client = useSessionStore((state) => state.sessions[serverId]?.client ?? null);
+  // Search follows the Files pane's hidden-files toggle. Daemons without the
+  // flag always search dotfiles, so nothing is sent to them.
+  const supportsExcludeHidden = useSessionStore(
+    (state) =>
+      state.sessions[serverId]?.serverInfo?.features?.fsContentSearchExcludeHidden === true,
+  );
+  const showHiddenFiles = usePanelStore((state) => state.explorerShowHiddenFiles);
+  const excludeHidden = supportsExcludeHidden ? !showHiddenFiles : undefined;
   const [state, setState] = useState<WorkspaceContentSearchState>({ status: "idle" });
   // The effect keys off `requestKey`, which already folds in every input; the
   // ref hands it the matching values without widening its dependency list.
-  const latestInput = useRef({ query, options });
-  latestInput.current = { query, options };
+  const latestInput = useRef({ query, options, excludeHidden });
+  latestInput.current = { query, options, excludeHidden };
   const requestKey = useMemo(
     () =>
       enabled && workspaceRoot && query.length > 0
@@ -69,11 +78,13 @@ export function useWorkspaceContentSearch(input: {
             options.regex ? 1 : 0,
             options.include,
             options.exclude,
+            String(excludeHidden),
             runId,
           ].join("\0")
         : null,
     [
       enabled,
+      excludeHidden,
       options.caseSensitive,
       options.exclude,
       options.include,
@@ -94,7 +105,11 @@ export function useWorkspaceContentSearch(input: {
     const activeRoot = workspaceRoot;
     let cancelled = false;
     setState((previous) => ({ status: "loading", previous: carriedResult(previous) }));
-    const { query: activeQuery, options: activeOptions } = latestInput.current;
+    const {
+      query: activeQuery,
+      options: activeOptions,
+      excludeHidden: activeExcludeHidden,
+    } = latestInput.current;
     async function search(): Promise<void> {
       try {
         const payload = await activeClient.searchFileContents({
@@ -106,6 +121,7 @@ export function useWorkspaceContentSearch(input: {
           include: activeOptions.include.trim() || undefined,
           exclude: activeOptions.exclude.trim() || undefined,
           maxResults: SEARCH_MAX_RESULTS,
+          excludeHidden: activeExcludeHidden,
         });
         if (cancelled) return;
         if (payload.error) {

@@ -98,10 +98,19 @@ describe("panel-store explorer tab resolution", () => {
 });
 
 describe("panel-store migration", () => {
-  it("defaults hidden-file visibility to showing hidden files", () => {
+  it("defaults hidden-file visibility to hiding hidden files", () => {
     const state = migratePanelState({}, 10);
 
-    expect(state.explorerShowHiddenFiles).toBe(true);
+    expect(state.explorerShowHiddenFiles).toBe(false);
+  });
+
+  it("resets the old show-hidden default persisted before v17", () => {
+    expect(migratePanelState({ explorerShowHiddenFiles: true }, 16).explorerShowHiddenFiles).toBe(
+      false,
+    );
+    expect(migratePanelState({ explorerShowHiddenFiles: true }, 17).explorerShowHiddenFiles).toBe(
+      true,
+    );
   });
 
   it("initializes diffCollapsedFoldersByWorkspace for pre-v12 state", () => {

@@ -77,4 +77,19 @@ describe.skipIf(!ripgrepAvailable)("searchFileContents (ripgrep)", () => {
     expect(capped.totalMatches).toBe(1);
     expect(capped.truncated).toBe(true);
   });
+
+  test("never searches .git, and skips dotfiles when excludeHidden is set", async () => {
+    const root = makeRepo();
+    mkdirSync(join(root, ".github"), { recursive: true });
+    writeFileSync(join(root, ".github", "ci.yml"), "gravity ci\n");
+    writeFileSync(join(root, ".git", "description"), "gravity in git internals\n");
+    const search = async (excludeHidden?: boolean) =>
+      (
+        await searchFileContents({ root, query: "gravity", excludeHidden }, { engine: "ripgrep" })
+      ).files
+        .map((file) => file.path)
+        .sort();
+    expect(await search()).toEqual([".github/ci.yml", "README.md", "src/app.ts"]);
+    expect(await search(true)).toEqual(["README.md", "src/app.ts"]);
+  });
 });

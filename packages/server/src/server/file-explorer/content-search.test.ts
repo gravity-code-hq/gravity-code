@@ -99,6 +99,24 @@ describe("searchFileContents (git grep)", () => {
     expect(result.truncated).toBe(true);
   });
 
+  test("skips dotfiles when excludeHidden is set", async () => {
+    const root = makeRepo();
+    mkdirSync(join(root, ".github"), { recursive: true });
+    writeFileSync(join(root, ".github", "ci.yml"), "gravity ci\n");
+    writeFileSync(join(root, ".env.example"), "GRAVITY=1\n");
+    const search = async (excludeHidden: boolean) =>
+      (await searchFileContents({ root, query: "gravity", excludeHidden }, { engine: "git" })).files
+        .map((file) => file.path)
+        .sort();
+    expect(await search(true)).toEqual(["README.md", "src/app.ts"]);
+    expect(await search(false)).toEqual([
+      ".env.example",
+      ".github/ci.yml",
+      "README.md",
+      "src/app.ts",
+    ]);
+  });
+
   test("rejects a root outside any directory", async () => {
     await expect(
       searchFileContents({ root: join(tmpdir(), "does-not-exist-gravity"), query: "x" }),
@@ -148,13 +166,33 @@ describe("argument construction (VS Code getRgArgs port)", () => {
     });
     expect(args).toContain("-i");
     expect(args).toContain("-F");
-    expect(args.slice(-6)).toEqual([
+    expect(args.slice(-12)).toEqual([
       ":(glob)**/*.ts/**",
       ":(glob)**/*.ts",
       ":(exclude,glob)**/node_modules",
       ":(exclude,glob)**/bower_components",
       ":(exclude,glob)**/*.code-search",
+      ":(exclude,glob)**/.git",
+      ":(exclude,glob)**/.svn",
+      ":(exclude,glob)**/.hg",
+      ":(exclude,glob)**/CVS",
+      ":(exclude,glob)**/.DS_Store",
+      ":(exclude,glob)**/Thumbs.db",
       ":(exclude,glob)**/dist/**",
+    ]);
+  });
+
+  test("excludeHidden drops --hidden and excludes dot paths from git grep", () => {
+    const base = { root: "/tmp", query: "foo", maxResults: 10 };
+    const hidden = buildRipgrepArgs({ ...base, excludeHidden: true });
+    expect(hidden).not.toContain("--hidden");
+    expect(hidden.join(" ")).toContain("-g !**/node_modules");
+    const shown = buildRipgrepArgs(base);
+    expect(shown).toContain("--hidden");
+    expect(shown.join(" ")).toContain("-g !**/.git");
+    expect(buildGitGrepArgs({ ...base, excludeHidden: true }).slice(-2)).toEqual([
+      ":(exclude,glob)**/.*",
+      ":(exclude,glob)**/.*/**",
     ]);
   });
 

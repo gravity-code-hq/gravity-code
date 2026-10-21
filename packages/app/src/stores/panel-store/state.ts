@@ -246,8 +246,10 @@ export function migratePanelState(persistedState: unknown, version: number): Mig
   ) {
     state.collapsedFilePathsByWorkspace = {};
   }
-  if (typeof state.explorerShowHiddenFiles !== "boolean") {
-    state.explorerShowHiddenFiles = true;
+  // v17 flipped the default to hiding dotfiles. Earlier builds persisted the old
+  // default for everyone, so the stored value says nothing about user intent.
+  if (version < 17 || typeof state.explorerShowHiddenFiles !== "boolean") {
+    state.explorerShowHiddenFiles = false;
   }
   migrateTreeRailWidth(state, version);
   if (typeof state.fileTreeVisible !== "boolean") {

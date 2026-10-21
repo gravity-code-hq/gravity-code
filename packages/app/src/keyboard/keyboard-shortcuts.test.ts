@@ -139,16 +139,34 @@ describe("keyboard-shortcuts", () => {
       action: "agent.new",
     },
     {
-      name: "matches Cmd+N to create new workspace on mac",
-      event: { key: "n", code: "KeyN", metaKey: true },
+      name: "matches Cmd+Alt+N to create new workspace on mac",
+      event: { key: "˜", code: "KeyN", metaKey: true, altKey: true },
       context: { isMac: true, commandCenterOpen: false },
       action: "workspace.new",
     },
     {
-      name: "matches Ctrl+N to create new workspace on non-mac",
-      event: { key: "n", code: "KeyN", ctrlKey: true },
+      name: "matches Ctrl+Alt+N to create new workspace on non-mac",
+      event: { key: "n", code: "KeyN", ctrlKey: true, altKey: true },
       context: { isMac: false, commandCenterOpen: false, focusScope: "other" },
       action: "workspace.new",
+    },
+    {
+      name: "matches Cmd+N to open a new agent tab on mac",
+      event: { key: "n", code: "KeyN", metaKey: true },
+      context: { isMac: true, commandCenterOpen: false },
+      action: "workspace.tab.target.agent",
+    },
+    {
+      name: "matches Cmd+N to open a new agent tab while typing on mac",
+      event: { key: "n", code: "KeyN", metaKey: true },
+      context: { isMac: true, commandCenterOpen: false, focusScope: "message-input" },
+      action: "workspace.tab.target.agent",
+    },
+    {
+      name: "matches Ctrl+N to open a new agent tab on non-mac",
+      event: { key: "n", code: "KeyN", ctrlKey: true },
+      context: { isMac: false, commandCenterOpen: false, focusScope: "other" },
+      action: "workspace.tab.target.agent",
     },
     {
       name: "matches Cmd+P to search workspace files on mac",
@@ -467,11 +485,6 @@ describe("keyboard-shortcuts", () => {
 
   const nonMatchingCases: NonMatchingShortcutCase[] = [
     {
-      name: "does not keep old Mod+Alt+N binding",
-      event: { key: "n", code: "KeyN", metaKey: true, altKey: true },
-      context: { isMac: true },
-    },
-    {
       name: "does not keep old Alt+Shift+T binding",
       event: { key: "T", code: "KeyT", altKey: true, shiftKey: true },
     },
@@ -711,7 +724,7 @@ describe("keyboard-shortcut help sections", () => {
       context: { isMac: true, isDesktop: true },
       expectedKeys: {
         "new-agent": ["mod", "O"],
-        "new-workspace": ["mod", "N"],
+        "new-workspace": ["mod", "alt", "N"],
         "workspace-tab-new": ["mod", "shift", "T"],
         "workspace-tab-target-agent": ["mod", "A"],
         "workspace-terminal-new": ["mod", "T"],
@@ -774,7 +787,7 @@ describe("keyboard-shortcut help sections", () => {
     // The reported bug: the cheat sheet advertised the shipped default no matter
     // what the user had rebound the shortcut to.
     it("shows the override, not the shipped default", () => {
-      expect(rowChord({}, "new-workspace")).toEqual([["mod", "N"]]);
+      expect(rowChord({}, "new-workspace")).toEqual([["mod", "alt", "N"]]);
       expect(rowChord({ [NEW_WORKSPACE_BINDING]: "Cmd+Shift+K" }, "new-workspace")).toEqual([
         ["mod", "shift", "K"],
       ]);
@@ -795,7 +808,7 @@ describe("keyboard-shortcut help sections", () => {
       expect(rowChord({ [NEW_WORKSPACE_BINDING]: "Cmd+Shift+K" }, "new-workspace")).toEqual([
         ["mod", "shift", "K"],
       ]);
-      expect(rowChord({}, "new-workspace")).toEqual([["mod", "N"]]);
+      expect(rowChord({}, "new-workspace")).toEqual([["mod", "alt", "N"]]);
     });
 
     // An arrow override used to render as the raw `ARROWLEFT` code, because the

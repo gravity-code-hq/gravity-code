@@ -160,6 +160,10 @@ export const fr: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "Utiliser",
+      acceptLabel: "Utiliser le message suggéré",
+    },
     placeholders: {
       desktop: "Envoyez un message à l'agent, marquez@filesou utilisez/commandset/skills",
       mobile: "Message,@files,/commands",
@@ -2729,6 +2733,18 @@ export const fr: TranslationResources = {
           update: "Mettre à jour la compétence",
           delete: "Supprimer la compétence",
         },
+      },
+      promptSuggestions: {
+        title: "Suggestions de messages",
+        hint: "Après chaque tour, devine votre prochain message et l'affiche dans la zone de saisie vide. Chaque suggestion est une courte requête à un modèle.",
+        model: "Modèle de suggestion",
+        modelAgent: "Comme l'agent",
+        modelMetadata: "Modèle de métadonnées",
+        modelAgentHint:
+          "Utilise le fournisseur de l'agent en privilégiant son plus petit modèle. La conversation reste chez ce fournisseur.",
+        modelMetadataHint:
+          "Utilise le modèle de génération de métadonnées, qui peut venir d'un autre fournisseur que l'agent.",
+        saveFailed: "Échec de l'enregistrement : {{message}}",
       },
       orchestration: {
         title: "Orchestration",

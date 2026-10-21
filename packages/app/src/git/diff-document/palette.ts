@@ -23,6 +23,10 @@ export function createDiffPalette(theme: Theme): DiffPalette {
     statusSuccess: theme.colors.statusSuccess,
     statusDanger: theme.colors.statusDanger,
     statusWarning: theme.colors.statusWarning,
+    // The file editor's find colors (file-pane/editor/search.web.ts), so both finds read alike.
+    searchMatch: theme.colors.interactionHighlight,
+    searchMatchActive: theme.colors.terminal.selectionBackground,
+    searchMatchActiveBorder: theme.colors.accent,
     syntax: theme.colors.syntax,
     ...(theme.colorScheme === "dark" ? cursorCharcoalDiffColors : {}),
   };

@@ -41,6 +41,7 @@ const daemonConfig: MutableDaemonConfig = {
   browserTools: { enabled: false },
   providers: {},
   metadataGeneration: { providers: [] },
+  promptSuggestions: { enabled: true, model: "agent" },
   autoArchiveAfterMerge: false,
   enableTerminalAgentHooks: false,
   appendSystemPrompt: "",

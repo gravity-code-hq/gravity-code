@@ -23,6 +23,7 @@ interface SupportedMutableConfigPatch {
   providers?: MutableDaemonConfig["providers"];
   removeProviders?: string[];
   metadataGeneration?: MutableDaemonConfig["metadataGeneration"];
+  promptSuggestions?: Partial<MutableDaemonConfig["promptSuggestions"]>;
   autoArchiveAfterMerge?: boolean;
   enableTerminalAgentHooks?: boolean;
   appendSystemPrompt?: string;
@@ -187,6 +188,7 @@ const RELOADABLE_PATHS = [
   "agents.providers",
   "agents.catalogRefreshTimeoutMs",
   "agents.metadataGeneration",
+  "agents.promptSuggestions",
   "agents.skills.selection",
   "pluginsEnabled",
 ] as const;
@@ -210,6 +212,7 @@ const PERSISTED_TO_MUTABLE_PATH = new Map<string, string>([
   ["agents.providers", "providers"],
   ["agents.catalogRefreshTimeoutMs", "catalogRefreshTimeoutMs"],
   ["agents.metadataGeneration", "metadataGeneration"],
+  ["agents.promptSuggestions", "promptSuggestions"],
   ["agents.skills.selection", "skills.selection"],
   ["pluginsEnabled", "pluginsEnabled"],
 ]);
@@ -263,6 +266,9 @@ function pickSupportedPatchFields(patch: MutableDaemonConfigPatch): SupportedMut
     ...(patch.metadataGeneration?.providers !== undefined
       ? { metadataGeneration: { providers: patch.metadataGeneration.providers } }
       : {}),
+    ...(patch.promptSuggestions !== undefined
+      ? { promptSuggestions: pickPromptSuggestionsPatch(patch.promptSuggestions) }
+      : {}),
     ...(patch.autoArchiveAfterMerge !== undefined
       ? { autoArchiveAfterMerge: patch.autoArchiveAfterMerge }
       : {}),
@@ -276,6 +282,15 @@ function pickSupportedPatchFields(patch: MutableDaemonConfigPatch): SupportedMut
     ...(patch.agentProfiles !== undefined ? { agentProfiles: patch.agentProfiles } : {}),
     ...(patch.pluginsEnabled !== undefined ? { pluginsEnabled: patch.pluginsEnabled } : {}),
     ...(patch.plugins !== undefined ? { plugins: patch.plugins } : {}),
+  };
+}
+
+function pickPromptSuggestionsPatch(
+  patch: NonNullable<MutableDaemonConfigPatch["promptSuggestions"]>,
+): NonNullable<SupportedMutableConfigPatch["promptSuggestions"]> {
+  return {
+    ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
+    ...(patch.model !== undefined ? { model: patch.model } : {}),
   };
 }
 
@@ -602,6 +617,7 @@ function mergeMutableAgentPatch(
   if (
     patch.providers === undefined &&
     patch.metadataGeneration === undefined &&
+    patch.promptSuggestions === undefined &&
     patch.skills === undefined &&
     removeProviders.length === 0
   ) {
@@ -628,6 +644,13 @@ function mergeMutableAgentPatch(
       providers: persistedAgents.metadataGeneration.providers.filter(
         (entry) => !removed.has(entry.provider),
       ),
+    };
+  }
+
+  if (patch.promptSuggestions !== undefined) {
+    next["promptSuggestions"] = {
+      ...persistedAgents?.promptSuggestions,
+      ...patch.promptSuggestions,
     };
   }
 

@@ -290,10 +290,13 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   },
 
   // --- New workspace ---
+  // New workspace moved from Cmd+N to Cmd+Alt+N so Cmd+N can open a new
+  // agent. The binding ids keep their "cmd-n" / "ctrl-n" names because user
+  // shortcut overrides are keyed by binding id.
   {
     id: "workspace-new-cmd-n-mac",
     action: "workspace.new",
-    combo: "Cmd+N",
+    combo: "Cmd+Alt+N",
     when: { mac: true, commandCenter: false },
     help: {
       id: "new-workspace",
@@ -304,7 +307,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-new-ctrl-n-non-mac",
     action: "workspace.new",
-    combo: "Ctrl+N",
+    combo: "Ctrl+Alt+N",
     when: { mac: false, commandCenter: false, terminal: false },
     help: {
       id: "new-workspace",
@@ -434,6 +437,20 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
       section: "general",
       label: "New agent",
     },
+  },
+  // Second New agent chord. It has no help entry, so the shortcuts sheet and
+  // Settings keep showing (and rebinding) the Cmd+A / Ctrl+Shift+A row above.
+  {
+    id: "workspace-tab-target-agent-cmd-n-mac",
+    action: "workspace.tab.target.agent",
+    combo: "Cmd+N",
+    when: { mac: true, commandCenter: false },
+  },
+  {
+    id: "workspace-tab-target-agent-ctrl-n-non-mac",
+    action: "workspace.tab.target.agent",
+    combo: "Ctrl+N",
+    when: { mac: false, commandCenter: false, terminal: false },
   },
   {
     id: "workspace-tab-target-browser-cmd-shift-b-mac",

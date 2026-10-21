@@ -157,6 +157,10 @@ export const ptBR: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "Usar",
+      acceptLabel: "Usar a mensagem sugerida",
+    },
     placeholders: {
       desktop: "Envie uma mensagem ao agente, marque @files ou use /commands e /skills",
       mobile: "Mensagem, @files, /commands",
@@ -2704,6 +2708,18 @@ export const ptBR: TranslationResources = {
           update: "Atualizar skill",
           delete: "Excluir skill",
         },
+      },
+      promptSuggestions: {
+        title: "Sugestões de mensagens",
+        hint: "Após cada turno, prevê sua próxima mensagem e a mostra na caixa vazia. Cada sugestão é uma solicitação curta a um modelo.",
+        model: "Modelo de sugestões",
+        modelAgent: "Igual ao agente",
+        modelMetadata: "Modelo de metadados",
+        modelAgentHint:
+          "Usa o provedor do próprio agente, preferindo o menor modelo. A conversa fica com esse provedor.",
+        modelMetadataHint:
+          "Usa o modelo de geração de metadados, que pode ser de um provedor diferente do agente.",
+        saveFailed: "Não foi possível salvar: {{message}}",
       },
       orchestration: {
         title: "Orquestração",

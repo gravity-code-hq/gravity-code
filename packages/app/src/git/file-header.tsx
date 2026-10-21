@@ -22,10 +22,15 @@ import {
 } from "@/components/tree-primitives";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsCompactFormFactor } from "@/constants/layout";
+import { isNative } from "@/constants/platform";
+import { DiscardChangesButton } from "@/git/discard-changes-button";
 import { useFileHeaderInteraction } from "@/git/file-header-interaction";
 import {
+  DIFF_FILE_HEADER_ACTION_WIDTH,
   DIFF_FILE_HEADER_HEIGHT,
   DIFF_FILE_HEADER_CONTENT_HEIGHT,
+  DIFF_FILE_HEADER_RIGHT,
   diffFileChangeKind,
   directorySuffix,
   fileNameForPath,
@@ -253,6 +258,29 @@ function FileHeaderLabel({
   );
 }
 
+/** Hover-revealed on desktop web; always shown where hover doesn't exist (docs/hover.md). */
+function useFileHeaderDiscardButton({
+  file,
+  onRevert,
+  visible,
+  testID,
+}: {
+  file: ParsedDiffFile;
+  onRevert: FileHeaderProps["onRevert"];
+  visible: boolean;
+  testID?: string;
+}): ReactElement | null {
+  const isCompact = useIsCompactFormFactor();
+  const discard = useCallback(
+    () => onRevert?.(file.path, file.oldPath),
+    [file.oldPath, file.path, onRevert],
+  );
+  if (!onRevert || !(visible || isNative || isCompact)) return null;
+  return (
+    <DiscardChangesButton onPress={discard} testID={testID ? `${testID}-discard` : undefined} />
+  );
+}
+
 export const FileHeader = memo(function FileHeader({
   file,
   workspaceFileDragScope,
@@ -271,6 +299,13 @@ export const FileHeader = memo(function FileHeader({
   ...actions
 }: FileHeaderProps) {
   const hover = useFileHeaderHover(interactive, onActiveChange);
+  const { onRevert } = actions;
+  const discardButton = useFileHeaderDiscardButton({
+    file,
+    onRevert: interactive ? onRevert : undefined,
+    visible: hover.isHovered,
+    testID,
+  });
   const dragSourceRef = useWorkspaceFileDragSource({
     enabled: interactive,
     disabled: file.isDeleted,
@@ -335,6 +370,7 @@ export const FileHeader = memo(function FileHeader({
         />
       </View>
       <View style={styles.right}>
+        {discardButton ? <View style={styles.inlineActionSlot}>{discardButton}</View> : null}
         <DiffStat
           additions={file.additions}
           deletions={file.deletions}
@@ -344,8 +380,13 @@ export const FileHeader = memo(function FileHeader({
       </View>
     </View>
   );
+  // The canvas paints the header and leaves DIFF_FILE_HEADER_ACTION_WIDTH free at the right
+  // edge when discard is available; the button fills that slot.
   const renderedContent = canvasRendered ? (
-    <View ref={dragSourceRef} style={styles.canvasInteractionContent} />
+    <View style={styles.canvasInteractionContent}>
+      <View ref={dragSourceRef} style={styles.canvasDragSource} />
+      {onRevert ? <View style={styles.canvasActionSlot}>{discardButton}</View> : null}
+    </View>
   ) : (
     content
   );
@@ -468,7 +509,24 @@ const styles = StyleSheet.create((theme) => ({
     elevation: 0,
     shadowOpacity: 0,
   },
-  canvasInteractionContent: { flex: 1, minWidth: 0 },
+  canvasInteractionContent: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: DIFF_FILE_HEADER_RIGHT,
+  },
+  canvasDragSource: { flex: 1, minWidth: 0, alignSelf: "stretch" },
+  canvasActionSlot: {
+    width: DIFF_FILE_HEADER_ACTION_WIDTH,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  // Shorter than the button so revealing it never grows the row; the button overflows evenly.
+  inlineActionSlot: {
+    height: WORKSPACE_TREE_ICON_SIZE,
+    justifyContent: "center",
+  },
   left: {
     flexDirection: "row",
     alignItems: "center",

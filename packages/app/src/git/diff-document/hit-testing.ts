@@ -7,7 +7,7 @@ import type {
   DiffSelection,
 } from "./types";
 
-const CODE_LEFT_PADDING = 8;
+export const CODE_LEFT_PADDING = 8;
 
 export function hitTestDiffDocument(input: {
   model: DiffDocumentModel;

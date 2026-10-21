@@ -446,6 +446,7 @@ export interface GravityDaemonConfig {
       thinkingOptionId?: string;
     }>;
   };
+  promptSuggestions?: Partial<MutableDaemonConfig["promptSuggestions"]>;
   providerOverrides?: Record<string, ProviderOverride>;
   log?: PersistedConfig["log"];
   onLifecycleIntent?: (intent: DaemonLifecycleIntent) => void;
@@ -558,6 +559,7 @@ function createInitialMutableDaemonConfig(config: GravityDaemonConfig): MutableD
     metadataGeneration: {
       providers: config.metadataGeneration?.providers ?? [],
     },
+    promptSuggestions: resolvePromptSuggestionsConfig(config),
     autoArchiveAfterMerge: config.autoArchiveAfterMerge ?? false,
     enableTerminalAgentHooks: config.enableTerminalAgentHooks ?? false,
     appendSystemPrompt: config.appendSystemPrompt ?? "",
@@ -575,6 +577,15 @@ function createInitialMutableDaemonConfig(config: GravityDaemonConfig): MutableD
   }
 
   return initialConfig;
+}
+
+function resolvePromptSuggestionsConfig(
+  config: GravityDaemonConfig,
+): MutableDaemonConfig["promptSuggestions"] {
+  return {
+    enabled: config.promptSuggestions?.enabled ?? false,
+    model: config.promptSuggestions?.model ?? "agent",
+  };
 }
 
 export async function createGravityDaemon(

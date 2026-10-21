@@ -6,4 +6,8 @@ user-invocable: true
 
 # Release stable
 
-Follow the applicable flow and the **Stable release (or promotion)** completion checklist in `docs/release.md` end-to-end.
+For this checkout, follow [Shipping from this fork](../../../docs/release.md#shipping-from-this-fork)
+end-to-end. It owns the desktop-only flow, repository, parallel GitHub Actions builds,
+and publication checks; the upstream npm/tag-push flow does not apply.
+
+Follow [GitHub identity for pushes and releases](../../../docs/release.md#github-identity-for-pushes-and-releases):

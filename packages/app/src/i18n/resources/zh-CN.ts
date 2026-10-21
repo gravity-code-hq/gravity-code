@@ -153,6 +153,10 @@ export const zhCN: TranslationResources = {
     },
   },
   composer: {
+    promptSuggestion: {
+      accept: "使用",
+      acceptLabel: "使用建议的消息",
+    },
     placeholders: {
       desktop: "给 Agent 发消息，标记 @files，或使用 /commands 和 /skills",
       mobile: "发消息，@files，/commands",
@@ -2627,6 +2631,16 @@ export const zhCN: TranslationResources = {
           update: "更新 skill",
           delete: "删除 skill",
         },
+      },
+      promptSuggestions: {
+        title: "提示建议",
+        hint: "每轮结束后预测你的下一条消息，并显示在空的输入框中。每次预测都会向模型发送一次简短请求。",
+        model: "建议模型",
+        modelAgent: "与代理相同",
+        modelMetadata: "元数据模型",
+        modelAgentHint: "使用代理自身的提供商，并优先选择其最小的模型。对话不会离开该提供商。",
+        modelMetadataHint: "使用元数据生成模型，可能与代理属于不同的提供商。",
+        saveFailed: "无法保存：{{message}}",
       },
       orchestration: {
         title: "编排",

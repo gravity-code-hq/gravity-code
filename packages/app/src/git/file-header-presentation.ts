@@ -9,6 +9,12 @@ export const DIFF_FILE_HEADER_LEFT = 36;
 export const DIFF_FILE_HEADER_RIGHT = 8;
 export const DIFF_FILE_HEADER_ICON_SIZE = 14;
 export const DIFF_FILE_HEADER_TEXT_GAP = 4;
+/** Room the canvas leaves at the header's right edge for the DOM/native action buttons. */
+export const DIFF_FILE_HEADER_ACTION_WIDTH = 28;
+
+export function diffFileHeaderTrailingInset(mode: { kind: string; onRevert?: unknown }): number {
+  return mode.kind === "working" && mode.onRevert ? DIFF_FILE_HEADER_ACTION_WIDTH : 0;
+}
 
 export function allocateDiffHeaderTextWidths(input: {
   available: number;

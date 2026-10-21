@@ -13,7 +13,9 @@ import { type Theme } from "@/styles/theme";
 import { inlineUnistylesStyle } from "@/styles/unistyles-inline-style";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { FileActionsContextMenuContent } from "@/components/file-actions-menu";
-import { isWeb } from "@/constants/platform";
+import { useIsCompactFormFactor } from "@/constants/layout";
+import { isNative, isWeb } from "@/constants/platform";
+import { DiscardChangesButton } from "@/git/discard-changes-button";
 
 interface DiffFolderRowProps {
   /** full uncompressed directory path — the collapse identity */
@@ -38,12 +40,13 @@ interface DiffFolderRowProps {
 }
 
 function folderRowPressableStyle(
-  { hovered, pressed }: PressableStateCallbackType & { hovered?: boolean },
+  { pressed }: PressableStateCallbackType,
+  isHovered: boolean,
   isSelected: boolean,
 ) {
   return [
     workspaceTreeRowStyles.row,
-    (Boolean(hovered) || pressed || isSelected) && workspaceTreeRowStyles.active,
+    (isHovered || pressed || isSelected) && workspaceTreeRowStyles.active,
   ];
 }
 
@@ -70,9 +73,12 @@ export function DiffFolderRow({
   const handleSelect = useCallback(() => {
     onSelect(dirPath);
   }, [dirPath, onSelect]);
+  // Hover lives on the outer View so the nested discard button never steals it (docs/hover.md).
   const [isHovered, setIsHovered] = useState(false);
   const showNameHover = useCallback(() => setIsHovered(true), []);
   const hideNameHover = useCallback(() => setIsHovered(false), []);
+  const isCompact = useIsCompactFormFactor();
+  const showDiscard = Boolean(onRevert) && (isHovered || isNative || isCompact);
 
   const handlePress = useCallback(() => {
     const selection = isWeb ? window.getSelection() : null;
@@ -84,9 +90,8 @@ export function DiffFolderRow({
   }, [dirPath, handleSelect, onToggle]);
 
   const pressableStyle = useCallback(
-    (state: PressableStateCallbackType & { hovered?: boolean }) =>
-      folderRowPressableStyle(state, isSelected),
-    [isSelected],
+    (state: PressableStateCallbackType) => folderRowPressableStyle(state, isHovered, isSelected),
+    [isHovered, isSelected],
   );
 
   const handleLayout = useCallback(
@@ -136,15 +141,19 @@ export function DiffFolderRow({
   );
 
   return (
-    <View style={styles.container} onLayout={handleLayout} testID={testID}>
+    <View
+      style={styles.container}
+      onLayout={handleLayout}
+      onPointerEnter={showNameHover}
+      onPointerLeave={hideNameHover}
+      testID={testID}
+    >
       <ContextMenu>
         <ContextMenuTrigger
           onPress={handlePress}
           onLongPress={handleSelect}
           onContextMenu={handleSelect}
           style={pressableStyle}
-          onHoverIn={showNameHover}
-          onHoverOut={hideNameHover}
           accessibilityRole="button"
           accessibilityState={accessibilityState}
           aria-selected={isSelected}
@@ -167,6 +176,14 @@ export function DiffFolderRow({
             </Text>
           </View>
           <View style={styles.right}>
+            {showDiscard ? (
+              <View style={styles.inlineActionSlot}>
+                <DiscardChangesButton
+                  onPress={handleRevert}
+                  testID={testID ? `${testID}-discard` : undefined}
+                />
+              </View>
+            ) : null}
             <DiffStat
               additions={additions}
               deletions={deletions}
@@ -212,6 +229,11 @@ const styles = StyleSheet.create((theme: Theme) => ({
     alignItems: "center",
     flexShrink: 0,
     gap: theme.spacing[1],
+  },
+  // Shorter than the button so revealing it never grows the row; the button overflows evenly.
+  inlineActionSlot: {
+    height: WORKSPACE_TREE_ICON_SIZE,
+    justifyContent: "center",
   },
   folderName: {
     fontSize: theme.fontSize.base,

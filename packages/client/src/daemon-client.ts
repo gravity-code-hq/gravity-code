@@ -633,6 +633,11 @@ export type AgentTimelinePromptIndexPayload = Extract<
   { type: "agent.timeline.list_prompts.response" }
 >["payload"];
 
+export type AgentPromptSuggestionPayload = Extract<
+  SessionOutboundMessage,
+  { type: "agent.prompt_suggestion.get.response" }
+>["payload"];
+
 export type ProviderSubagentListPayload = Extract<
   SessionOutboundMessage,
   { type: "agent.provider_subagents.list.response" }
@@ -3208,6 +3213,34 @@ export class DaemonClient {
     return payload;
   }
 
+  async getAgentPromptSuggestion(
+    agentId: string,
+    options: { requestId?: string; timeout?: number } = {},
+  ): Promise<AgentPromptSuggestionPayload> {
+    const requestId = this.createRequestId(options.requestId);
+    const message = SessionInboundMessageSchema.parse({
+      type: "agent.prompt_suggestion.get.request",
+      agentId,
+      requestId,
+    });
+    const payload = await this.sendRequest({
+      requestId,
+      message,
+      // Generation is a full provider turn, so it outlives the default RPC timeout.
+      timeout: options.timeout ?? 90_000,
+      options: { skipQueue: true },
+      select: (response) =>
+        response.type === "agent.prompt_suggestion.get.response" &&
+        response.payload.requestId === requestId
+          ? response.payload
+          : null,
+    });
+    if (payload.error) {
+      throw new Error(payload.error);
+    }
+    return payload;
+  }
+
   async listProviderSubagents(
     parentAgentId: string,
     options: { requestId?: string; timeout?: number } = {},
@@ -4751,6 +4784,7 @@ export class DaemonClient {
     include?: string;
     exclude?: string;
     maxResults?: number;
+    excludeHidden?: boolean;
   }): Promise<CorrelatedResponsePayload<"fs.content.search.response">> {
     return this.sendNamespacedCorrelatedSessionRequest<"fs.content.search.response">({
       message: { type: "fs.content.search.request", ...input },
