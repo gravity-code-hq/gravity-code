@@ -1,10 +1,9 @@
-import { GravityMark } from "./brand";
+import { GravityMark } from "./gravity-mark";
 import { ClaudeLogo, CodexLogo, CursorLogo, GitHubLogo, LinearLogo } from "./provider-logos";
 
-export function Orbit({ compact = false }: { compact?: boolean }) {
-  const className = compact ? "orbit-art orbit-compact" : "orbit-art";
+export function Orbit() {
   return (
-    <div className={className} aria-hidden="true">
+    <div className="orbit-art" aria-hidden="true">
       <div className="orbit-axis orbit-axis-x" />
       <div className="orbit-axis orbit-axis-y" />
       <div className="orbit-ring orbit-ring-outer" />
@@ -29,7 +28,7 @@ export function Orbit({ compact = false }: { compact?: boolean }) {
         <GitHubLogo />
       </span>
       <span className="orbit-tiny-dot" />
-      {!compact && <span className="orbit-caption">LESS FRICTION. MORE MOMENTUM.</span>}
+      <span className="orbit-caption">LESS FRICTION. MORE MOMENTUM.</span>
     </div>
   );
 }

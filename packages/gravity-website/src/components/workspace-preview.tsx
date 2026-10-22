@@ -16,7 +16,7 @@ import {
   Settings2,
   Terminal,
 } from "lucide-react";
-import { GravityMark } from "./brand";
+import { GravityMark } from "./gravity-mark";
 import { ClaudeLogo, CodexLogo, OpenCodeLogo } from "./provider-logos";
 
 interface DemoTask {

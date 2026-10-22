@@ -1,30 +1,4 @@
-import type { SVGProps } from "react";
-
-export function GravityMark(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true" {...props}>
-      <ellipse
-        cx="24"
-        cy="24"
-        rx="21"
-        ry="9"
-        transform="rotate(-40 24 24)"
-        stroke="currentColor"
-        strokeWidth="2.8"
-      />
-      <ellipse
-        cx="24"
-        cy="24"
-        rx="21"
-        ry="9"
-        transform="rotate(40 24 24)"
-        stroke="currentColor"
-        strokeWidth="2.8"
-      />
-      <circle cx="24" cy="24" r="4.5" fill="currentColor" />
-    </svg>
-  );
-}
+import { GravityMark } from "./gravity-mark";
 
 export function Brand({ href = "#home" }: { href?: string }) {
   return (

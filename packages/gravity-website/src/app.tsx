@@ -9,10 +9,12 @@ import {
   Menu,
   Monitor,
   ShieldCheck,
-  Sparkles,
+  Gauge,
+  PanelsTopLeft,
   X,
 } from "lucide-react";
-import { Brand, GravityMark } from "./components/brand";
+import { Brand } from "./components/brand";
+import { GravityMark } from "./components/gravity-mark";
 import { Downloads, DownloadLink } from "./components/downloads";
 import {
   ClaudeLogo,
@@ -38,8 +40,8 @@ function Header() {
     <header className="site-header container">
       <Brand />
       <nav className="desktop-nav" aria-label="Main navigation">
-        <a href="#features">Why Gravity</a>
-        <a href="#workflow">How it works</a>
+        <a href="#why-gravity">Why Gravity</a>
+        <a href="#features">Features</a>
         <a href="#faq">FAQs</a>
       </nav>
       <div className="header-actions">
@@ -71,11 +73,11 @@ function Header() {
           aria-label="Mobile navigation"
           onClick={closeMenu}
         >
-          <a href="#features">
+          <a href="#why-gravity">
             Why Gravity <ArrowRight size={16} />
           </a>
-          <a href="#workflow">
-            How it works <ArrowRight size={16} />
+          <a href="#features">
+            Features <ArrowRight size={16} />
           </a>
           <a href="#faq">
             FAQs <ArrowRight size={16} />
@@ -94,7 +96,7 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="hero container" aria-labelledby="hero-title">
+    <section className="hero hero-home container" aria-labelledby="hero-title">
       <div className="hero-copy">
         <a href="#download" className="hero-announcement">
           <span className="announcement-dot" /> A new home for your coding agents{" "}
@@ -103,10 +105,12 @@ function Hero() {
         <h1 id="hero-title">
           Your agents.
           <br />
-          One <em>orbit.</em>
+          Your machine.
+          <br />
+          <em>Your way.</em>
         </h1>
         <p>
-          A little less friction. A lot more building.
+          Orchestrate multiple coding agents
           <br />
           Bring your AI coding agents together in one
           <br className="desktop-break" /> beautifully focused desktop workspace.
@@ -291,63 +295,65 @@ function LocalFeature() {
   );
 }
 
-const workflowSteps = [
-  {
-    number: "01",
-    title: "Make yourself at home.",
-    description:
-      "Install Gravity on your Mac or Linux machine. Bring an installed, signed-in coding agent and a project you care about.",
-  },
-  {
-    number: "02",
-    title: "Give your ideas an agent.",
-    description:
-      "Open a workspace, pick your agent, and describe what you want to build. Start another task whenever inspiration strikes.",
-  },
-  {
-    number: "03",
-    title: "Stay in the creative seat.",
-    description:
-      "Follow the progress, steer the work, and review the changes. You bring the direction. Your agents bring the momentum.",
-  },
-];
-
-function Workflow() {
+function WhyGravity() {
   return (
-    <section id="workflow" className="workflow-section" aria-labelledby="workflow-title">
-      <div className="container workflow-inner">
-        <div className="workflow-intro">
-          <span className="eyebrow">A SMALL SHIFT. A BETTER WORKDAY.</span>
-          <h2 id="workflow-title">
-            From idea
-            <br />
-            to <em>in motion.</em>
-          </h2>
+    <section id="why-gravity" className="why-section" aria-labelledby="why-title">
+      <div className="container why-inner">
+        <div className="why-heading">
+          <div>
+            <span className="eyebrow">FOCUSED BY DESIGN</span>
+            <h2 id="why-title">
+              Why developers
+              <br />
+              choose <em>Gravity.</em>
+            </h2>
+          </div>
           <p>
-            No elaborate setup.
-            <br />
-            Just a better place to start.
+            Work with the agents you already trust, in a workspace that keeps the essentials close.
           </p>
-          <a href="#download" className="text-link">
-            Find your flow <ArrowRight size={16} />
-          </a>
-          <div className="workflow-orbit">
-            <Orbit compact />
-          </div>
         </div>
-        <div className="workflow-steps">
-          {workflowSteps.map((step) => (
-            <article className="workflow-step" key={step.number}>
-              <span className="step-number mono">{step.number}</span>
-              <div>
-                <h3>{step.title}</h3>
-                <p>{step.description}</p>
-              </div>
-            </article>
-          ))}
-          <div className="workflow-note">
-            <Sparkles size={16} /> Less setup energy. More creative energy.
-          </div>
+        <div className="why-grid">
+          <article className="why-reason">
+            <div className="why-reason-label">
+              <PanelsTopLeft size={20} />
+              <span className="mono">01 / FOCUS</span>
+            </div>
+            <h3>Keep the work in focus.</h3>
+            <p>
+              Tasks, conversations, terminals, and diffs in one workspace. Start with the essentials
+              and add specialized tools through plugins when you need them.
+            </p>
+          </article>
+          <article className="why-reason">
+            <div className="why-reason-label">
+              <Gauge size={20} />
+              <span className="mono">02 / RESPONSIVENESS</span>
+            </div>
+            <h3>An interface that keeps up.</h3>
+            <p>
+              We keep improving terminal latency and smooth agent streaming, so you can follow the
+              work as it happens. Responsiveness is an ongoing engineering priority.
+            </p>
+          </article>
+          <article className="why-reason">
+            <div className="why-reason-label">
+              <ShieldCheck size={20} />
+              <span className="mono">03 / LOCAL CONTROL</span>
+            </div>
+            <h3>Your setup stays yours.</h3>
+            <p>
+              Use your installed agents, local repositories, and existing subscriptions. Gravity
+              keeps workspace data on your machine, with no telemetry or tracking.
+            </p>
+          </article>
+        </div>
+        <div className="why-footer">
+          <p>
+            <GravityMark /> Used by developers at leading companies.
+          </p>
+          <a href={GITHUB_REPO_URL} className="text-link" target="_blank" rel="noreferrer">
+            Explore the source <ArrowUpRightSmall />
+          </a>
         </div>
       </div>
     </section>
@@ -369,6 +375,16 @@ const questions = [
     question: "Does my code stay on my machine?",
     answer:
       "Your repositories and workspaces stay on your computer. Gravity runs your installed coding agents locally. Those agents still communicate with their model providers according to the provider and settings you choose.",
+  },
+  {
+    question: "Does Gravity collect or store my data?",
+    answer:
+      "We don’t collect or store your code, conversations, or workspace data on our servers. Your Gravity data stays on your machine. No telemetry. No tracking.",
+  },
+  {
+    question: "Who is using Gravity?",
+    answer:
+      "Developers at leading companies are using Gravity for their coding workflows, with their own agents, projects, and subscriptions.",
   },
   {
     question: "Which computers does Gravity support?",
@@ -420,11 +436,11 @@ function Footer() {
       <div className="footer-top">
         <div>
           <Brand />
-          <p>A little less friction. A lot more building.</p>
+          <p>Orchestrate multiple coding agents</p>
         </div>
         <nav aria-label="Footer navigation">
-          <a href="#features">Why Gravity</a>
-          <a href="#workflow">How it works</a>
+          <a href="#why-gravity">Why Gravity</a>
+          <a href="#features">Features</a>
           <a href="#faq">FAQs</a>
           <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
             GitHub <ArrowUpRightSmall />
@@ -459,7 +475,7 @@ export function App() {
         <WorkspacePreview />
         <Providers />
         <Features />
-        <Workflow />
+        <WhyGravity />
         <Faq />
         <Downloads />
       </main>

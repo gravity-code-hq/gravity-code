@@ -276,6 +276,10 @@ h1 em {
   color: var(--orange);
   letter-spacing: -4px;
 }
+.hero-home h1 {
+  font-size: clamp(44px, 6.2vw, 94px);
+  letter-spacing: -4px;
+}
 .hero-copy > p {
   font-size: 15px;
   color: #707268;
@@ -373,31 +377,19 @@ h1 em {
 }
 .orbit-core {
   position: absolute;
-  width: 36%;
-  height: 36%;
-  top: 32%;
-  left: 32%;
+  width: 44%;
+  height: 44%;
+  top: 28%;
+  left: 28%;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #ed6535;
-  color: #fff6df;
-  box-shadow:
-    inset -13px -17px 29px #bd3f1545,
-    inset 8px 8px 18px #ffa77666,
-    0 18px 50px #d7764126;
-  transform: rotate(-10deg);
-}
-.orbit-core::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: 0.2;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23000' filter='url(%23n)' opacity='.45' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+  border: 1px solid #e8c7b5;
+  background: #f3e6da;
+  color: var(--orange);
 }
 .orbit-core svg {
-  width: 61%;
+  width: 70%;
 }
 .orbit-satellite {
   position: absolute;
@@ -1210,87 +1202,123 @@ h2 em {
   gap: 5px;
   margin-top: 9px;
 }
-.workflow-section {
+.why-section {
   background: #eeefe7;
   border-block: 1px solid #dfe2d3;
 }
-.workflow-inner {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding-block: 82px 68px;
-  gap: 90px;
+.why-inner {
+  padding-block: 78px 42px;
 }
-.workflow-intro {
-  position: relative;
-}
-.workflow-intro > p {
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--muted);
-  margin-top: 22px;
-}
-.workflow-intro > .text-link {
-  margin-top: 22px;
-}
-.workflow-orbit {
-  position: absolute;
-  bottom: -7px;
-  right: 12px;
-  width: 155px;
-  opacity: 0.75;
-}
-.orbit-compact .orbit-core {
-  background: #919e7d;
-  box-shadow: none;
-}
-.orbit-compact .orbit-satellite {
-  width: 21px;
-  height: 21px;
-  font-size: 12px;
-  border-radius: 5px;
-  background: #eeefe7;
-}
-.orbit-compact .satellite-claude {
-  font-size: 18px;
-}
-.orbit-compact .orbit-tiny-dot {
-  width: 4px;
-  height: 4px;
-  border-color: #eeefe7;
-}
-.workflow-step {
+.why-heading {
   display: flex;
-  align-items: flex-start;
-  gap: 23px;
-  padding-block: 25px;
-  border-bottom: 1px solid #d6dacb;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 40px;
 }
-.workflow-step:first-child {
-  padding-top: 3px;
+.why-heading > p {
+  max-width: 310px;
+  color: #626c56;
+  font-size: 14px;
+  line-height: 1.8;
+  padding-bottom: 4px;
 }
-.step-number {
-  color: #8e9880;
-  padding-top: 4px;
-  font-size: 11px;
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+  margin-top: 48px;
 }
-.workflow-step h3 {
-  font-size: 19px;
+.why-reason {
+  border-top: 1px solid #cbd2bf;
+  padding-top: 24px;
+}
+.why-reason-label {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: #667752;
+}
+.why-reason-label .mono {
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.why-reason h3 {
+  font-size: 21px;
+  letter-spacing: -0.6px;
+  margin-top: 22px;
   font-weight: 500;
-  letter-spacing: -0.5px;
 }
-.workflow-step p {
-  color: #777f6d;
-  font-size: 12px;
+.why-reason > p {
+  font-size: 13px;
+  color: #626c56;
   line-height: 1.9;
-  margin-top: 11px;
+  margin-top: 13px;
 }
-.workflow-note {
+.why-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-top: 1px solid #cbd2bf;
+  padding-top: 26px;
+  margin-top: 42px;
+}
+.why-footer > p {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-top: 21px;
-  font-size: 10px;
-  color: #8b957c;
+  font-size: 12px;
+  color: #626c56;
+}
+.why-footer > p > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--orange);
+}
+.why-footer .text-link {
+  font-size: 11px;
+}
+@media (max-width: 850px) {
+  .why-inner {
+    padding-block: 55px 35px;
+  }
+  .why-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .why-heading > p {
+    max-width: 470px;
+  }
+  .why-grid {
+    gap: 22px;
+    margin-top: 32px;
+  }
+  .why-reason h3 {
+    font-size: 19px;
+  }
+}
+@media (max-width: 620px) {
+  .why-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .why-reason h3 {
+    font-size: 22px;
+    margin-top: 17px;
+  }
+  .why-reason > p {
+    margin-top: 10px;
+  }
+  .why-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 32px;
+  }
+  .why-footer > p {
+    font-size: 11px;
+  }
 }
 .faq-section {
   display: grid;
@@ -1382,8 +1410,8 @@ h2 em {
   height: 49px;
   border-radius: 12px;
   padding: 8px;
-  background: #e86738;
-  color: #fff6dd;
+  background: var(--orange);
+  color: #fff6e8;
   box-shadow: inset 0 1px 1px #ffffff50;
 }
 .platform-badge {
@@ -1654,13 +1682,6 @@ h2 em {
     padding-left: 12px;
     font-size: 8px;
   }
-  .workflow-inner {
-    gap: 55px;
-  }
-  .workflow-orbit {
-    width: 125px;
-    right: 0;
-  }
   .download-section {
     gap: 30px;
   }
@@ -1816,27 +1837,6 @@ h2 em {
   .mini-review {
     font-size: 8px;
   }
-  .workflow-inner {
-    gap: 33px;
-    padding-block: 65px;
-  }
-  .workflow-orbit {
-    width: 150px;
-    left: 50px;
-    bottom: -15px;
-  }
-  .workflow-step h3 {
-    font-size: 17px;
-  }
-  .workflow-step p {
-    font-size: 11px;
-  }
-  .workflow-step {
-    gap: 17px;
-  }
-  .workflow-note {
-    font-size: 9px;
-  }
   .faq-section {
     gap: 40px;
     padding-block: 70px;
@@ -1883,6 +1883,10 @@ h2 em {
   }
 }
 @media (max-width: 620px) {
+  .hero-home h1 {
+    font-size: clamp(44px, 12.8vw, 82px);
+    letter-spacing: -3px;
+  }
   .container {
     width: calc(100% - 40px);
   }
@@ -2180,36 +2184,6 @@ h2 em {
     font-size: 12px;
     margin-top: 9px;
     max-width: none;
-  }
-  .workflow-inner {
-    grid-template-columns: 1fr;
-    padding-block: 53px;
-    gap: 39px;
-  }
-  .workflow-intro h2 {
-    font-size: 44px;
-  }
-  .workflow-intro > p {
-    font-size: 12px;
-  }
-  .workflow-orbit {
-    width: 135px;
-    left: auto;
-    right: 0;
-    bottom: 0;
-  }
-  .workflow-step {
-    gap: 20px;
-    padding-block: 25px;
-  }
-  .workflow-step h3 {
-    font-size: 20px;
-  }
-  .workflow-step p {
-    font-size: 12px;
-  }
-  .workflow-note {
-    font-size: 10px;
   }
   .faq-section {
     grid-template-columns: 1fr;

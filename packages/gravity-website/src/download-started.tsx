@@ -1,7 +1,8 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ArrowLeft, ArrowDown } from "lucide-react";
-import { Brand, GravityMark } from "./components/brand";
+import { Brand } from "./components/brand";
+import { GravityMark } from "./components/gravity-mark";
 import { PlatformIcon } from "./components/downloads";
 import {
   type DownloadPlatform,

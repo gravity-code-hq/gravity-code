@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUpRight, Check, Command, Monitor, Terminal } from "lucide-react";
-import { AppleIcon, GravityMark } from "./brand";
+import { AppleIcon } from "./brand";
+import { GravityMark } from "./gravity-mark";
 import {
   type DownloadPlatform,
   detectDownloadPlatform,
