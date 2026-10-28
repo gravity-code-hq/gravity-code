@@ -9,6 +9,7 @@ import type { LiveFileSnapshot } from "../live-file/model";
 export interface FilePanePreview {
   file: ExplorerFile;
   imageAttachment: AttachmentMetadata | null;
+  pdfBytes: Uint8Array | null;
 }
 
 export type FilePreviewLifecycleSnapshot =
@@ -24,8 +25,11 @@ const initialSnapshot: FilePreviewLifecycleSnapshot = { status: "initial" };
 /** Converts a completed raw read into the preview resources consumed by FilePane. */
 export async function createFilePanePreview(file: FileReadResult): Promise<FilePanePreview | null> {
   const explorerFile = explorerFileFromReadResult(file);
+  if (file.kind === "binary" && isPdf(file.bytes)) {
+    return { file: explorerFile, imageAttachment: null, pdfBytes: file.bytes };
+  }
   if (file.kind !== "image") {
-    return { file: explorerFile, imageAttachment: null };
+    return { file: explorerFile, imageAttachment: null, pdfBytes: null };
   }
 
   const imageAttachment = await persistAttachmentFromBytes({
@@ -41,7 +45,15 @@ export async function createFilePanePreview(file: FileReadResult): Promise<FileP
     fileName: getFileNameFromPath(file.path),
   });
 
-  return { file: explorerFile, imageAttachment };
+  return { file: explorerFile, imageAttachment, pdfBytes: null };
+}
+
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+
+// Sniffed from the bytes rather than the daemon's mime, which reports every
+// non-image binary as application/octet-stream.
+export function isPdf(bytes: Uint8Array): boolean {
+  return PDF_MAGIC.every((byte, index) => bytes[index] === byte);
 }
 
 /** Owns conversion after LiveFileModel has produced a raw file snapshot. */
@@ -136,9 +148,10 @@ export function filePreviewFromLifecycle(
 export function resolveFilePreviewLifecycle(snapshot: FilePreviewLifecycleSnapshot): {
   file: ExplorerFile | null;
   imageAttachment: AttachmentMetadata | null;
+  pdfBytes: Uint8Array | null;
 } {
   const preview = filePreviewFromLifecycle(snapshot);
-  return preview ?? { file: null, imageAttachment: null };
+  return preview ?? { file: null, imageAttachment: null, pdfBytes: null };
 }
 
 function getReadySource(input: {

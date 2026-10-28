@@ -2,6 +2,7 @@ import type { FileReadResult } from "@gravity/client/internal/daemon-client";
 import type { LiveFileSnapshot } from "../live-file/model";
 import { describe, expect, it } from "vitest";
 import {
+  createFilePanePreview,
   FilePreviewLifecycleModel,
   type FilePanePreview,
   type FilePreviewLifecycleSnapshot,
@@ -89,6 +90,7 @@ describe("FilePreviewLifecycleModel", () => {
     const preview: FilePanePreview = {
       file: previewFile("preview"),
       imageAttachment: null,
+      pdfBytes: null,
     };
 
     model.setSource(source("/workspace:file.ts", pending()));
@@ -135,11 +137,12 @@ describe("FilePreviewLifecycleModel", () => {
     const nextPreview: FilePanePreview = {
       file: previewFile("two"),
       imageAttachment: null,
+      pdfBytes: null,
     };
 
     model.setSource(source("/workspace:file.ts", completed(file("one"))));
     model.setSource(source("/workspace:second.ts", completed(file("two", "second.ts"))));
-    first.resolve({ file: previewFile("one"), imageAttachment: null });
+    first.resolve({ file: previewFile("one"), imageAttachment: null, pdfBytes: null });
     await Promise.resolve();
     expect(model.getSnapshot()).toEqual({ status: "preparing" });
 
@@ -155,3 +158,29 @@ async function expectSnapshot(
   await new Promise<void>((resolve) => queueMicrotask(resolve));
   expect(model.getSnapshot()).toEqual(expected);
 }
+
+describe("createFilePanePreview", () => {
+  function binary(bytes: Uint8Array, path: string): FileReadResult {
+    return {
+      bytes,
+      mime: "application/octet-stream",
+      size: bytes.byteLength,
+      path,
+      kind: "binary",
+      modifiedAt: "2026-08-20T00:00:00.000Z",
+    };
+  }
+
+  it("keeps the bytes of a binary file that starts with the PDF header", async () => {
+    const bytes = new TextEncoder().encode("%PDF-1.7\n%binary");
+    const preview = await createFilePanePreview(binary(bytes, "report.pdf"));
+    expect(preview?.pdfBytes).toBe(bytes);
+    expect(preview?.file.kind).toBe("binary");
+  });
+
+  it("does not treat other binaries as PDFs, whatever their extension", async () => {
+    const bytes = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05]);
+    const preview = await createFilePanePreview(binary(bytes, "fake.pdf"));
+    expect(preview?.pdfBytes).toBeNull();
+  });
+});

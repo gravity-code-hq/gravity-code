@@ -22,7 +22,7 @@ import { getOverlayRoot, OverlayLayerProvider, useOverlayLayer } from "@/lib/ove
 import type { ToolCallHoverPreviewProps } from "./types";
 import { ToolCallCopyButton } from "@/tool-calls/copy-button";
 
-const OPEN_DELAY_MS = 2_000;
+const OPEN_DELAY_MS = 3_800;
 const CLOSE_DELAY_MS = 150;
 const SCREEN_PADDING = 12;
 const GAP = 8;

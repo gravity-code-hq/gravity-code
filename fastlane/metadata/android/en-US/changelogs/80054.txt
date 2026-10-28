@@ -1,0 +1,8 @@
+Added
+- Find text in file diffs with match case, whole word, and regular expression options
+- Optional follow-up prompt suggestions in the composer, configurable in host settings
+- PDF previews in the file pane with zoom controls and fit-to-width viewing
+- Discard changes buttons on file and folder rows in the diff view
+- Option to exclude hidden files from workspace content searches
+
+Full notes: https://github.com/gravity-code-hq/gravity-code/changelog

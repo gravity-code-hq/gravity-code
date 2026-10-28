@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.5 - 2026-10-27
+
+### Added
+
+- Find text in file diffs with match case, whole word, and regular expression options
+- Optional follow-up prompt suggestions in the composer, configurable in host settings
+- PDF previews in the file pane with zoom controls and fit-to-width viewing
+- Discard changes buttons on file and folder rows in the diff view
+- Option to exclude hidden files from workspace content searches
+
+### Changed
+
+- Cmd/Ctrl+N opens a new agent; Cmd/Ctrl+Alt+N opens a new workspace
+- The file explorer hides dotfiles by default
+- Tool call hover previews wait longer before opening
+
+### Fixed
+
+- Unwanted workspace content search matches from Git metadata and system files
+
 ## 0.8.4 - 2026-10-16
 
 ### Added

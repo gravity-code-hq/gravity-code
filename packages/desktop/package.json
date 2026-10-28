@@ -1,6 +1,6 @@
 {
   "name": "@gravity/desktop",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "private": true,
   "description": "Gravity desktop app (Electron wrapper)",
   "homepage": "https://github.com/gravity-code-hq/gravity-code",

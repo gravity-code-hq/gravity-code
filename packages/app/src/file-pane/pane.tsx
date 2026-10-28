@@ -30,6 +30,7 @@ import { resolveFilePreviewLifecycle } from "./preview-lifecycle/model";
 import { FilePanelBar } from "./bar";
 import { FileHtmlPreview } from "./html-preview";
 import { FileMarkdownPreview } from "./markdown-preview";
+import { FilePdfPreview } from "./pdf-preview";
 import { FileEditorModel, getFileConflictCallout, type FileConflictCallout } from "./editor/model";
 import { createFileObservationSource } from "./editor/observation-source";
 import { FileEditorView } from "./editor/view";
@@ -279,7 +280,11 @@ export function FilePane({
 
   useEffect(() => setPreviewMode("preview"), [targetKey]);
 
-  const { file: preview, imageAttachment } = resolveFilePreviewLifecycle(previewLifecycle);
+  const {
+    file: preview,
+    imageAttachment,
+    pdfBytes,
+  } = resolveFilePreviewLifecycle(previewLifecycle);
   const imagePreviewUri = useAttachmentPreviewUrl(imageAttachment);
   const isRenderable = isRenderablePreview(preview, location.path);
   const editable = isEditableTextFile({
@@ -317,6 +322,7 @@ export function FilePane({
       location={location}
       navigationRevision={navigationRevision}
       imagePreviewUri={imagePreviewUri}
+      pdfBytes={pdfBytes}
     />
   );
 }
@@ -358,6 +364,7 @@ function FilePanePresentation({
   location,
   navigationRevision,
   imagePreviewUri,
+  pdfBytes,
 }: {
   serverId: string;
   client: DaemonClient | null;
@@ -379,6 +386,7 @@ function FilePanePresentation({
   location: WorkspaceFileLocation;
   navigationRevision: number;
   imagePreviewUri: string | null;
+  pdfBytes: Uint8Array | null;
 }) {
   if (!client && readTarget) {
     return (
@@ -430,6 +438,10 @@ function FilePanePresentation({
         </View>
       </View>
     );
+  }
+
+  if (pdfBytes && preview && FilePdfPreview) {
+    return <FilePdfPreview bytes={pdfBytes} size={preview.size} />;
   }
 
   return (

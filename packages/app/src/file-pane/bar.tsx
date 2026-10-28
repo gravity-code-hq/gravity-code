@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
@@ -20,6 +21,7 @@ export function FilePanelBar({
   cursor,
   vimMode,
   conflict,
+  trailing,
 }: {
   size: number;
   lineCount?: number;
@@ -29,6 +31,8 @@ export function FilePanelBar({
   cursor?: { line: number; column: number };
   vimMode?: string | null;
   conflict?: FileConflictAlertState;
+  /** Viewer controls that belong to the file's renderer, e.g. PDF zoom. */
+  trailing?: ReactNode;
 }) {
   const { t } = useTranslation();
   const previewModes = [
@@ -99,6 +103,7 @@ export function FilePanelBar({
               </Text>
             ) : null}
           </View>
+          {trailing}
           {mode && onModeChange ? (
             <SegmentedControl
               size="xs"

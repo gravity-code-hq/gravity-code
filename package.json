@@ -1,6 +1,6 @@
 {
   "name": "gravity",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "private": true,
   "description": "Gravity: voice-controlled development environment for local AI coding agents",
   "keywords": [
