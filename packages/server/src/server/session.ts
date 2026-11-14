@@ -181,6 +181,7 @@ import { ScheduleSession } from "./session/schedule/schedule-session.js";
 import { ProviderCatalogSession } from "./session/provider/provider-catalog-session.js";
 import { ProviderAccountsSession } from "./session/provider/provider-accounts-session.js";
 import { LinearSession } from "./session/linear/linear-session.js";
+import { RadarSession } from "./session/radar/radar-session.js";
 import { WorkspaceFilesSession } from "./session/files/workspace-files-session.js";
 import { AgentConfigSession } from "./session/agent-config/agent-config-session.js";
 import { ProjectConfigSession } from "./session/project-config/project-config-session.js";
@@ -239,6 +240,7 @@ import {
 import type { ProviderUsageService } from "../services/quota-fetcher/service.js";
 import type { ProviderAccountsService } from "../services/provider-accounts/service.js";
 import type { LinearService } from "./linear/service.js";
+import type { RadarService } from "./radar/service.js";
 import {
   resolveWorkspaceRootAgent,
   summarizeFetchWorkspacesEntries,
@@ -523,6 +525,7 @@ export interface SessionOptions {
   providerUsageService: ProviderUsageService;
   providerAccountsService: ProviderAccountsService;
   linearService: LinearService;
+  radarService?: RadarService;
   hubExecutionAgents?: HubExecutionAgents;
   hubRelationships?: HubRelationshipManagement;
   serviceProxy?: ServiceProxySubsystem;
@@ -790,6 +793,7 @@ export class Session {
   private readonly providerCatalogSession: ProviderCatalogSession;
   private readonly providerAccountsSession: ProviderAccountsSession;
   private readonly linearSession: LinearSession;
+  private readonly radarSession: RadarSession;
   private readonly workspaceFilesSession: WorkspaceFilesSession;
   private readonly agentConfigSession: AgentConfigSession;
   private readonly projectConfigSession: ProjectConfigSession;
@@ -844,6 +848,7 @@ export class Session {
       providerUsageService,
       providerAccountsService,
       linearService,
+      radarService,
       serviceProxy,
       scriptRuntimeStore,
       workspaceSetupSnapshots,
@@ -1011,6 +1016,11 @@ export class Session {
     this.linearSession = new LinearSession({
       host: { emit: (msg) => this.emit(msg) },
       linearService,
+      logger: this.sessionLogger,
+    });
+    this.radarSession = new RadarSession({
+      host: { emit: (msg) => this.emit(msg) },
+      radarService,
       logger: this.sessionLogger,
     });
     this.agentConfigSession = new AgentConfigSession({
@@ -3063,9 +3073,34 @@ export class Session {
     }
   }
 
-  /** Daemon-side services that are not agents or workspaces: schedules and Linear. */
+  /** Daemon-side services that are not agents or workspaces: schedules, Linear, and Radar. */
   private dispatchServiceMessage(msg: SessionInboundMessage): Promise<void> | undefined {
-    return this.dispatchScheduleMessage(msg) ?? this.dispatchLinearMessage(msg);
+    return (
+      this.dispatchScheduleMessage(msg) ??
+      this.dispatchLinearMessage(msg) ??
+      this.dispatchRadarMessage(msg)
+    );
+  }
+
+  private dispatchRadarMessage(msg: SessionInboundMessage): Promise<void> | undefined {
+    switch (msg.type) {
+      case "radar.list.request":
+        return this.radarSession.handleListRequest(msg);
+      case "radar.create.request":
+        return this.radarSession.handleCreateRequest(msg);
+      case "radar.update.request":
+        return this.radarSession.handleUpdateRequest(msg);
+      case "radar.set_status.request":
+        return this.radarSession.handleSetStatusRequest(msg);
+      case "radar.delete.request":
+        return this.radarSession.handleDeleteRequest(msg);
+      case "radar.check_now.request":
+        return this.radarSession.handleCheckNowRequest(msg);
+      case "radar.checks.list.request":
+        return this.radarSession.handleChecksListRequest(msg);
+      default:
+        return undefined;
+    }
   }
 
   private dispatchLinearMessage(msg: SessionInboundMessage): Promise<void> | undefined {

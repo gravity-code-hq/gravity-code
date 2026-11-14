@@ -250,7 +250,6 @@ describe("ScheduleService", () => {
             cwd: tempDir,
             modeId: "bypassPermissions",
             isolation: "local",
-            archiveOnFinish: false,
           },
         },
       });
@@ -533,7 +532,7 @@ describe("ScheduleService", () => {
     expect(await workspaceRegistry.list()).toEqual([]);
   });
 
-  test("runs share one workspace and keep their agents when archiveOnFinish is false", async () => {
+  test("runs share one workspace and keep their agents", async () => {
     const { workspaceRegistry, resolveDirectoryWorkspace } =
       await createRegistryBackedScheduleWorkspaceDeps(tempDir);
     const manager = new AgentManager({
@@ -560,7 +559,6 @@ describe("ScheduleService", () => {
           provider: "claude",
           model: "test-model",
           cwd: tempDir,
-          archiveOnFinish: false,
           isolation: "local",
         },
       },
@@ -587,56 +585,6 @@ describe("ScheduleService", () => {
         archivedAt: null,
       }),
     ]);
-  });
-
-  test("archiveOnFinish=true archives the run agent and leaves the shared workspace active", async () => {
-    const { workspaceRegistry, resolveDirectoryWorkspace } =
-      await createRegistryBackedScheduleWorkspaceDeps(tempDir);
-    const manager = new AgentManager({
-      logger: createTestLogger(),
-      clients: createTestAgentClients(),
-      registry: agentStorage,
-    });
-    const service = createScheduleService({
-      gravityHome: tempDir,
-      logger: createTestLogger(),
-      agentManager: manager,
-      agentStorage,
-      providerSnapshotManager: NO_UNATTENDED_SCHEDULE_POLICY,
-      resolveDirectoryWorkspace,
-      now: () => now,
-    });
-
-    const created = await service.create({
-      prompt: "archive the run agent",
-      cadence: { type: "every", everyMs: 60_000 },
-      target: {
-        type: "new-agent",
-        config: {
-          provider: "claude",
-          model: "test-model",
-          cwd: tempDir,
-          isolation: "local",
-        },
-      },
-      maxRuns: 1,
-    });
-
-    await service.tick();
-
-    const inspected = await service.inspect(created.id);
-    expect(inspected.runs[0]?.status).toBe("succeeded");
-    const agentId = inspected.runs[0]?.agentId;
-    expect(agentId).toMatch(/^[0-9a-f-]{36}$/);
-    const storedAgent = await agentStorage.get(agentId!);
-    expect(storedAgent?.workspaceId).toMatch(/^wks_/);
-    expect(storedAgent?.archivedAt).toEqual(expect.any(String));
-    expect(await workspaceRegistry.get(storedAgent!.workspaceId!)).toEqual(
-      expect.objectContaining({
-        workspaceId: storedAgent?.workspaceId,
-        archivedAt: null,
-      }),
-    );
   });
 
   test("keeps the shared workspace when scheduled agent creation fails", async () => {
@@ -670,7 +618,6 @@ describe("ScheduleService", () => {
           provider: "claude",
           model: "test-model",
           cwd: tempDir,
-          archiveOnFinish: false,
           isolation: "local",
         },
       },
@@ -1011,80 +958,6 @@ describe("ScheduleService", () => {
     });
   });
 
-  test("failed new-agent run keeps run error when agent archive also fails", async () => {
-    const logger = createTestLogger();
-    const warn = vi.fn();
-    logger.warn = warn as typeof logger.warn;
-    logger.child = (() => logger) as typeof logger.child;
-    const archiveError = new Error("archive exploded");
-    const manager = new AgentManager({
-      logger: createTestLogger(),
-      clients: createTestAgentClients(),
-      registry: agentStorage,
-    });
-    manager.runAgent = async () => {
-      throw new Error("run exploded");
-    };
-    manager.archiveAgent = async () => {
-      throw archiveError;
-    };
-    const agentId = "00000000-0000-0000-0000-000000000326";
-    const service = createScheduleService({
-      gravityHome: tempDir,
-      logger,
-      agentManager: manager,
-      agentStorage,
-      providerSnapshotManager: NO_UNATTENDED_SCHEDULE_POLICY,
-      createAgent: async (input) => {
-        const snapshot = {
-          id: agentId,
-          provider: "claude",
-          cwd: input.cwd ?? tempDir,
-          workspaceId: input.workspaceId,
-          status: "idle",
-          lifecycle: "idle",
-        };
-        return {
-          snapshot: snapshot as Awaited<
-            ReturnType<ScheduleServiceOptions["createAgent"]>
-          >["snapshot"],
-          liveSnapshot: snapshot as Awaited<
-            ReturnType<ScheduleServiceOptions["createAgent"]>
-          >["liveSnapshot"],
-          background: true,
-          initialPromptStarted: false,
-          initialPromptError: null,
-        };
-      },
-      now: () => now,
-    });
-
-    const created = await service.create({
-      prompt: "fail and fail cleanup",
-      cadence: { type: "every", everyMs: 60_000 },
-      target: { type: "new-agent", config: { provider: "claude", cwd: tempDir } },
-      maxRuns: 1,
-    });
-    await service.tick();
-
-    const inspected = await service.inspect(created.id);
-    expect(inspected.runs[0]).toMatchObject({
-      status: "failed",
-      error: "run exploded",
-      agentId,
-    });
-    expect(warn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        err: archiveError,
-        agentId,
-        workspaceId: expect.stringMatching(/^wks_/),
-        scheduleId: created.id,
-        runId: expect.any(String),
-      }),
-      expect.stringContaining("Failed to archive scheduled agent"),
-    );
-  });
-
   test("shows scheduled new-agent prompts as normal user turns", async () => {
     class PromptEchoScheduleSession implements AgentSession {
       readonly provider = "claude";
@@ -1273,7 +1146,7 @@ describe("ScheduleService", () => {
     expect((await service.inspect(created.id)).runs[0]?.status).toBe("succeeded");
   });
 
-  test("archives new-agent schedule sessions after the run finishes", async () => {
+  test("keeps new-agent schedule agents after the run finishes", async () => {
     class CountingScheduleSession implements AgentSession {
       readonly provider = "claude";
       readonly capabilities = SCHEDULE_TEST_CAPABILITIES;
@@ -1444,13 +1317,13 @@ describe("ScheduleService", () => {
     const agentId = inspected.runs[0]?.agentId;
     expect(agentId).toBeTruthy();
     expect(client.sessions).toHaveLength(1);
-    expect(client.sessions[0]?.closed).toBe(true);
-    expect(manager.getAgent(agentId!)).toBeNull();
+    expect(client.sessions[0]?.closed).toBe(false);
+    expect(manager.getAgent(agentId!)).not.toBeNull();
     const storedAgent = await agentStorage.get(agentId!);
-    expect(storedAgent?.archivedAt).toBeTruthy();
+    expect(storedAgent?.archivedAt ?? null).toBeNull();
   });
 
-  test("records prompt-start failures as failed and archives the scheduled agent", async () => {
+  test("records prompt-start failures as failed and keeps the scheduled agent", async () => {
     class StartFailureScheduleSession implements AgentSession {
       readonly provider = "claude";
       readonly capabilities = SCHEDULE_TEST_CAPABILITIES;
@@ -1560,9 +1433,7 @@ describe("ScheduleService", () => {
     const storedAgents = await agentStorage.list();
     expect(storedAgents).toHaveLength(1);
     expect(inspected.runs[0]?.agentId).toBe(storedAgents[0]?.id);
-    expect(storedAgents[0]).toMatchObject({
-      archivedAt: expect.any(String),
-    });
+    expect(storedAgents[0]?.archivedAt ?? null).toBeNull();
   });
 
   test("defaults new-agent modeId to provider's unattended mode", async () => {
@@ -1614,7 +1485,6 @@ describe("ScheduleService", () => {
     expect(agentId).toBeTruthy();
     const agent = await agentStorage.get(agentId!);
     expect(agent?.lastModeId).toBe("bypassPermissions");
-    expect(agent?.archivedAt).toBeTruthy();
   });
 
   test("defaults OpenCode new-agent schedules to build plus auto accept", async () => {
@@ -1830,7 +1700,7 @@ describe("ScheduleService", () => {
     await service2.stop();
   });
 
-  test("startup recovery archives the interrupted run agent", async () => {
+  test("startup recovery keeps the interrupted run agent", async () => {
     const service1 = createScheduleService({
       gravityHome: tempDir,
       logger: createTestLogger(),
@@ -1891,7 +1761,7 @@ describe("ScheduleService", () => {
     });
     await service2.start();
 
-    expect(archiveCalls).toEqual([associatedAgentId]);
+    expect(archiveCalls).toEqual([]);
     const inspected = await service2.inspect(created.id);
     expect(inspected.runs[0]).toMatchObject({
       status: "failed",
@@ -1901,7 +1771,7 @@ describe("ScheduleService", () => {
     await service2.stop();
   });
 
-  test("startup recovery has nothing to archive when the run had no agent yet", async () => {
+  test("startup recovery fails a run that had no agent yet", async () => {
     const service1 = createScheduleService({
       gravityHome: tempDir,
       logger: createTestLogger(),
@@ -1916,7 +1786,7 @@ describe("ScheduleService", () => {
       cadence: { type: "every", everyMs: 60_000 },
       target: {
         type: "new-agent",
-        config: { provider: "claude", cwd: tempDir, archiveOnFinish: false },
+        config: { provider: "claude", cwd: tempDir },
       },
       runOnCreate: false,
     });
@@ -2255,7 +2125,6 @@ describe("ScheduleService", () => {
         model: "gpt-5",
         modeId: "full-access",
         thinkingOptionId: "deep-thought",
-        archiveOnFinish: false,
         isolation: "worktree",
         cwd: nextCwd,
       },
@@ -2272,7 +2141,6 @@ describe("ScheduleService", () => {
         model: "gpt-5",
         modeId: "full-access",
         thinkingOptionId: "deep-thought",
-        archiveOnFinish: false,
         isolation: "worktree",
       },
     });

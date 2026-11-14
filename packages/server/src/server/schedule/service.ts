@@ -123,9 +123,6 @@ function applyNewAgentConfig(
       delete config.thinkingOptionId;
     }
   }
-  if (patch.archiveOnFinish !== undefined) {
-    config.archiveOnFinish = patch.archiveOnFinish;
-  }
   if (patch.isolation !== undefined) {
     config.isolation = patch.isolation;
   }
@@ -156,10 +153,6 @@ function assertScheduledAgentFinished(
   if (waitResult.status === "error") {
     throw new Error(waitResult.lastMessage ?? `Scheduled agent ${agentId} failed`);
   }
-}
-
-function shouldArchiveScheduleRunAgent(archiveOnFinish: boolean | undefined): boolean {
-  return archiveOnFinish ?? true;
 }
 
 function shouldCompleteSchedule(schedule: StoredSchedule, now: Date): boolean {
@@ -372,9 +365,6 @@ export class ScheduleService {
               cwd: input.cwd,
               ...(modeId ? { modeId } : {}),
               isolation: "local",
-              // Keep the agent around so the user can read what the run
-              // produced; there is no run history screen yet.
-              archiveOnFinish: false,
             },
           },
           status: isActive ? "active" : "paused",
@@ -686,7 +676,6 @@ export class ScheduleService {
   }
 
   private async recoverInterruptedSchedule(scheduleId: string, now: Date): Promise<void> {
-    const interruptedAgents: Array<{ agentId: string; runId: string }> = [];
     await this.store.update(scheduleId, (current) => {
       let updated = { ...current };
       let dirty = false;
@@ -694,16 +683,8 @@ export class ScheduleService {
       const runningIndex = updated.runs.findIndex((run) => run.status === "running");
       if (runningIndex !== -1) {
         const runs = [...updated.runs];
-        const runningRun = runs[runningIndex];
-        if (
-          updated.target.type === "new-agent" &&
-          runningRun.agentId &&
-          shouldArchiveScheduleRunAgent(updated.target.config.archiveOnFinish)
-        ) {
-          interruptedAgents.push({ agentId: runningRun.agentId, runId: runningRun.id });
-        }
         runs[runningIndex] = {
-          ...runningRun,
+          ...runs[runningIndex],
           status: "failed",
           endedAt: now.toISOString(),
           error: "Daemon restarted before the scheduled run completed",
@@ -730,23 +711,6 @@ export class ScheduleService {
       }
       return current;
     });
-    const interruptedAgent = interruptedAgents[0];
-    if (!interruptedAgent) {
-      return;
-    }
-    try {
-      await this.agentManager.archiveAgent(interruptedAgent.agentId);
-    } catch (error) {
-      this.logger.warn(
-        {
-          err: error,
-          agentId: interruptedAgent.agentId,
-          scheduleId,
-          runId: interruptedAgent.runId,
-        },
-        "Failed to archive interrupted scheduled agent after daemon restart",
-      );
-    }
   }
 
   // Orphaned agent-target schedules (agent deleted while the daemon was down, or
@@ -962,87 +926,60 @@ export class ScheduleService {
       throw new Error(`Schedule ${schedule.id} target changed during execution`);
     }
     await this.assertNewAgentCwdDirectory(config.cwd);
-    let workspace: PersistedWorkspaceRecord | null = null;
-    let agentId: string | null = null;
-    try {
-      workspace = await this.resolveScheduleRunWorkspace(config, schedule.prompt);
-      await this.recordRunWorkspace({
-        scheduleId: schedule.id,
-        runId,
-        workspaceId: workspace.workspaceId,
-        agentId: null,
-      });
-      const runConfig = { ...config, cwd: workspace.cwd };
-      const created = await this.createAgent({
-        kind: "mcp",
-        provider: formatScheduleProviderModel(runConfig),
-        config: buildScheduleAgentConfig(runConfig),
-        cwd: workspace.cwd,
-        workspaceId: workspace.workspaceId,
-        title: resolveScheduleAgentTitle(config, schedule.prompt),
-        labels: {
-          "gravity.schedule-id": schedule.id,
-          "gravity.schedule-run": runId,
-        },
-        mode: config.modeId,
-        thinking: config.thinkingOptionId,
-        features: config.featureValues,
-        unattended: true,
-        promptFailure: "return-error",
-        background: true,
-        notifyOnFinish: false,
-      });
-      const agent = created.snapshot;
-      agentId = agent.id;
-      await this.recordRunWorkspace({
-        scheduleId: schedule.id,
-        runId,
-        workspaceId: workspace.workspaceId,
-        agentId,
-      });
-      if (created.initialPromptError) {
-        throw created.initialPromptError;
-      }
-      const result = await this.agentManager.runAgent(agent.id, schedule.prompt);
-      const waitResult = await this.agentManager.waitForAgentEvent(agent.id, {
-        waitForActive: true,
-      });
-      if (result.canceled) {
-        throw new Error(`Scheduled agent ${agent.id} was canceled`);
-      }
-      assertScheduledAgentFinished(agent.id, waitResult);
-      const timelineText = curateAgentActivity(result.timeline);
-      return {
-        agentId: agent.id,
-        output: buildRunOutput({
-          output: waitResult.lastMessage ?? null,
-          timelineText,
-          finalText: result.finalText,
-        }),
-      };
-    } finally {
-      if (agentId && shouldArchiveScheduleRunAgent(config.archiveOnFinish)) {
-        await this.archiveRunAgent({
-          agentId,
-          workspaceId: workspace?.workspaceId ?? null,
-          scheduleId: schedule.id,
-          runId,
-        });
-      }
+    const workspace = await this.resolveScheduleRunWorkspace(config, schedule.prompt);
+    await this.recordRunWorkspace({
+      scheduleId: schedule.id,
+      runId,
+      workspaceId: workspace.workspaceId,
+      agentId: null,
+    });
+    const runConfig = { ...config, cwd: workspace.cwd };
+    const created = await this.createAgent({
+      kind: "mcp",
+      provider: formatScheduleProviderModel(runConfig),
+      config: buildScheduleAgentConfig(runConfig),
+      cwd: workspace.cwd,
+      workspaceId: workspace.workspaceId,
+      title: resolveScheduleAgentTitle(config, schedule.prompt),
+      labels: {
+        "gravity.schedule-id": schedule.id,
+        "gravity.schedule-run": runId,
+      },
+      mode: config.modeId,
+      thinking: config.thinkingOptionId,
+      features: config.featureValues,
+      unattended: true,
+      promptFailure: "return-error",
+      background: true,
+      notifyOnFinish: false,
+    });
+    const agent = created.snapshot;
+    await this.recordRunWorkspace({
+      scheduleId: schedule.id,
+      runId,
+      workspaceId: workspace.workspaceId,
+      agentId: agent.id,
+    });
+    if (created.initialPromptError) {
+      throw created.initialPromptError;
     }
-  }
-
-  private async archiveRunAgent(input: {
-    agentId: string;
-    workspaceId: string | null;
-    scheduleId: string;
-    runId: string;
-  }): Promise<void> {
-    try {
-      await this.agentManager.archiveAgent(input.agentId);
-    } catch (error) {
-      this.logger.warn({ err: error, ...input }, "Failed to archive scheduled agent after run");
+    const result = await this.agentManager.runAgent(agent.id, schedule.prompt);
+    const waitResult = await this.agentManager.waitForAgentEvent(agent.id, {
+      waitForActive: true,
+    });
+    if (result.canceled) {
+      throw new Error(`Scheduled agent ${agent.id} was canceled`);
     }
+    assertScheduledAgentFinished(agent.id, waitResult);
+    const timelineText = curateAgentActivity(result.timeline);
+    return {
+      agentId: agent.id,
+      output: buildRunOutput({
+        output: waitResult.lastMessage ?? null,
+        timelineText,
+        finalText: result.finalText,
+      }),
+    };
   }
 
   private async resolveScheduleRunWorkspace(

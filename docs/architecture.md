@@ -79,6 +79,7 @@ not retain non-Git directories.
 | `server/orchestration-skills/`  | Bundled catalog, host selection, convergence, and skill-directory transactions |
 | `server/relay-transport.ts`     | Outbound relay connection with E2E encryption                                  |
 | `server/schedule/`              | Cron-based scheduled agents                                                    |
+| `server/radar/`                 | Slack channel watchers that put agents on bot messages ([radar.md](radar.md))  |
 
 ### `packages/protocol` — Wire schemas and shared protocol types
 
@@ -482,6 +483,7 @@ $GRAVITY_HOME/
 ├── projects/workspaces.json                    # Workspace registry
 ├── projects/icons/                             # Custom project icon images
 ├── schedules/                                  # Scheduled-agent definitions and runs
+├── radar/                                      # Radar definitions and their tasks
 ├── config.json                                 # Daemon config (mutable)
 ├── daemon-keypair.json                         # Daemon identity for relay/E2EE
 ├── push-tokens.json                            # Mobile push tokens

@@ -150,21 +150,6 @@ async function waitForWorkspaceUpsert(
     .toBe(true);
 }
 
-async function waitForWorkspaceRemove(
-  events: WorkspaceUpdateMessage[],
-  workspaceId: string,
-): Promise<void> {
-  await expect
-    .poll(
-      () =>
-        events.some(
-          (message) => message.payload.kind === "remove" && message.payload.id === workspaceId,
-        ),
-      { timeout: 10_000, interval: 100 },
-    )
-    .toBe(true);
-}
-
 function workspaceWasRemoved(events: WorkspaceUpdateMessage[], workspaceId: string): boolean {
   return events.some(
     (message) => message.payload.kind === "remove" && message.payload.id === workspaceId,
@@ -189,15 +174,6 @@ async function activeAgentIds(): Promise<Set<string>> {
   return new Set(agents.entries.map((entry) => entry.agent.id));
 }
 
-async function archivedAgent(agentId: string) {
-  const agents = await ctx.client.fetchAgents({ filter: { includeArchived: true } });
-  const entry = agents.entries.find((item) => item.agent.id === agentId);
-  if (!entry) {
-    throw new Error(`Expected archived agent list to contain ${agentId}`);
-  }
-  return entry.agent;
-}
-
 async function activeAgent(agentId: string) {
   const agent = await ctx.client.fetchAgent({ agentId });
   if (!agent) {
@@ -206,7 +182,7 @@ async function activeAgent(agentId: string) {
   return agent.agent;
 }
 
-test("archiveOnFinish=false local scheduled run emits upserts and remains active", async () => {
+test("local scheduled run emits upserts and remains active", async () => {
   const cwd = makeTempDir("schedule-run-local-");
   const schedule = await createNewAgentSchedule({
     prompt: "Say done.",
@@ -216,7 +192,6 @@ test("archiveOnFinish=false local scheduled run emits upserts and remains active
       config: {
         ...getFullAccessConfig("codex"),
         cwd,
-        archiveOnFinish: false,
         isolation: "local",
       },
     },
@@ -239,39 +214,7 @@ test("archiveOnFinish=false local scheduled run emits upserts and remains active
   events.stop();
 });
 
-test("archiveOnFinish=true scheduled run emits a workspace remove", async () => {
-  const cwd = makeTempDir("schedule-run-archive-");
-  const schedule = await createNewAgentSchedule({
-    prompt: "Say done.",
-    cadence: { type: "every", everyMs: 60_000 },
-    target: {
-      type: "new-agent",
-      config: {
-        ...getFullAccessConfig("codex"),
-        cwd,
-        archiveOnFinish: true,
-        isolation: "local",
-      },
-    },
-    runOnCreate: false,
-  });
-  await ctx.client.fetchWorkspaces({
-    subscribe: {},
-  });
-  const events = collectLifecycleUpdates();
-
-  const ran = await runScheduleOnce(schedule.id);
-  const agentId = requireCompletedAgentId(ran);
-  const agent = await archivedAgent(agentId);
-  const workspaceId = agent.workspaceId;
-
-  expect(workspaceId).toMatch(/^wks_/);
-  await waitForWorkspaceRemove(events.workspaceUpdates, workspaceId!);
-
-  events.stop();
-});
-
-test("worktree isolation creates a run worktree and archiveOnFinish removes it", async () => {
+test("worktree isolation creates a run worktree and keeps the agent active", async () => {
   const repoDir = createGitRepo();
   const expectedRoot = await getGravityWorktreesRoot(
     repoDir,
@@ -286,7 +229,6 @@ test("worktree isolation creates a run worktree and archiveOnFinish removes it",
       config: {
         ...getFullAccessConfig("codex"),
         cwd: repoDir,
-        archiveOnFinish: true,
         isolation: "worktree",
       },
     },
@@ -299,7 +241,7 @@ test("worktree isolation creates a run worktree and archiveOnFinish removes it",
 
   const ran = await runScheduleOnce(schedule.id);
   const agentId = requireCompletedAgentId(ran);
-  const agent = await archivedAgent(agentId);
+  const agent = await activeAgent(agentId);
   const workspace = requireWorkspaceUpsert(events.workspaceUpdates, agent.workspaceId!);
 
   expect(workspace.workspaceKind).toBe("worktree");
@@ -308,18 +250,12 @@ test("worktree isolation creates a run worktree and archiveOnFinish removes it",
     `agent cwd ${agent.cwd}; expected root ${expectedRoot}`,
   ).toBe(true);
   expect(agent.cwd).not.toBe(repoDir);
-  await waitForWorkspaceRemove(events.workspaceUpdates, agent.workspaceId!);
-  await expect.poll(() => existsSync(agent.cwd), { timeout: 10_000, interval: 100 }).toBe(false);
-  const worktreeList = execFileSync("git", ["worktree", "list", "--porcelain"], {
-    cwd: repoDir,
-    encoding: "utf8",
-  });
-  expect(worktreeList).not.toContain(agent.cwd);
+  expect(existsSync(agent.cwd)).toBe(true);
 
   events.stop();
 });
 
-test("update_schedule patches thinking, archive behavior, and isolation for the next run", async () => {
+test("update_schedule patches thinking and isolation for the next run", async () => {
   const repoDir = createGitRepo();
   const expectedRoot = await getGravityWorktreesRoot(
     repoDir,
@@ -334,7 +270,6 @@ test("update_schedule patches thinking, archive behavior, and isolation for the 
       config: {
         ...getFullAccessConfig("codex"),
         cwd: repoDir,
-        archiveOnFinish: true,
         isolation: "local",
       },
     },
@@ -345,7 +280,6 @@ test("update_schedule patches thinking, archive behavior, and isolation for the 
     id: schedule.id,
     newAgentConfig: {
       thinkingOptionId: "think-hard",
-      archiveOnFinish: false,
       isolation: "worktree",
     },
   });

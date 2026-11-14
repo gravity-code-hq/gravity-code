@@ -70,8 +70,8 @@ complete`), keyed off the opened snapshot's serverId. Waiting for data is a
 - The form declares one size for all fields: `sm` on desktop, `md` compact
   (`useIsCompactFormFactor`).
 - Availability hierarchy: a field whose capability doesn't apply is **hidden**
-  (Archive on finish on a host without workspace multiplicity), not rendered
-  disabled with an explanation. Disabled-with-a-reason `hint` is only for
+  (Thinking on a model with no thinking options), not rendered disabled with an
+  explanation. Disabled-with-a-reason `hint` is only for
   transient states the user can resolve.
 - Copy is opt-in and rare. No hint/subtext unless the maintainer approved the
   exact string; validation errors are the exception. State a fact (like the

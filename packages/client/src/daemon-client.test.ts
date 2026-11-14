@@ -807,7 +807,6 @@ test("sends new-agent run options when creating schedules", async () => {
         provider: "claude",
         cwd: "/tmp/project",
         thinkingOptionId: "think-hard",
-        archiveOnFinish: false,
         isolation: "worktree",
       },
     },
@@ -825,7 +824,6 @@ test("sends new-agent run options when creating schedules", async () => {
         provider: "claude",
         cwd: "/tmp/project",
         thinkingOptionId: "think-hard",
-        archiveOnFinish: false,
         isolation: "worktree",
       },
     },
@@ -861,7 +859,6 @@ test("sends new-agent run options when updating schedules", async () => {
     requestId: "request-1",
     newAgentConfig: {
       thinkingOptionId: "think-hard",
-      archiveOnFinish: false,
       isolation: "worktree",
     },
   });
@@ -873,7 +870,6 @@ test("sends new-agent run options when updating schedules", async () => {
     scheduleId: "schedule-1",
     newAgentConfig: {
       thinkingOptionId: "think-hard",
-      archiveOnFinish: false,
       isolation: "worktree",
     },
   });

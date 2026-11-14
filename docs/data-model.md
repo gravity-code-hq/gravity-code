@@ -54,6 +54,9 @@ $GRAVITY_HOME/
 │       └── {agentId}.json               # One file per agent
 ├── schedules/
 │   └── {scheduleId}.json                # One file per schedule
+├── radar/
+│   ├── {radarId}.json                   # One file per radar, tasks inline (radar.md)
+│   └── checks/{radarId}.json            # That radar's check history
 ├── projects/
 │   ├── projects.json                    # Project registry
 │   ├── workspaces.json                  # Workspace registry

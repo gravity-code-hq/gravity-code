@@ -149,6 +149,12 @@ import {
 } from "./workspace-registry.js";
 import { CheckoutDiffManager } from "./checkout-diff-manager.js";
 import { ScheduleService } from "./schedule/service.js";
+import { RadarService } from "./radar/service.js";
+import {
+  createRadarTaskRunner,
+  createRadarTriage,
+  getRadarPullRequestState,
+} from "./radar/agent-runner.js";
 import { DaemonConfigStore, type MutableDaemonConfig } from "./daemon-config-store.js";
 import { createOrchestrationSkills } from "./orchestration-skills/index.js";
 import { resolveConfigFromPersisted, type CliConfigOverrides } from "./config.js";
@@ -1351,6 +1357,48 @@ export async function createGravityDaemon(
     }
   });
   logger.info({ elapsed: elapsed() }, "Schedule service initialized");
+  // Every task of every radar for a project shares one directory workspace
+  // titled RADAR_WORKSPACE_TITLE, found by that title like the Automations one.
+  const resolveRadarWorkspaceExternal = async (input: { cwd: string }) => {
+    const project = await workspaceProvisioning.findOrCreateProjectForDirectory(input.cwd);
+    const existing = (await workspaceRegistry.list()).find(
+      (workspace) =>
+        !workspace.archivedAt &&
+        workspace.projectId === project.projectId &&
+        workspace.kind === "directory" &&
+        workspace.title === RADAR_WORKSPACE_TITLE &&
+        workspace.cwd === path.resolve(input.cwd),
+    );
+    if (existing) {
+      return existing;
+    }
+    const workspace = await workspaceProvisioning.createWorkspaceForDirectory(
+      input.cwd,
+      RADAR_WORKSPACE_TITLE,
+    );
+    await emitWorkspaceUpdatesExternal([workspace.workspaceId]);
+    return workspace;
+  };
+  const radarService = new RadarService({
+    gravityHome: config.gravityHome,
+    logger,
+    triage: createRadarTriage({
+      agentManager,
+      providerSnapshotManager,
+      readDaemonConfig: () => ({ metadataGeneration: daemonConfigStore.get().metadataGeneration }),
+      logger,
+    }),
+    runTask: createRadarTaskRunner({
+      agentManager,
+      agentStorage,
+      createAgent,
+      resolveWorkspace: resolveRadarWorkspaceExternal,
+      logger,
+    }),
+    getPullRequestState: getRadarPullRequestState,
+  });
+  await radarService.start();
+  logger.info({ elapsed: elapsed() }, "Radar service initialized");
   logger.info({ elapsed: elapsed() }, "Loading persisted agent registry");
   const persistedRecords = await agentStorage.list();
   logger.info(
@@ -1722,6 +1770,7 @@ export async function createGravityDaemon(
               pluginRuntime,
               orchestrationSkills,
               workspaceLabelService,
+              radarService,
             );
             pluginRuntime.bindGravitySessionHost(wsServer);
             await pluginRuntime.start();
@@ -1799,6 +1848,7 @@ export async function createGravityDaemon(
     terminalManager.killAll();
     await speechService.stop();
     await scheduleService.stop().catch(() => undefined);
+    await radarService.stop().catch(() => undefined);
     await relayRuntime?.stop().catch(() => undefined);
     if (wsServer) {
       await wsServer.close();
@@ -1874,6 +1924,7 @@ async function seedDefaultSchedules(input: {
 }
 
 const AUTOMATIONS_WORKSPACE_TITLE = "Automations";
+const RADAR_WORKSPACE_TITLE = "Radar";
 
 const DEFAULT_SCHEDULE_PROVIDER_ORDER: AgentProvider[] = ["claude", "codex"];
 

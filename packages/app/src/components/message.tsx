@@ -544,7 +544,7 @@ export const UserMessage = memo(function UserMessage({
           ) : null}
           {hasText ? (
             <CollapsibleUserMessageBody>
-              <Text selectable style={userMessageStylesheet.text}>
+              <Text selectable style={userMessageStylesheet.text} testID="user-message-text">
                 {message}
               </Text>
             </CollapsibleUserMessageBody>

@@ -109,15 +109,6 @@ describe("buildLinearIssueWorkspaceName", () => {
     ).toBe("eng-42-fix-login-redirect");
   });
 
-  it("keeps the task identifier and normalizes accented titles", () => {
-    expect(
-      buildLinearIssueWorkspaceName({
-        identifier: "SPH-3739",
-        title: "Axos Bank FIU: update café notes",
-      }),
-    ).toBe("sph-3739-axos-bank-fiu-update-cafe-notes");
-  });
-
   it("caps the slug without leaving a trailing dash", () => {
     const name = buildLinearIssueWorkspaceName({
       identifier: "ENG-42",

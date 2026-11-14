@@ -1,6 +1,6 @@
 {
   "name": "@gravity/client",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "Gravity client SDK package",
   "files": [
     "dist",
@@ -39,8 +39,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gravity/protocol": "0.8.5",
-    "@gravity/relay": "0.8.5",
+    "@gravity/protocol": "0.8.6",
+    "@gravity/relay": "0.8.6",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -432,6 +432,10 @@ export function buildLinearRoute() {
   return "/linear" as const;
 }
 
+export function buildRadarRoute() {
+  return "/radar" as const;
+}
+
 export function buildOpenProjectRoute() {
   return "/open-project" as const;
 }

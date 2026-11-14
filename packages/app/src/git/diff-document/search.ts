@@ -48,7 +48,8 @@ export const EMPTY_DIFF_SEARCH_RESULT: DiffSearchResult = {
 };
 
 // VS Code's USUAL_WORD_SEPARATORS plus whitespace, which its classifier also treats as a boundary.
-const WORD_SEPARATORS = new Set("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/? \t");
+// Diff lines never hold a newline; chat messages searched whole do.
+const WORD_SEPARATORS = new Set("`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/? \t\n\r");
 
 export function diffSearchLineKey(fileIndex: number, hunkIndex: number, lineIndex: number): string {
   return `${fileIndex}:${hunkIndex}:${lineIndex}`;
@@ -118,7 +119,7 @@ function collectLineMatches(
   }
 }
 
-function* matchRanges(
+export function* matchRanges(
   regex: RegExp,
   text: string,
   wholeWord: boolean,

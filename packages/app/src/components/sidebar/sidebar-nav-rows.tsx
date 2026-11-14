@@ -1,5 +1,5 @@
 import { router, usePathname } from "expo-router";
-import { CalendarClock, List, Plus, Search } from "lucide-react-native";
+import { CalendarClock, List, Plus, Radar, Search } from "lucide-react-native";
 import { memo, useCallback, useMemo, type ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 import { View, type StyleProp, type ViewStyle } from "react-native";
@@ -17,7 +17,12 @@ import { useSidebarNavItems } from "@/sidebar-nav/use-sidebar-nav-items";
 import { useKeyboardShortcutsStore } from "@/stores/keyboard-shortcuts-store";
 import { useActiveWorkspaceSelection } from "@/stores/navigation-active-workspace-store";
 import { useWorkspace } from "@/stores/session-store-hooks";
-import { buildLinearRoute, buildNewWorkspaceRoute, buildSchedulesRoute } from "@/utils/host-routes";
+import {
+  buildLinearRoute,
+  buildNewWorkspaceRoute,
+  buildRadarRoute,
+  buildSchedulesRoute,
+} from "@/utils/host-routes";
 
 interface SidebarNavRowProps {
   onBeforeNavigate?: () => void;
@@ -166,9 +171,30 @@ function SidebarSchedulesRow({ onBeforeNavigate }: SidebarNavRowProps) {
   );
 }
 
+function SidebarRadarRow({ onBeforeNavigate }: SidebarNavRowProps) {
+  const { t } = useTranslation();
+  const pathname = usePathname();
+  const handlePress = useCallback(() => {
+    onBeforeNavigate?.();
+    router.push(buildRadarRoute());
+  }, [onBeforeNavigate]);
+
+  return (
+    <SidebarHeaderRow
+      icon={Radar}
+      label={t(builtinSidebarNavLabelKey("radar"))}
+      onPress={handlePress}
+      isActive={pathname.includes("/radar")}
+      testID="sidebar-radar"
+      variant="compact"
+    />
+  );
+}
+
 const BUILTIN_ROWS: Record<BuiltinSidebarNavId, ComponentType<SidebarNavRowProps>> = {
   "new-workspace": SidebarNewWorkspaceRow,
   search: SidebarSearchRow,
   linear: SidebarLinearRow,
   schedules: SidebarSchedulesRow,
+  radar: SidebarRadarRow,
 };

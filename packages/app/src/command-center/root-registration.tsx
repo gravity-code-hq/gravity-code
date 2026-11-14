@@ -13,6 +13,7 @@ import {
   Keyboard,
   PanelLeft,
   Plus,
+  Radar,
   Settings,
 } from "lucide-react-native";
 import { withUnistyles } from "react-native-unistyles";
@@ -30,6 +31,7 @@ import { clearCommandCenterFocusRestoreElement } from "@/utils/command-center-fo
 import {
   buildOpenProjectRoute,
   buildLinearRoute,
+  buildRadarRoute,
   buildSchedulesRoute,
   buildSessionsRoute,
   buildSettingsRoute,
@@ -50,6 +52,9 @@ const ThemedCalendarClock = withUnistyles(CalendarClock, (theme) => ({
   color: theme.colors.foregroundMuted,
 }));
 const ThemedList = withUnistyles(List, (theme) => ({
+  color: theme.colors.foregroundMuted,
+}));
+const ThemedRadar = withUnistyles(Radar, (theme) => ({
   color: theme.colors.foregroundMuted,
 }));
 const ThemedKeyboard = withUnistyles(Keyboard, (theme) => ({
@@ -92,6 +97,10 @@ function TasksIcon({ size }: CommandCenterIconProps) {
   return <ThemedList size={size} strokeWidth={2.2} />;
 }
 
+function RadarIcon({ size }: CommandCenterIconProps) {
+  return <ThemedRadar size={size} strokeWidth={2.2} />;
+}
+
 function KeyboardIcon({ size }: CommandCenterIconProps) {
   return <ThemedKeyboard size={size} strokeWidth={2.2} />;
 }
@@ -128,6 +137,7 @@ export function CommandCenterRootActions() {
   const sessionsRoute = useMemo<Href>(() => buildSessionsRoute(), []);
   const schedulesRoute = useMemo<Href>(() => buildSchedulesRoute(), []);
   const linearRoute = useMemo<Href>(() => buildLinearRoute(), []);
+  const radarRoute = useMemo<Href>(() => buildRadarRoute(), []);
   const setShortcutsDialogOpen = useKeyboardShortcutsStore((state) => state.setShortcutsDialogOpen);
   // Narrow selector on purpose: a whole-store subscription would re-register every root action
   // each time host filters are reconciled.
@@ -276,10 +286,28 @@ export function CommandCenterRootActions() {
         },
       },
       {
-        id: "settings",
+        id: "radar",
         group: "actions",
         groupRank: 0,
         rank: 7,
+        keywords: ["radar", "slack", "channel", "alerts", "watch"],
+        visibility: "always",
+        run: () => {
+          clearCommandCenterFocusRestoreElement();
+          router.push(radarRoute);
+        },
+        presentation: {
+          kind: "action",
+          title: t("sidebar.sections.radar"),
+          sectionTitle: t("shell.commandCenter.actions"),
+          icon: RadarIcon,
+        },
+      },
+      {
+        id: "settings",
+        group: "actions",
+        groupRank: 0,
+        rank: 8,
         keywords: ["settings", "preferences", "config", "configuration"],
         visibility: "always",
         run: () => {
@@ -306,7 +334,7 @@ export function CommandCenterRootActions() {
         id: "toggle-left-sidebar",
         group: "actions",
         groupRank: 0,
-        rank: 9,
+        rank: 10,
         keywords: ["toggle", "sidebar", "left", "panel", "workspaces"],
         visibility: "query",
         run: () => {
@@ -330,7 +358,7 @@ export function CommandCenterRootActions() {
         id: "keyboard-shortcuts",
         group: "actions",
         groupRank: 0,
-        rank: 8,
+        rank: 9,
         keywords: ["keyboard", "shortcuts", "keys", "hotkeys"],
         visibility: "always",
         run: () => setShortcutsDialogOpen(true),
@@ -368,6 +396,7 @@ export function CommandCenterRootActions() {
     openImportSession,
     overrides,
     linearRoute,
+    radarRoute,
     schedulesRoute,
     sessionsRoute,
     setGroupMode,

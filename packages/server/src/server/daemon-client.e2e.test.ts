@@ -768,6 +768,53 @@ test("returns rpc error when archiving an unknown agent id", async () => {
   await expect(ctx.client.archiveAgent(randomUUID())).rejects.toThrow();
 }, 10000);
 
+test("radar RPCs carry a radar from setup to delete", async () => {
+  const cwd = tmpCwd();
+  expect(ctx.client.getLastServerInfoMessage()?.features?.radar).toBe(true);
+
+  const { radar } = await ctx.client.radarCreate({
+    channel: "#alerts",
+    cwd,
+    instructions: "Ignore deploy notices",
+  });
+  expect(radar).toMatchObject({
+    channel: "alerts",
+    cwd,
+    provider: "claude",
+    status: "active",
+    instructions: "Ignore deploy notices",
+    tasks: [],
+  });
+
+  const paused = await ctx.client.radarSetStatus({ radarId: radar.id, status: "paused" });
+  expect(paused.radar).toMatchObject({ status: "paused", nextPollAt: null });
+  await expect(ctx.client.radarCheckNow({ radarId: radar.id })).rejects.toThrow(
+    "Resume this radar before checking it",
+  );
+
+  const updated = await ctx.client.radarUpdate({
+    radarId: radar.id,
+    channel: "https://acme.slack.com/archives/C0TICKETS",
+    instructions: null,
+  });
+  expect(updated.radar.channel).toBe("C0TICKETS");
+  expect(updated.radar.instructions).toBeUndefined();
+
+  const listed = await ctx.client.radarList();
+  expect(listed.radars.map((entry) => entry.id)).toContain(radar.id);
+  const history = await ctx.client.radarListChecks({ radarId: radar.id });
+  expect(history.radarId).toBe(radar.id);
+  expect(Array.isArray(history.checks)).toBe(true);
+
+  await ctx.client.radarDelete({ radarId: radar.id });
+  const afterDelete = await ctx.client.radarList();
+  expect(afterDelete.radars.map((entry) => entry.id)).not.toContain(radar.id);
+
+  await expect(
+    ctx.client.radarCreate({ channel: "alerts", cwd: path.join(cwd, "missing") }),
+  ).rejects.toThrow("does not exist");
+}, 30000);
+
 test("interrupts a running agent before archiving", async () => {
   const cwd = tmpCwd();
   try {

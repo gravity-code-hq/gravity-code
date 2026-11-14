@@ -44,6 +44,10 @@ export interface StreamViewportHandle {
   scrollToBottom: (reason?: BottomAnchorLocalRequest["reason"]) => void;
   prepareForViewportChange: () => void;
   scrollToMessage?: (itemId: string) => void;
+  /** Web only: the DOM scroll container, for find-in-chat to locate and reveal matches. */
+  getScrollElement?: () => HTMLElement | null;
+  isScrollToMessageSettling?: () => boolean;
+  stopFollowingOutput?: () => void;
 }
 
 export interface StreamSegmentRenderers {

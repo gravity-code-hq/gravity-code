@@ -79,3 +79,8 @@ export function usePaneFocus(): PaneFocusContextValue {
   invariant(value, "PaneFocusContext is required");
   return value;
 }
+
+/** For views that also render outside a workspace pane. */
+export function useOptionalPaneFocus(): PaneFocusContextValue | null {
+  return useContext(PaneFocusContext);
+}

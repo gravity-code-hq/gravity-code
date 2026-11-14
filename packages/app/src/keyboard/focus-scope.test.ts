@@ -77,4 +77,13 @@ describe("resolveKeyboardFocusScope", () => {
     });
     expect(scope).toBe("editable");
   });
+
+  it("treats a find widget button as editable so Escape does not interrupt the agent", () => {
+    const target = new FakeElement({ selectors: ["[data-find-widget]"] });
+    const scope = resolveKeyboardFocusScope({
+      target: target as unknown as EventTarget,
+      commandCenterOpen: false,
+    });
+    expect(scope).toBe("editable");
+  });
 });

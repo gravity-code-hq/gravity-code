@@ -23,10 +23,8 @@ import { useIsCompactFormFactor } from "@/constants/layout";
 import { HostStatusDotSlot } from "@/components/hosts/host-picker";
 import { createControlGeometry, type FieldControlSize } from "@/components/ui/control-geometry";
 import { Field, FormTextInput } from "@/components/ui/form-field";
-import { Switch } from "@/components/ui/switch";
 import { getProviderIcon } from "@/components/provider-icons";
 import { CadenceEditor } from "@/components/schedules/cadence-editor";
-import { ScheduleTemplateField } from "@/components/schedules/schedule-template-field";
 import {
   SelectField,
   SelectFieldTrigger,
@@ -355,9 +353,6 @@ function OpenScheduleFormSheet({
           modeId: state.selectedMode || null,
           thinkingOptionId: state.selectedThinkingOptionId || null,
           cwd,
-          ...(state.submitArchiveOnFinish !== undefined
-            ? { archiveOnFinish: state.submitArchiveOnFinish }
-            : {}),
           ...(state.submitIsolation !== undefined ? { isolation: state.submitIsolation } : {}),
         },
         maxRuns,
@@ -377,9 +372,6 @@ function OpenScheduleFormSheet({
           model: state.selectedModel || undefined,
           modeId: state.selectedMode || undefined,
           thinkingOptionId: state.selectedThinkingOptionId || undefined,
-          ...(state.submitArchiveOnFinish !== undefined
-            ? { archiveOnFinish: state.submitArchiveOnFinish }
-            : {}),
           ...(state.submitIsolation !== undefined ? { isolation: state.submitIsolation } : {}),
           title: state.name.trim() || undefined,
         },
@@ -498,25 +490,14 @@ function ScheduleFormFields({
     );
   }
 
-  const templateResetKey = `template-${state.templateApplyCount}`;
-
   return (
     <>
-      {state.mode === "create" ? (
-        <ScheduleTemplateField
-          selectedTemplateId={state.selectedTemplateId}
-          onSelect={model.applyTemplate}
-          size={controlSize}
-        />
-      ) : null}
-
       <Field label="Name">
         <FormTextInput
           size={controlSize}
           testID="schedule-name-input"
           accessibilityLabel="Automation name"
           initialValue={state.name}
-          resetKey={templateResetKey}
           onChangeText={model.setName}
           placeholder="Optional"
           autoCapitalize="none"
@@ -530,7 +511,6 @@ function ScheduleFormFields({
           testID="schedule-prompt-input"
           accessibilityLabel="Prompt"
           initialValue={state.prompt}
-          resetKey={templateResetKey}
           onChangeText={model.setPrompt}
           placeholder="What should the agent do each run?"
           style={styles.multilineInput}
@@ -550,7 +530,6 @@ function ScheduleFormFields({
       />
 
       <CadenceEditor
-        key={templateResetKey}
         value={state.cadence}
         onChange={model.setCadence}
         error={cadenceError ?? undefined}
@@ -814,17 +793,6 @@ function ScheduleTargetFields({
           size={controlSize}
           triggerTestID="schedule-mode-trigger"
         />
-      ) : null}
-
-      {state.disclosure.showArchiveOnFinishField ? (
-        <Field label="Archive on finish">
-          <Switch
-            value={state.archiveOnFinish}
-            onValueChange={model.setArchiveOnFinish}
-            accessibilityLabel="Archive on finish"
-            testID="schedule-archive-on-finish-switch"
-          />
-        </Field>
       ) : null}
     </>
   );

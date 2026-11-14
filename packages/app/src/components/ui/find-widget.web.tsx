@@ -11,14 +11,28 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { mutedIconColorMapping } from "@/components/ui/icon-button-chrome";
 import { paneContentToolbarIconSize, ToolbarButton } from "@/components/ui/pane-content-toolbar";
-import { SearchOptionToggles } from "@/components/ui/search-option-toggles";
+import {
+  SearchOptionToggles,
+  type SearchOption,
+  type SearchOptionValues,
+} from "@/components/ui/search-option-toggles";
 import {
   EditingTextInput as TextInput,
   type EditingTextInputHandle,
 } from "@/components/ui/text-input";
 import type { Theme } from "@/styles/theme";
-import { FILE_HEADER_HEIGHT } from "./model";
-import type { DiffFind } from "./use-diff-find";
+
+/** What the widget reads from a find model; the diff and the agent chat each own one. */
+export interface FindWidgetModel {
+  query: string;
+  options: SearchOptionValues;
+  result: { matches: readonly unknown[]; limitHit: boolean; invalid: boolean };
+  activeIndex: number | null;
+  /** Bumps each time the widget should take focus and select its text. */
+  focusRequest: { id: number; text: string };
+  setQuery: (query: string) => void;
+  toggleOption: (option: SearchOption) => void;
+}
 
 const ThemedArrowUp = withUnistyles(ArrowUp);
 const ThemedArrowDown = withUnistyles(ArrowDown);
@@ -31,19 +45,23 @@ const ThemedTextInput = withUnistyles(TextInput, (theme: Theme) => ({
 const ICON_SIZE = paneContentToolbarIconSize(false);
 
 /**
- * VS Code's editor find widget for the canvas diff: field with inline toggles, "N of M",
- * previous/next, close. Enter and Shift+Enter (or F3 and Shift+F3) step; Escape closes.
+ * VS Code's editor find widget: field with inline toggles, "N of M", previous/next, close.
+ * Enter and Shift+Enter (or F3 and Shift+F3) step; Escape closes.
  */
-export function DiffFindWidget({
+export function FindWidget({
   find,
   onNext,
   onPrevious,
   onClose,
+  positionStyle,
+  testIDPrefix,
 }: {
-  find: DiffFind;
+  find: FindWidgetModel;
   onNext: () => void;
   onPrevious: () => void;
   onClose: () => void;
+  positionStyle: React.CSSProperties;
+  testIDPrefix: string;
 }) {
   const { t } = useTranslation();
   const inputRef = useRef<EditingTextInputHandle>(null);
@@ -96,11 +114,12 @@ export function DiffFindWidget({
   const hasMatches = find.result.matches.length > 0;
   return (
     <div
-      style={WIDGET_POSITION_STYLE}
+      style={positionStyle}
       onKeyDown={keyDown}
       onContextMenu={stopPropagation}
       onPointerDown={stopPropagation}
-      data-testid="diff-find-widget"
+      data-testid={`${testIDPrefix}-widget`}
+      data-find-widget="true"
     >
       <View style={styles.widget}>
         <View
@@ -123,19 +142,19 @@ export function DiffFindWidget({
             blurOnSubmit={false}
             onKeyPress={inputKeyPress}
             style={styles.input}
-            testID="diff-find-input"
+            testID={`${testIDPrefix}-input`}
           />
           <SearchOptionToggles
             options={find.options}
             onToggle={find.toggleOption}
-            testIDPrefix="diff-find"
+            testIDPrefix={testIDPrefix}
           />
         </View>
         <Text
           style={[styles.count, find.result.invalid && styles.countInvalid]}
           numberOfLines={1}
           aria-live="polite"
-          testID="diff-find-count"
+          testID={`${testIDPrefix}-count`}
         >
           {findStatusLabel(find, t)}
         </Text>
@@ -143,7 +162,7 @@ export function DiffFindWidget({
           label={t("panels.file.editor.find.previous")}
           onPress={onPrevious}
           disabled={!hasMatches}
-          testID="diff-find-previous"
+          testID={`${testIDPrefix}-previous`}
         >
           <ThemedArrowUp size={ICON_SIZE} strokeWidth={1.5} uniProps={mutedIconColorMapping} />
         </ToolbarButton>
@@ -151,14 +170,14 @@ export function DiffFindWidget({
           label={t("panels.file.editor.find.next")}
           onPress={onNext}
           disabled={!hasMatches}
-          testID="diff-find-next"
+          testID={`${testIDPrefix}-next`}
         >
           <ThemedArrowDown size={ICON_SIZE} strokeWidth={1.5} uniProps={mutedIconColorMapping} />
         </ToolbarButton>
         <ToolbarButton
           label={t("panels.file.editor.find.close")}
           onPress={onClose}
-          testID="diff-find-close"
+          testID={`${testIDPrefix}-close`}
         >
           <ThemedX size={ICON_SIZE} strokeWidth={1.5} uniProps={mutedIconColorMapping} />
         </ToolbarButton>
@@ -167,7 +186,7 @@ export function DiffFindWidget({
   );
 }
 
-function findStatusLabel(find: DiffFind, t: TFunction): string {
+function findStatusLabel(find: FindWidgetModel, t: TFunction): string {
   if (!find.query) return "";
   if (find.result.invalid) return t("panels.file.editor.find.invalidRegex");
   if (find.result.matches.length === 0) return t("panels.file.editor.find.noResults");
@@ -180,15 +199,6 @@ function findStatusLabel(find: DiffFind, t: TFunction): string {
 function stopPropagation(event: React.SyntheticEvent): void {
   event.stopPropagation();
 }
-
-// Below the sticky file header, so the header's stats and actions stay reachable.
-const WIDGET_POSITION_STYLE: React.CSSProperties = {
-  position: "absolute",
-  top: FILE_HEADER_HEIGHT + 4,
-  right: 16,
-  zIndex: 6,
-  maxWidth: "calc(100% - 32px)",
-};
 
 const styles = StyleSheet.create((theme) => ({
   widget: {

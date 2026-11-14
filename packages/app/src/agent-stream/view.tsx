@@ -69,6 +69,7 @@ import { resolveStreamRenderStrategy } from "./strategy-resolver";
 import { type StreamSegmentRenderers, type StreamViewportHandle } from "./strategy";
 import { ChatOutlineRail } from "@/agent-stream/chat-outline/rail";
 import { useChatOutline } from "@/agent-stream/chat-outline/use-chat-outline";
+import { ChatFind } from "@/agent-stream/find/chat-find";
 import { getHostRuntimeStore } from "@/runtime/host-runtime";
 import { planTimelineTailFetch } from "@/timeline/timeline-sync-plan";
 import {
@@ -1132,6 +1133,14 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             prompts={chatOutline.prompts}
             activePrompt={chatOutline.activePrompt}
             onJumpToPrompt={chatOutline.jumpToPrompt}
+          />
+          <ChatFind
+            tail={presentation.tail}
+            head={presentation.head}
+            viewportRef={viewportRef}
+            visibleItemIds={visibleHistoryItemIds}
+            revealLoadedItem={revealLoadedHistory}
+            isActive={isActive}
           />
           {(!isNearBottom || isTimelineDetached) && (
             <View style={scrollToBottomContainerStyle} pointerEvents="box-none">

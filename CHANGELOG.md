@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.6 - 2026-11-13
+
+### Added
+
+- Radar: watch a Slack channel for a project and put an agent on bot-posted errors and tickets, with a reply in the thread, a pull request when the fix is clear, and a ✅ when the work lands
+- Check now, look back 24 hours, pause, and a per-radar check history that shows why each message was picked up or skipped
+- Radar in the sidebar, the command center, and the Sidebar appearance settings
+- Find in chat with Cmd/Ctrl+F on desktop and web, with match case, whole word, and regular expression options
+
+### Changed
+
+- Automation runs keep their agent conversation; the Archive on finish option is removed
+- Automation templates are offered on the empty Automations screen instead of in the create form
+
 ## 0.8.5 - 2026-10-27
 
 ### Added

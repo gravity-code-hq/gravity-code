@@ -19,7 +19,6 @@ interface ScheduleListItem {
     type: string;
     config?: {
       cwd?: string;
-      archiveOnFinish?: boolean;
       isolation?: "local" | "worktree";
     };
   };
@@ -80,7 +79,6 @@ async function expectScheduleCreatedForProject(input: {
 async function expectScheduleKnobs(input: {
   workspace: SeededWorkspace;
   name: string;
-  archiveOnFinish: boolean;
   isolation: "local" | "worktree";
 }): Promise<void> {
   const client = input.workspace.client as unknown as ScheduleSeedClient;
@@ -92,7 +90,6 @@ async function expectScheduleKnobs(input: {
       target: expect.objectContaining({
         type: "new-agent",
         config: expect.objectContaining({
-          archiveOnFinish: input.archiveOnFinish,
           isolation: input.isolation,
         }),
       }),
@@ -295,9 +292,7 @@ test.describe("Schedules project target", () => {
     ).toBeVisible();
   });
 
-  test("creates and edits the archive cleanup knob on worktree-backed schedules", async ({
-    page,
-  }) => {
+  test("creates and edits worktree-backed schedules", async ({ page }) => {
     const workspace = await seedWorkspace({ repoPrefix: "schedule-knobs-" });
     cleanupTasks.push(() => workspace.cleanup());
     const scheduleName = `Knob schedule ${Date.now()}`;
@@ -314,13 +309,9 @@ test.describe("Schedules project target", () => {
       .getByTestId(`schedule-project-option-${projectEquivalenceViewKey(workspace.projectKey)}`)
       .click();
     await selectModelByLabel(page, "Ten second stream");
-    await expect(
-      page.getByText("Off keeps each run's workspace in the sidebar for inspection."),
-    ).toHaveCount(0);
     await expect(page.getByTestId("schedule-isolation-trigger")).toHaveCount(0);
-    await page.getByTestId("schedule-archive-on-finish-switch").click();
     await page.getByLabel("Automation name").fill(scheduleName);
-    await page.getByLabel("Prompt").fill("Run with custom workspace cleanup.");
+    await page.getByLabel("Prompt").fill("Run in a worktree.");
     await page.getByTestId("schedule-cadence-preset-trigger").click();
     await page.getByTestId("schedule-cadence-preset-every-hour").click();
     await page.getByRole("button", { name: "Create automation" }).click();
@@ -329,7 +320,6 @@ test.describe("Schedules project target", () => {
     await expectScheduleKnobs({
       workspace,
       name: scheduleName,
-      archiveOnFinish: false,
       isolation: "worktree",
     });
 
@@ -339,22 +329,12 @@ test.describe("Schedules project target", () => {
     await expect(formSheet).toBeVisible({ timeout: 10_000 });
     await expectStableHeight(formSheet);
     await expect(page.getByTestId("schedule-isolation-trigger")).toHaveCount(0);
-    await expect(page.getByTestId("schedule-archive-on-finish-switch")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    await expect(
-      page.getByText("Off keeps each run's workspace in the sidebar for inspection."),
-    ).toHaveCount(0);
-
-    await page.getByTestId("schedule-archive-on-finish-switch").click();
     await page.getByRole("button", { name: "Save changes" }).click();
 
     await expect(page.getByTestId("schedule-form-sheet")).toHaveCount(0, { timeout: 30_000 });
     await expectScheduleKnobs({
       workspace,
       name: scheduleName,
-      archiveOnFinish: true,
       isolation: "worktree",
     });
   });

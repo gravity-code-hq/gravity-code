@@ -64,7 +64,6 @@ export interface ScheduleDisclosureState {
   showModelField: boolean;
   showThinkingField: boolean;
   showModeField: boolean;
-  showArchiveOnFinishField: boolean;
 }
 
 export interface ScheduleProviderSnapshotRequest {
@@ -88,11 +87,6 @@ export interface ScheduleFormState {
   targetKind: ScheduleFormTargetKind;
   name: string;
   prompt: string;
-  // Empty once the user edits any field a template filled; the picker then
-  // shows no selection rather than claiming the form still matches it.
-  selectedTemplateId: string;
-  // Bumped on every template pick so the sheet can reset uncontrolled inputs.
-  templateApplyCount: number;
   maxRuns: string;
   cadence: ScheduleCadence;
   submitCadence: CronCadence | undefined;
@@ -112,11 +106,9 @@ export interface ScheduleFormState {
   modelSelectorProviders: ProviderSelectorProvider[];
   modeOptions: AgentMode[];
   availableThinkingOptions: NonNullable<AgentModelDefinition["thinkingOptions"]>;
-  archiveOnFinish: boolean;
   // A scheduled run gets a worktree. A project that is not a git checkout
   // cannot host one, so its runs attach to the directory instead.
   effectiveIsolation: "local" | "worktree";
-  submitArchiveOnFinish: boolean | undefined;
   submitIsolation: "local" | "worktree" | undefined;
   canUseWorktreeIsolation: boolean;
   providerResolutionByServerId: Record<string, ProviderResolutionStatus>;
@@ -141,10 +133,8 @@ export interface ScheduleFormModel {
   setSessionMode: (modeId: string) => void;
   setName: (value: string) => void;
   setPrompt: (value: string) => void;
-  applyTemplate: (templateId: string) => void;
   setMaxRuns: (value: string) => void;
   setCadence: (value: ScheduleCadence) => void;
-  setArchiveOnFinish: (value: boolean) => void;
   setSubmitError: (value: string | null) => void;
 }
 
@@ -512,7 +502,6 @@ function resolveDisclosure(state: ScheduleFormState): ScheduleDisclosureState {
       showModelField: false,
       showThinkingField: false,
       showModeField: false,
-      showArchiveOnFinishField: false,
     };
   }
 
@@ -527,12 +516,6 @@ function resolveDisclosure(state: ScheduleFormState): ScheduleDisclosureState {
     showThinkingField:
       showModelField && hasSelectedModel && state.availableThinkingOptions.length > 0,
     showModeField: showModelField && hasSelectedProvider && state.modeOptions.length > 0,
-    showArchiveOnFinishField:
-      hasProject &&
-      selectedHostSupportsWorkspaceMultiplicity({
-        hosts: state.hosts,
-        selectedServerId: state.selectedServerId,
-      }),
   };
 }
 
@@ -575,7 +558,7 @@ function updateDerivedState(input: {
     hosts: input.hosts,
     targets: input.targets,
   });
-  const canSubmitWorkspaceLifecycleOptions = selectedHostSupportsWorkspaceMultiplicity({
+  const canSubmitIsolation = selectedHostSupportsWorkspaceMultiplicity({
     hosts: input.hosts,
     selectedServerId: input.state.selectedServerId,
   });
@@ -613,10 +596,7 @@ function updateDerivedState(input: {
     availableThinkingOptions,
     canUseWorktreeIsolation,
     effectiveIsolation,
-    submitArchiveOnFinish: canSubmitWorkspaceLifecycleOptions
-      ? input.state.archiveOnFinish
-      : undefined,
-    submitIsolation: canSubmitWorkspaceLifecycleOptions ? effectiveIsolation : undefined,
+    submitIsolation: canSubmitIsolation ? effectiveIsolation : undefined,
   };
   const disclosure = resolveDisclosure(nextState);
   return { ...nextState, disclosure, canSubmit: resolveCanSubmit({ ...nextState, disclosure }) };
@@ -649,8 +629,6 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
     targetKind,
     name: snapshot.schedule?.name ?? "",
     prompt: snapshot.schedule?.prompt ?? "",
-    selectedTemplateId: "",
-    templateApplyCount: 0,
     maxRuns: formatInitialMaxRuns(snapshot.schedule),
     cadence: initialCadence,
     submitCadence: resolveInitialSubmitCadence(snapshot.schedule, initialCadence),
@@ -674,9 +652,7 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
     modelSelectorProviders: [],
     modeOptions: [],
     availableThinkingOptions: [],
-    archiveOnFinish: config?.archiveOnFinish ?? true,
     effectiveIsolation: "worktree",
-    submitArchiveOnFinish: undefined,
     submitIsolation: undefined,
     canUseWorktreeIsolation: false,
     providerResolutionByServerId: buildInitialProviderResolution(providerSnapshotRequest),
@@ -686,7 +662,6 @@ function buildInitialState(snapshot: ScheduleFormSnapshot): ScheduleFormState {
       showModelField: false,
       showThinkingField: false,
       showModeField: false,
-      showArchiveOnFinishField: false,
     },
     canSubmit: false,
     submitError: null,
@@ -714,7 +689,6 @@ function withTemplate(
     prompt: template.prompt,
     cadence,
     submitCadence: cadence,
-    selectedTemplateId: template.id,
   };
 }
 
@@ -1118,30 +1092,17 @@ export function openScheduleForm(snapshot: ScheduleFormSnapshot): ScheduleFormMo
       publish({ ...state, selectedMode: modeId });
     },
     setName(value) {
-      publish({ ...state, name: value, selectedTemplateId: "" });
+      publish({ ...state, name: value });
     },
     setPrompt(value) {
-      publish({ ...state, prompt: value, selectedTemplateId: "" });
-    },
-    applyTemplate(templateId) {
-      const template = findScheduleTemplate(templateId);
-      if (!template) {
-        return;
-      }
-      publish({
-        ...withTemplate(state, template, timezone),
-        templateApplyCount: state.templateApplyCount + 1,
-      });
+      publish({ ...state, prompt: value });
     },
     setMaxRuns(value) {
       publish({ ...state, maxRuns: value });
     },
     setCadence(value) {
       const cadence = normalizeScheduleFormCadence(value, timezone);
-      publish({ ...state, cadence, submitCadence: cadence, selectedTemplateId: "" });
-    },
-    setArchiveOnFinish(value) {
-      publish({ ...state, archiveOnFinish: value });
+      publish({ ...state, cadence, submitCadence: cadence });
     },
     setSubmitError(value) {
       publish({ ...state, submitError: value });

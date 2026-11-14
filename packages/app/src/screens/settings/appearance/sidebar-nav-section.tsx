@@ -8,6 +8,7 @@ import {
   CalendarClock,
   List,
   Plus,
+  Radar,
   Search,
   type LucideIcon,
 } from "lucide-react-native";
@@ -41,6 +42,7 @@ const BUILTIN_ICONS: Record<BuiltinSidebarNavId, LucideIcon> = {
   search: Search,
   linear: List,
   schedules: CalendarClock,
+  radar: Radar,
 };
 
 function NavIcon({ Icon, color = "" }: { Icon: LucideIcon; color?: string }) {

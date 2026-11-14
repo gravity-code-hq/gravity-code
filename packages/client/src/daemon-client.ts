@@ -107,6 +107,13 @@ import type {
   LinearIssuesListResponse,
   LinearIssuesGetResponse,
   LinearIssuesSetStateResponse,
+  RadarListResponse,
+  RadarCreateResponse,
+  RadarUpdateResponse,
+  RadarSetStatusResponse,
+  RadarDeleteResponse,
+  RadarCheckNowResponse,
+  RadarChecksListResponse,
   DaemonGetStatusResponse,
   DaemonGetPairingOfferResponse,
   DaemonConfigReloadResponse,
@@ -517,6 +524,13 @@ export type LinearTeamsListPayload = LinearTeamsListResponse["payload"];
 export type LinearIssuesListPayload = LinearIssuesListResponse["payload"];
 export type LinearIssuesGetPayload = LinearIssuesGetResponse["payload"];
 export type LinearIssuesSetStatePayload = LinearIssuesSetStateResponse["payload"];
+export type RadarListPayload = RadarListResponse["payload"];
+export type RadarCreatePayload = RadarCreateResponse["payload"];
+export type RadarUpdatePayload = RadarUpdateResponse["payload"];
+export type RadarSetStatusPayload = RadarSetStatusResponse["payload"];
+export type RadarDeletePayload = RadarDeleteResponse["payload"];
+export type RadarCheckNowPayload = RadarCheckNowResponse["payload"];
+export type RadarChecksListPayload = RadarChecksListResponse["payload"];
 export interface LinearListIssuesOptions {
   after?: string;
   filter: LinearIssueListFilter;
@@ -807,7 +821,6 @@ export interface CreateScheduleOptions {
           modeId?: string;
           model?: string;
           thinkingOptionId?: string;
-          archiveOnFinish?: boolean;
           isolation?: "local" | "worktree";
           title?: string | null;
           providerOptions?: AgentSessionConfig["providerOptions"];
@@ -829,7 +842,6 @@ export interface UpdateScheduleNewAgentConfig {
   model?: string | null;
   modeId?: string | null;
   thinkingOptionId?: string | null;
-  archiveOnFinish?: boolean;
   isolation?: "local" | "worktree";
   cwd?: string;
 }
@@ -5277,6 +5289,107 @@ export class DaemonClient {
         type: "provider.accounts.remove.request",
         providerId: options.providerId,
         accountId: options.accountId,
+      },
+    });
+  }
+
+  async radarList(options?: { requestId?: string }): Promise<RadarListPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options?.requestId,
+      message: { type: "radar.list.request" },
+    });
+  }
+
+  async radarCreate(options: {
+    channel: string;
+    cwd: string;
+    provider?: string;
+    model?: string;
+    instructions?: string;
+    requestId?: string;
+  }): Promise<RadarCreatePayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "radar.create.request",
+        channel: options.channel,
+        cwd: options.cwd,
+        ...(options.provider ? { provider: options.provider } : {}),
+        ...(options.model ? { model: options.model } : {}),
+        ...(options.instructions ? { instructions: options.instructions } : {}),
+      },
+    });
+  }
+
+  async radarUpdate(options: {
+    radarId: string;
+    channel?: string;
+    cwd?: string;
+    model?: string | null;
+    instructions?: string | null;
+    requestId?: string;
+  }): Promise<RadarUpdatePayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "radar.update.request",
+        radarId: options.radarId,
+        ...(options.channel !== undefined ? { channel: options.channel } : {}),
+        ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
+        ...(options.model !== undefined ? { model: options.model } : {}),
+        ...(options.instructions !== undefined ? { instructions: options.instructions } : {}),
+      },
+    });
+  }
+
+  async radarSetStatus(options: {
+    radarId: string;
+    status: "active" | "paused";
+    requestId?: string;
+  }): Promise<RadarSetStatusPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "radar.set_status.request",
+        radarId: options.radarId,
+        status: options.status,
+      },
+    });
+  }
+
+  async radarDelete(options: { radarId: string; requestId?: string }): Promise<RadarDeletePayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: { type: "radar.delete.request", radarId: options.radarId },
+    });
+  }
+
+  async radarCheckNow(options: {
+    radarId: string;
+    lookBackMs?: number;
+    requestId?: string;
+  }): Promise<RadarCheckNowPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "radar.check_now.request",
+        radarId: options.radarId,
+        ...(options.lookBackMs !== undefined ? { lookBackMs: options.lookBackMs } : {}),
+      },
+    });
+  }
+
+  async radarListChecks(options: {
+    radarId: string;
+    limit?: number;
+    requestId?: string;
+  }): Promise<RadarChecksListPayload> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId: options.requestId,
+      message: {
+        type: "radar.checks.list.request",
+        radarId: options.radarId,
+        ...(options.limit !== undefined ? { limit: options.limit } : {}),
       },
     });
   }

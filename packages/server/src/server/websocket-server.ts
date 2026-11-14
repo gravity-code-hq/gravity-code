@@ -96,6 +96,7 @@ import { ProviderUsageService } from "../services/quota-fetcher/service.js";
 import { createProviderAccountsService } from "../services/provider-accounts/manifest.js";
 import type { ProviderAccountsService } from "../services/provider-accounts/service.js";
 import { LinearService } from "./linear/service.js";
+import type { RadarService } from "./radar/service.js";
 import { getProcessMemoryDiagnostics, getProcessUptimeSeconds } from "./process-diagnostics.js";
 import {
   CLIENT_SHUTDOWN_RPC_REASON,
@@ -591,6 +592,7 @@ export class VoiceAssistantWebSocketServer {
   private readonly providerUsageService: ProviderUsageService;
   private readonly providerAccountsService: ProviderAccountsService;
   private readonly linearService: LinearService;
+  private readonly radarService: RadarService | null;
   private unsubscribeTerminalActivity: (() => void) | null = null;
   private readonly browserToolsBroker: BrowserToolsBroker | null;
   private readonly hubRelationships: HubRelationshipManagement | null;
@@ -666,8 +668,10 @@ export class VoiceAssistantWebSocketServer {
     pluginRuntime?: SessionOptions["pluginRuntime"],
     orchestrationSkills?: SessionOptions["orchestrationSkills"],
     workspaceLabelService?: WorkspaceLabelService,
+    radarService?: RadarService,
   ) {
     this.logger = logger.child({ module: "websocket-server" });
+    this.radarService = radarService ?? null;
     this.workspaceSetupRuntime = workspaceSetupRuntime;
     this.advertiseDaemonStatusRpc = wsConfig.daemonStatusRpc !== false;
     this.advertiseRelayConfig = wsConfig.relayConfig !== false;
@@ -1506,6 +1510,7 @@ export class VoiceAssistantWebSocketServer {
       providerUsageService: this.providerUsageService,
       providerAccountsService: this.providerAccountsService,
       linearService: this.linearService,
+      radarService: this.radarService ?? undefined,
       hubExecutionAgents: options.hubExecutionAgents,
       hubRelationships: options.hubRelationships,
       serviceProxy: this.serviceProxy ?? undefined,
@@ -1799,6 +1804,8 @@ export class VoiceAssistantWebSocketServer {
         // COMPAT(linearIntegration): added in v0.8.1, remove gate after 2027-03-24.
         linearIntegration: true,
         linearIssuePagination: true,
+        // COMPAT(radar): added in v0.8.6, remove gate after 2027-05-13.
+        radar: this.radarService !== null,
         // COMPAT(agentDetach): added in v0.1.98, remove gate after 2026-12-19 once daemon floor >= v0.1.98.
         agentDetach: true,
         // COMPAT(agentThinkingUpdate): added in v0.2.4, remove gate after 2027-01-28.

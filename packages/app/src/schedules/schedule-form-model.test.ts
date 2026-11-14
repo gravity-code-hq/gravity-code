@@ -115,7 +115,6 @@ function scheduleOnHost(input: {
         modeId: "load-test",
         thinkingOptionId:
           input.thinkingOptionId === undefined ? "high" : (input.thinkingOptionId ?? undefined),
-        archiveOnFinish: false,
         isolation: "worktree",
       },
     },
@@ -221,7 +220,6 @@ describe("schedule form model", () => {
       selectedThinkingOptionId: "high",
       projectDisplay: { label: "Project B" },
       selectedProjectOptionId: buildProjectOptionId("host-b", "project-b"),
-      archiveOnFinish: false,
       effectiveIsolation: "worktree",
       providerResolutionByServerId: { "host-b": "pending" },
       providerSnapshotRequest: {
@@ -335,7 +333,6 @@ describe("schedule form model", () => {
       selectedProjectOptionId: "",
       selectedModelDisplay: null,
       selectedThinkingDisplay: null,
-      archiveOnFinish: true,
       effectiveIsolation: "worktree",
       providerResolutionByServerId: {},
     });
@@ -355,48 +352,9 @@ describe("schedule form model", () => {
 
     expect(form.getState()).toMatchObject({
       name: "Daily change review",
-      selectedTemplateId: "change-review",
-      templateApplyCount: 0,
       submitCadence: { type: "cron", expression: "0 17 * * *", timezone: "UTC" },
     });
     expect(form.getState().prompt).toContain("commit");
-  });
-
-  it("applies a template to name, prompt, and cadence, and forgets it on edit", () => {
-    const form = open({
-      mode: "create",
-      defaults: {
-        serverId: "host-a",
-        projectTargets: PROJECT_TARGETS,
-        preferences: {},
-        timezone: "Europe/Paris",
-      },
-    });
-
-    form.applyTemplate("inbox-digest");
-
-    expect(form.getState()).toMatchObject({
-      name: "Daily inbox digest",
-      selectedTemplateId: "inbox-digest",
-      templateApplyCount: 1,
-      cadence: { type: "cron", expression: "0 8 * * 1-5", timezone: "Europe/Paris" },
-      submitCadence: { type: "cron", expression: "0 8 * * 1-5", timezone: "Europe/Paris" },
-    });
-    expect(form.getState().prompt).toContain("Slack");
-
-    form.setPrompt("Something else");
-
-    expect(form.getState()).toMatchObject({
-      selectedTemplateId: "",
-      name: "Daily inbox digest",
-      prompt: "Something else",
-    });
-
-    form.applyTemplate("inbox-digest");
-    expect(form.getState().templateApplyCount).toBe(2);
-
-    form.applyTemplate("missing");
-    expect(form.getState().templateApplyCount).toBe(2);
   });
 
   it("derives the host to project to model disclosure chain from model state", () => {
@@ -410,7 +368,6 @@ describe("schedule form model", () => {
       showModelField: false,
       showThinkingField: false,
       showModeField: false,
-      showArchiveOnFinishField: false,
     });
 
     form.setProject(buildProjectOptionId("host-a", "project-a"), { label: "Project A" });
@@ -420,7 +377,6 @@ describe("schedule form model", () => {
       showModelField: true,
       showThinkingField: false,
       showModeField: false,
-      showArchiveOnFinishField: true,
     });
 
     form.applyProviderSnapshot("host-a", providerSnapshot(HOST_B_MODELS));
@@ -431,11 +387,10 @@ describe("schedule form model", () => {
       showModelField: true,
       showThinkingField: true,
       showModeField: true,
-      showArchiveOnFinishField: true,
     });
   });
 
-  it("only submits workspace lifecycle options when the host supports them", () => {
+  it("only submits isolation when the host supports workspace multiplicity", () => {
     const nonGitTarget = target({
       serverId: "host-a",
       projectKey: "plain-project",
@@ -450,10 +405,8 @@ describe("schedule form model", () => {
 
     nonGit.setProject(nonGitTarget.optionId, { label: "Plain Project" });
 
-    expect(nonGit.getState()).toMatchObject({
-      canUseWorktreeIsolation: false,
-      disclosure: { showArchiveOnFinishField: true },
-    });
+    expect(nonGit.getState().canUseWorktreeIsolation).toBe(false);
+    expect(nonGit.getState().submitIsolation).toBeDefined();
 
     const gitTarget = target({
       serverId: "host-a",
@@ -470,21 +423,11 @@ describe("schedule form model", () => {
 
     unsupportedHost.setProject(gitTarget.optionId, { label: "Git Project" });
 
-    expect(unsupportedHost.getState().disclosure).toMatchObject({
-      showArchiveOnFinishField: false,
-    });
     expect(
       Object.prototype.hasOwnProperty.call(unsupportedHost.getState(), "submitIsolation"),
     ).toBe(true);
     expect(
-      Object.prototype.hasOwnProperty.call(unsupportedHost.getState(), "submitArchiveOnFinish"),
-    ).toBe(true);
-    expect(
       (unsupportedHost.getState() as unknown as { submitIsolation?: string }).submitIsolation,
-    ).toBeUndefined();
-    expect(
-      (unsupportedHost.getState() as unknown as { submitArchiveOnFinish?: boolean })
-        .submitArchiveOnFinish,
     ).toBeUndefined();
   });
 

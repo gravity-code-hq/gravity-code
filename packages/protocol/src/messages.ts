@@ -70,6 +70,22 @@ import {
   LinearIssuesSetStateResponseSchema,
 } from "./linear/rpc-schemas.js";
 import {
+  RadarListRequestSchema,
+  RadarCreateRequestSchema,
+  RadarUpdateRequestSchema,
+  RadarSetStatusRequestSchema,
+  RadarDeleteRequestSchema,
+  RadarCheckNowRequestSchema,
+  RadarChecksListRequestSchema,
+  RadarListResponseSchema,
+  RadarCreateResponseSchema,
+  RadarUpdateResponseSchema,
+  RadarSetStatusResponseSchema,
+  RadarDeleteResponseSchema,
+  RadarCheckNowResponseSchema,
+  RadarChecksListResponseSchema,
+} from "./radar/rpc-schemas.js";
+import {
   LoopRunRequestSchema,
   LoopListRequestSchema,
   LoopInspectRequestSchema,
@@ -3484,6 +3500,13 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   LinearIssuesListRequestSchema,
   LinearIssuesGetRequestSchema,
   LinearIssuesSetStateRequestSchema,
+  RadarListRequestSchema,
+  RadarCreateRequestSchema,
+  RadarUpdateRequestSchema,
+  RadarSetStatusRequestSchema,
+  RadarDeleteRequestSchema,
+  RadarCheckNowRequestSchema,
+  RadarChecksListRequestSchema,
   LoopRunRequestSchema,
   LoopListRequestSchema,
   LoopInspectRequestSchema,
@@ -3838,6 +3861,8 @@ export const ServerInfoStatusPayloadSchema = z
         // COMPAT(linearIntegration): added in v0.8.1, remove gate after 2027-03-24.
         linearIntegration: z.boolean().optional(),
         linearIssuePagination: z.boolean().optional(),
+        // COMPAT(radar): added in v0.8.6, remove gate after 2027-05-13.
+        radar: z.boolean().optional(),
       })
       .optional(),
   })
@@ -7170,6 +7195,13 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   LinearIssuesListResponseSchema,
   LinearIssuesGetResponseSchema,
   LinearIssuesSetStateResponseSchema,
+  RadarListResponseSchema,
+  RadarCreateResponseSchema,
+  RadarUpdateResponseSchema,
+  RadarSetStatusResponseSchema,
+  RadarDeleteResponseSchema,
+  RadarCheckNowResponseSchema,
+  RadarChecksListResponseSchema,
   LoopRunResponseSchema,
   LoopListResponseSchema,
   LoopInspectResponseSchema,
@@ -7370,6 +7402,13 @@ export type LinearTeamsListResponse = z.infer<typeof LinearTeamsListResponseSche
 export type LinearIssuesListResponse = z.infer<typeof LinearIssuesListResponseSchema>;
 export type LinearIssuesGetResponse = z.infer<typeof LinearIssuesGetResponseSchema>;
 export type LinearIssuesSetStateResponse = z.infer<typeof LinearIssuesSetStateResponseSchema>;
+export type RadarListResponse = z.infer<typeof RadarListResponseSchema>;
+export type RadarCreateResponse = z.infer<typeof RadarCreateResponseSchema>;
+export type RadarUpdateResponse = z.infer<typeof RadarUpdateResponseSchema>;
+export type RadarSetStatusResponse = z.infer<typeof RadarSetStatusResponseSchema>;
+export type RadarDeleteResponse = z.infer<typeof RadarDeleteResponseSchema>;
+export type RadarCheckNowResponse = z.infer<typeof RadarCheckNowResponseSchema>;
+export type RadarChecksListResponse = z.infer<typeof RadarChecksListResponseSchema>;
 export type LoopRunResponse = z.infer<typeof LoopRunResponseSchema>;
 export type LoopListResponse = z.infer<typeof LoopListResponseSchema>;
 export type LoopInspectResponse = z.infer<typeof LoopInspectResponseSchema>;
@@ -7445,6 +7484,13 @@ export type LinearTeamsListRequest = z.infer<typeof LinearTeamsListRequestSchema
 export type LinearIssuesListRequest = z.infer<typeof LinearIssuesListRequestSchema>;
 export type LinearIssuesGetRequest = z.infer<typeof LinearIssuesGetRequestSchema>;
 export type LinearIssuesSetStateRequest = z.infer<typeof LinearIssuesSetStateRequestSchema>;
+export type RadarListRequest = z.infer<typeof RadarListRequestSchema>;
+export type RadarCreateRequest = z.infer<typeof RadarCreateRequestSchema>;
+export type RadarUpdateRequest = z.infer<typeof RadarUpdateRequestSchema>;
+export type RadarSetStatusRequest = z.infer<typeof RadarSetStatusRequestSchema>;
+export type RadarDeleteRequest = z.infer<typeof RadarDeleteRequestSchema>;
+export type RadarCheckNowRequest = z.infer<typeof RadarCheckNowRequestSchema>;
+export type RadarChecksListRequest = z.infer<typeof RadarChecksListRequestSchema>;
 export type LoopRunRequest = z.infer<typeof LoopRunRequestSchema>;
 export type LoopListRequest = z.infer<typeof LoopListRequestSchema>;
 export type LoopInspectRequest = z.infer<typeof LoopInspectRequestSchema>;

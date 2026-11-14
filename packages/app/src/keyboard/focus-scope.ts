@@ -66,6 +66,11 @@ export function resolveKeyboardFocusScope(input: {
 
   if (
     candidates.some((element) => {
+      // The find widget owns Enter and Escape on its buttons as well as its field, so
+      // stepping through matches never sends a message or interrupts the agent.
+      if (element.closest("[data-find-widget]")) {
+        return true;
+      }
       const editable = element as HTMLElement;
       if (editable.isContentEditable) {
         return true;

@@ -161,6 +161,7 @@ export const SHORTCUT_HELP_ROW_ORDER: Record<ShortcutSectionId, readonly string[
     "workspace-terminal-new",
     "toggle-command-center",
     "search-files",
+    "agent-find",
     "open-history",
     "new-agent",
     "new-workspace",
@@ -237,6 +238,7 @@ const SHORTCUT_HELP_LABEL_KEYS: Record<string, string> = {
   "workspace-pane-close": "settings.shortcuts.help.closePane",
   "workspace-terminal-new": "settings.shortcuts.help.newTerminal",
   "search-files": "settings.shortcuts.help.searchFiles",
+  "agent-find": "settings.shortcuts.help.findInChat",
   "toggle-command-center": "settings.shortcuts.help.toggleCommandCenter",
   "show-shortcuts": "settings.shortcuts.help.showKeyboardShortcuts",
   "toggle-left-sidebar": "settings.shortcuts.help.toggleLeftSidebar",
@@ -337,6 +339,30 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
       id: "search-files",
       section: "general",
       label: "Search files",
+    },
+  },
+
+  // --- Find in chat ---
+  {
+    id: "agent-find-cmd-f-mac",
+    action: "agent.find",
+    combo: "Cmd+F",
+    when: { mac: true, commandCenter: false, focusScope: ["message-input", "other"] },
+    help: {
+      id: "agent-find",
+      section: "general",
+      label: "Find in chat",
+    },
+  },
+  {
+    id: "agent-find-ctrl-f-non-mac",
+    action: "agent.find",
+    combo: "Ctrl+F",
+    when: { mac: false, commandCenter: false, focusScope: ["message-input", "other"] },
+    help: {
+      id: "agent-find",
+      section: "general",
+      label: "Find in chat",
     },
   },
 

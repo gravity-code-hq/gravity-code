@@ -1,7 +1,7 @@
 /**
  * Default automations. The daemon seeds these on first start
  * (`ScheduleService.seedDefaultTemplates`), and the
- * app offers the same list as starting points in the create form. A template
+ * empty Automations screen offers the same list as starting points. A template
  * only fixes name, prompt, and cadence; host, project, and model stay the
  * user's choice. Prompts avoid repo-specific assumptions because the same
  * template is offered for every project. The inbox digest relies on whatever

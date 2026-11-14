@@ -9,6 +9,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { FindWidget } from "@/components/ui/find-widget.web";
 import { useToast } from "@/contexts/toast-context";
 import { useStableEvent } from "@/hooks/use-stable-event";
 import { InlineReviewAddButton, InlineReviewThread } from "@/review";
@@ -16,7 +17,6 @@ import { copyToClipboard } from "@/utils/copy-to-clipboard";
 import type { ReviewableDiffTarget } from "@/utils/diff-layout";
 import { diffFileHeaderTrailingInset } from "@/git/file-header-presentation";
 import { DocumentFileHeader } from "./document-file-header";
-import { DiffFindWidget } from "./find-widget.web";
 import {
   diffInteractionWindowTop,
   diffMaterializationWindow,
@@ -1023,11 +1023,13 @@ export function DiffSurface(props: DiffSurfaceProps) {
       </div>
       <DomOverlayScrollbar scrollContainerRef={scrollRef} onUserScrollUp={noop} />
       {find.isOpen ? (
-        <DiffFindWidget
+        <FindWidget
           find={find}
           onNext={nextSearchMatch}
           onPrevious={previousSearchMatch}
           onClose={closeSearch}
+          positionStyle={FIND_WIDGET_POSITION_STYLE}
+          testIDPrefix="diff-find"
         />
       ) : null}
       {hoveredAffordance?.hit.target && reviewActions ? (
@@ -1279,6 +1281,14 @@ const BODY_MARKER_STYLE: React.CSSProperties = {
   left: 0,
   right: 0,
   pointerEvents: "none",
+};
+// Below the sticky file header, so the header's stats and actions stay reachable.
+const FIND_WIDGET_POSITION_STYLE: React.CSSProperties = {
+  position: "absolute",
+  top: FILE_HEADER_HEIGHT + 4,
+  right: 16,
+  zIndex: 6,
+  maxWidth: "calc(100% - 32px)",
 };
 const REVIEW_STYLE: React.CSSProperties = { position: "absolute", zIndex: 4, userSelect: "text" };
 const CANVAS_STYLE: React.CSSProperties = {
