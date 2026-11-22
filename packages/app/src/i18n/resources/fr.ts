@@ -1320,6 +1320,10 @@ export const fr: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "Nouveau radar",
+    views: {
+      radars: "Radars",
+      checks: "Vérifications",
+    },
     states: {
       noHosts: "Ajoutez un hôte pour utiliser Radar.",
       hostOffline: "Cet hôte est hors ligne.",
@@ -1407,7 +1411,7 @@ export const fr: TranslationResources = {
       title: "Historique des vérifications",
       loadError: "Impossible de charger l'historique des vérifications",
       empty: "Aucune vérification pour l'instant",
-      limited: "Affichage des {{count}} dernières vérifications",
+      limited: "Radar conserve les {{count}} dernières vérifications de chaque radar",
       outcome: {
         noMessages: "Aucun nouveau message",
         messagesOne: "1 nouveau message",
@@ -1446,6 +1450,16 @@ export const fr: TranslationResources = {
       channelHint:
         "Radar lit Slack via le connecteur Slack de Claude Code. Connectez Slack dans les paramètres des connecteurs de claude.ai.",
       channelInvalid: "Saisissez un nom de canal, un ID de canal ou un lien vers un canal Slack",
+      isolationHintLocal:
+        "Les tâches s'exécutent dans l'espace de travail que vous avez déjà sur ce projet.",
+      isolationHintWorktree:
+        "Chaque tâche reçoit son propre worktree et son propre espace de travail.",
+      model: "Modèle",
+      modelDefault: "Modèle par défaut",
+      modelEmpty: "Aucun modèle disponible",
+      modelSearchPlaceholder: "Rechercher des modèles...",
+      modelHint:
+        "Les tâches s'exécutent sur ce modèle. Les vérifications utilisent toujours le plus rapide du fournisseur.",
       instructions: "Instructions",
       instructionsPlaceholder: "Facultatif. Par exemple : ignorer les notifications de déploiement",
       cancel: "Annuler",

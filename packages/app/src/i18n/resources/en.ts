@@ -1290,6 +1290,10 @@ export const en = {
   radar: {
     title: "Radar",
     newRadar: "New radar",
+    views: {
+      radars: "Radars",
+      checks: "Checks",
+    },
     states: {
       noHosts: "Add a host to use Radar.",
       hostOffline: "This host is offline.",
@@ -1376,7 +1380,7 @@ export const en = {
       title: "Check history",
       loadError: "Unable to load check history",
       empty: "No checks yet",
-      limited: "Showing the latest {{count}} checks",
+      limited: "Radar keeps the latest {{count}} checks for each radar",
       outcome: {
         noMessages: "No new messages",
         messagesOne: "1 new message",
@@ -1415,6 +1419,13 @@ export const en = {
       channelHint:
         "Radar reads Slack through Claude Code's Slack connector. Connect Slack in your claude.ai connector settings.",
       channelInvalid: "Enter a channel name, a channel ID, or a Slack channel link",
+      isolationHintLocal: "Tasks run in the workspace you already have on this project.",
+      isolationHintWorktree: "Each task gets its own worktree and workspace.",
+      model: "Model",
+      modelDefault: "Default model",
+      modelEmpty: "No models available",
+      modelSearchPlaceholder: "Search models...",
+      modelHint: "Tasks run on this model. Checks always use the provider's fastest one.",
       instructions: "Instructions",
       instructionsPlaceholder: "Optional. For example: Ignore deploy notifications",
       cancel: "Cancel",

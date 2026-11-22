@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useSyncExternalStore, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore, type ReactElement } from "react";
 import { Text, View } from "react-native";
 import { Folder } from "lucide-react-native";
 import { StyleSheet } from "react-native-unistyles";
@@ -8,16 +8,25 @@ import { Button } from "@/components/ui/button";
 import { ComboboxItem } from "@/components/ui/combobox";
 import type { FieldControlSize } from "@/components/ui/control-geometry";
 import { Field, FormTextInput } from "@/components/ui/form-field";
-import { SelectField, type SelectFieldRenderOptionInput } from "@/components/ui/select-field";
+import {
+  SelectField,
+  type SelectFieldDisplay,
+  type SelectFieldOption,
+  type SelectFieldRenderOptionInput,
+} from "@/components/ui/select-field";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { useProjects } from "@/hooks/use-projects";
+import { useProvidersSnapshot } from "@/hooks/use-providers-snapshot";
 import type { RadarFormRecord, RadarFormSubmission } from "@/radar/form-model";
 import { useRadarFormModel } from "@/radar/use-form-model";
 import { useRadarMutations } from "@/radar/use-mutations";
 import { buildScheduleProjectTargets } from "@/schedules/schedule-project-targets";
+import { RADAR_DEFAULT_PROVIDER, type RadarIsolation } from "@gravity/protocol/radar/types";
 
 // A Slack channel reference, not copy: it reads the same in every locale.
 const CHANNEL_PLACEHOLDER = "#alerts";
+// The picker's entry for "no model chosen". Never sent to the daemon.
+const DEFAULT_MODEL_OPTION = "__default__";
 
 interface RadarFormSheetProps {
   serverId: string;
@@ -38,6 +47,72 @@ export function RadarFormSheet({ serverId, radar, onClose }: RadarFormSheetProps
   const model = useRadarFormModel({ serverId, radar, projectTargets });
   const state = useSyncExternalStore(model.subscribe, model.getState, model.getState);
   const { createRadar, updateRadar } = useRadarMutations(serverId);
+
+  // Models come from the host at runtime; a radar keeps the provider it was created on.
+  const provider = radar?.provider ?? RADAR_DEFAULT_PROVIDER;
+  const providers = useProvidersSnapshot(serverId, { cwd: state.cwd || null });
+  const modelChoices = useMemo(
+    () =>
+      (providers.entries?.find((entry) => entry.provider === provider)?.models ?? [])
+        .filter((entry) => entry.isSelectable !== false)
+        .map((entry) => ({ id: entry.id, label: entry.label })),
+    [provider, providers.entries],
+  );
+  useEffect(() => {
+    model.applyModels(modelChoices);
+  }, [model, modelChoices]);
+  const defaultModelDisplay = useMemo<SelectFieldDisplay>(
+    () => ({ label: t("radar.form.modelDefault") }),
+    [t],
+  );
+  const modelOptions = useMemo<SelectFieldOption<string>[]>(
+    () => [
+      {
+        id: DEFAULT_MODEL_OPTION,
+        value: DEFAULT_MODEL_OPTION,
+        label: defaultModelDisplay.label,
+        testID: "radar-model-option-default",
+      },
+      ...state.modelOptions,
+    ],
+    [defaultModelDisplay, state.modelOptions],
+  );
+  // The same two choices, in the same words, as the New workspace screen.
+  const isolationOptions = useMemo<SelectFieldOption<RadarIsolation>[]>(() => {
+    const local: SelectFieldOption<RadarIsolation> = {
+      id: "local",
+      value: "local",
+      label: t("newWorkspace.isolation.local"),
+      testID: "radar-isolation-option-local",
+    };
+    if (!state.canUseWorktree) {
+      return [local];
+    }
+    return [
+      local,
+      {
+        id: "worktree",
+        value: "worktree",
+        label: t("newWorkspace.isolation.worktree"),
+        testID: "radar-isolation-option-worktree",
+      },
+    ];
+  }, [state.canUseWorktree, t]);
+  const isolationDisplay = useMemo<SelectFieldDisplay>(
+    () => ({ label: t(`newWorkspace.isolation.${state.isolation}`) }),
+    [state.isolation, t],
+  );
+
+  const handleModelChange = useCallback(
+    (value: string, display: SelectFieldDisplay) => {
+      if (value === DEFAULT_MODEL_OPTION) {
+        model.setModel(null, null);
+      } else {
+        model.setModel(value, { label: display.label });
+      }
+    },
+    [model],
+  );
 
   const close = useCallback(() => {
     if (!state.pending) {
@@ -113,6 +188,25 @@ export function RadarFormSheet({ serverId, radar, onClose }: RadarFormSheetProps
         renderOption={renderProjectOption}
       />
 
+      <SelectField
+        label={t("newWorkspace.isolation.label")}
+        value={state.isolation}
+        selectedDisplay={isolationDisplay}
+        options={isolationOptions}
+        onChange={model.setIsolation}
+        placeholder={t("newWorkspace.isolation.local")}
+        emptyText={t("newWorkspace.isolation.local")}
+        disabled={state.pending}
+        hint={
+          state.isolation === "worktree"
+            ? t("radar.form.isolationHintWorktree")
+            : t("radar.form.isolationHintLocal")
+        }
+        title={t("newWorkspace.isolation.label")}
+        size={size}
+        triggerTestID="radar-isolation-trigger"
+      />
+
       <Field
         label={t("radar.form.channel")}
         hint={t("radar.form.channelHint")}
@@ -131,6 +225,24 @@ export function RadarFormSheet({ serverId, radar, onClose }: RadarFormSheetProps
           editable={!state.pending}
         />
       </Field>
+
+      <SelectField
+        label={t("radar.form.model")}
+        value={state.selectedModel ?? DEFAULT_MODEL_OPTION}
+        selectedDisplay={state.modelDisplay ?? defaultModelDisplay}
+        options={modelOptions}
+        onChange={handleModelChange}
+        placeholder={defaultModelDisplay.label}
+        emptyText={t("radar.form.modelEmpty")}
+        loading={providers.isLoading}
+        disabled={state.pending}
+        hint={t("radar.form.modelHint")}
+        searchable
+        searchPlaceholder={t("radar.form.modelSearchPlaceholder")}
+        title={t("radar.form.model")}
+        size={size}
+        triggerTestID="radar-model-trigger"
+      />
 
       <Field label={t("radar.form.instructions")}>
         <FormTextInput

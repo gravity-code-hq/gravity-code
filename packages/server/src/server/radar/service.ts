@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Logger } from "pino";
 import {
+  RADAR_DEFAULT_PROVIDER,
   RADAR_LOOK_BACK_MS,
   RADAR_POLL_INTERVAL_MS,
   normalizeRadarChannel,
@@ -34,11 +35,11 @@ const RADAR_TICK_INTERVAL_MS = 15_000;
 // again once the queue has drained.
 const MAX_NEW_TASKS_PER_CHECK = 3;
 const MAX_QUEUED_TASKS = 6;
-const MAX_STORED_TASKS = 100;
+// Tasks of one radar run side by side, each in its own conversation. The
+// checkout is shared, so the prompt keeps every code change in a git worktree.
+export const RADAR_MAX_RUNNING_TASKS = 10;
 const MAX_KNOWN_THREADS = 8;
 const KNOWN_THREAD_WINDOW_MS = 48 * 60 * 60 * 1000;
-// Claude Code carries the Slack and Linear connectors Radar depends on.
-const DEFAULT_RADAR_PROVIDER = "claude";
 
 export type RadarPullRequestState = "open" | "merged" | "closed" | "unknown";
 
@@ -80,24 +81,6 @@ export interface RadarServiceOptions {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function isTerminal(task: RadarTask): boolean {
-  return task.status === "done" || task.status === "skipped" || task.status === "failed";
-}
-
-function trimTasks(tasks: RadarTask[]): RadarTask[] {
-  let overflow = tasks.length - MAX_STORED_TASKS;
-  if (overflow <= 0) {
-    return tasks;
-  }
-  return tasks.filter((task) => {
-    if (overflow > 0 && isTerminal(task)) {
-      overflow -= 1;
-      return false;
-    }
-    return true;
-  });
 }
 
 /** Threads Radar already replied in, recent enough that a follow-up question is plausible. */
@@ -232,6 +215,7 @@ export function applyTriageResult(
       step: "start",
       followUp: null,
       threadCursorTs: null,
+      ...(radar.isolation ? { isolation: radar.isolation } : {}),
       agentId: null,
       workspaceId: null,
       prUrl: null,
@@ -274,7 +258,7 @@ export function applyTriageResult(
       channelId: result.channelId ?? radar.channelId,
       cursorTs,
       lastPollError: null,
-      tasks: trimTasks(tasks),
+      tasks,
     },
     status: "ok",
     error: null,
@@ -331,8 +315,6 @@ export class RadarService {
   private readonly now: () => Date;
   private readonly checking = new Set<string>();
   private readonly recheck = new Set<string>();
-  // One task at a time per radar: tasks share a checkout and a Slack channel.
-  private readonly working = new Set<string>();
   private readonly inFlight = new Set<Promise<void>>();
   private tickTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -393,8 +375,9 @@ export class RadarService {
       channel,
       channelId: null,
       cwd,
-      provider: input.provider?.trim() || DEFAULT_RADAR_PROVIDER,
+      provider: input.provider?.trim() || RADAR_DEFAULT_PROVIDER,
       ...(model ? { model } : {}),
+      ...(input.isolation ? { isolation: input.isolation } : {}),
       ...(instructions ? { instructions } : {}),
       status: "active",
       createdAt: timestamp,
@@ -442,6 +425,9 @@ export class RadarService {
         const model = input.model?.trim();
         const { model: _previous, ...rest } = next;
         next = model ? { ...rest, model } : rest;
+      }
+      if (input.isolation !== undefined) {
+        next = { ...next, isolation: input.isolation };
       }
       if (input.instructions !== undefined) {
         const instructions = input.instructions?.trim();
@@ -527,7 +513,10 @@ export class RadarService {
       if (radar.nextPollAt && new Date(radar.nextPollAt).getTime() <= now.getTime()) {
         this.track(this.check(radar.id));
       }
-      if (radar.tasks.some((task) => task.status === "queued")) {
+      const queued = radar.tasks.filter((task) => task.status === "queued").length;
+      const running = radar.tasks.filter((task) => task.status === "running").length;
+      const starts = Math.min(queued, RADAR_MAX_RUNNING_TASKS - running);
+      for (let index = 0; index < starts; index += 1) {
         this.track(this.runNextTask(radar.id));
       }
     }
@@ -601,12 +590,11 @@ export class RadarService {
     }
   }
 
-  /** Runs the oldest queued task of a radar, if it has none running. */
+  /**
+   * Runs the oldest queued task of a radar and resolves when that task ends.
+   * Does nothing when the radar already has `RADAR_MAX_RUNNING_TASKS` running.
+   */
   async runNextTask(id: string): Promise<void> {
-    if (this.working.has(id)) {
-      return;
-    }
-    this.working.add(id);
     try {
       const claimed = await this.claimNextTask(id);
       if (!claimed) {
@@ -636,8 +624,6 @@ export class RadarService {
       }
     } catch (error) {
       this.logger.error({ err: error, radarId: id }, "Failed to run radar task");
-    } finally {
-      this.working.delete(id);
     }
   }
 
@@ -654,8 +640,11 @@ export class RadarService {
       if (radar.status !== "active") {
         return radar;
       }
+      // Store updates for one radar are serialized, so the stored statuses are
+      // the count: two callers cannot both take the last free slot.
+      const running = radar.tasks.filter((task) => task.status === "running").length;
       const next = radar.tasks.find((task) => task.status === "queued");
-      if (!next) {
+      if (!next || running >= RADAR_MAX_RUNNING_TASKS) {
         return radar;
       }
       claimedId = next.id;

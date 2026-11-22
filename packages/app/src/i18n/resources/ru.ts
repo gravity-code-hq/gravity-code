@@ -1301,6 +1301,10 @@ export const ru: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "Новый радар",
+    views: {
+      radars: "Радары",
+      checks: "Проверки",
+    },
     states: {
       noHosts: "Добавьте хост, чтобы использовать Radar.",
       hostOffline: "Этот хост не в сети.",
@@ -1387,7 +1391,7 @@ export const ru: TranslationResources = {
       title: "История проверок",
       loadError: "Не удалось загрузить историю проверок",
       empty: "Проверок пока нет",
-      limited: "Показаны последние проверки: {{count}}",
+      limited: "Radar хранит последние проверки каждого радара: {{count}}",
       outcome: {
         noMessages: "Новых сообщений нет",
         messagesOne: "1 новое сообщение",
@@ -1426,6 +1430,15 @@ export const ru: TranslationResources = {
       channelHint:
         "Radar читает Slack через коннектор Slack в Claude Code. Подключите Slack в настройках коннекторов на claude.ai.",
       channelInvalid: "Введите название канала, ID канала или ссылку на канал Slack",
+      isolationHintLocal:
+        "Задачи выполняются в рабочем пространстве, которое у вас уже есть для этого проекта.",
+      isolationHintWorktree: "Каждая задача получает собственный worktree и рабочее пространство.",
+      model: "Модель",
+      modelDefault: "Модель по умолчанию",
+      modelEmpty: "Нет доступных моделей",
+      modelSearchPlaceholder: "Поиск моделей...",
+      modelHint:
+        "Задачи выполняются на этой модели. Для проверок всегда используется самая быстрая модель провайдера.",
       instructions: "Инструкции",
       instructionsPlaceholder: "Необязательно. Например: игнорировать уведомления о деплое",
       cancel: "Отмена",

@@ -112,7 +112,8 @@ describe("prompts", () => {
     const prompt = buildTaskPrompt(radar, task);
 
     expect(prompt).toContain("Reply only inside the thread under ts 1794564010.000100");
-    expect(prompt).toContain("at most 160 characters");
+    expect(prompt).toContain("Keep it under 100 characters");
+    expect(prompt).toContain("Go over only when the point does not fit");
     expect(prompt).toContain("Never post a top-level message");
     expect(prompt).toContain("git worktree add");
     expect(prompt).toContain("RADAR: pr <pull request url>");
@@ -152,10 +153,26 @@ describe("prompts", () => {
     expect(prompt).toContain("Radar adds it when the pull request merges");
   });
 
+  test("a task looks for an open pull request on the same cause before opening its own", () => {
+    const prompt = buildTaskPrompt(radar, task);
+
+    expect(prompt).toContain("Other Radar tasks run at the same time");
+    expect(prompt).toContain("If one already fixes the same cause, do not open another");
+  });
+
   test("triage does not read 👀 as done", () => {
     expect(buildTriagePrompt(radar, [])).toContain(
       "An eyes reaction alone means someone is looking",
     );
+  });
+
+  test("a task with its own worktree works in place instead of cutting a temporary one", () => {
+    const prompt = buildTaskPrompt(radar, { ...task, isolation: "worktree" });
+
+    expect(prompt).toContain("This directory is a git worktree created for this task");
+    expect(prompt).toContain("Do not create another worktree");
+    expect(prompt).not.toContain("git worktree add");
+    expect(prompt).toContain("Never push to the default branch");
   });
 
   test("a ticket task reads the ticket and comments on the Linear issue", () => {

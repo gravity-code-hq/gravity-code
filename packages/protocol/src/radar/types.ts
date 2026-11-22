@@ -1,11 +1,25 @@
 import { z } from "zod";
 import { AgentProviderSchema } from "../provider-manifest.js";
 
+/** The provider a radar runs on unless told otherwise: its login carries the Slack and Linear connectors. */
+export const RADAR_DEFAULT_PROVIDER = "claude";
+
 /** How often a radar reads its Slack channel. Fixed for now; not a per-radar setting. */
 export const RADAR_POLL_INTERVAL_MS = 5 * 60 * 1000;
 
-/** Replies stay this short unless someone in the thread asks for more. */
-export const RADAR_REPLY_MAX_CHARS = 160;
+/**
+ * What a reply should stay under. A target, not a cut-off: the agent may go
+ * over when the point does not fit, and when someone in the thread asks for more.
+ */
+export const RADAR_REPLY_TARGET_CHARS = 100;
+
+/**
+ * Where a task's agent runs. "local" is the workspace already open on the
+ * project folder; "worktree" gives every task its own Gravity worktree and
+ * workspace. Missing means "local".
+ */
+export const RadarIsolationSchema = z.enum(["local", "worktree"]);
+export type RadarIsolation = z.infer<typeof RadarIsolationSchema>;
 
 export const RadarStatusSchema = z.enum(["active", "paused"]);
 export type RadarStatus = z.infer<typeof RadarStatusSchema>;
@@ -51,6 +65,8 @@ export const RadarTaskSchema = z.object({
   followUp: RadarFollowUpSchema.nullable(),
   /** Newest thread reply already handled; later replies are follow-ups. */
   threadCursorTs: z.string().nullable(),
+  /** The radar's isolation when the task was created; later edits to the radar do not move it. */
+  isolation: RadarIsolationSchema.optional(),
   agentId: z.guid().nullable(),
   workspaceId: z.string().nullable(),
   prUrl: z.string().nullable(),
@@ -102,8 +118,11 @@ export const RadarCheckSchema = z.object({
 });
 export type RadarCheck = z.infer<typeof RadarCheckSchema>;
 
-/** Checks kept per radar. At one check every five minutes this is about a week. */
-export const RADAR_CHECK_HISTORY_LIMIT = 2000;
+/**
+ * Checks kept per radar; older ones are deleted. A check is only the record of
+ * one read of the channel. The tasks it started live on the radar and are kept.
+ */
+export const RADAR_CHECK_HISTORY_LIMIT = 30;
 
 /**
  * How far back a radar reads when it is created, when its channel changes, and
@@ -120,6 +139,7 @@ export const StoredRadarSchema = z.object({
   cwd: z.string().trim().min(1),
   provider: AgentProviderSchema,
   model: z.string().trim().min(1).optional(),
+  isolation: RadarIsolationSchema.optional(),
   /** Extra guidance from the user, appended to every triage and task prompt. */
   instructions: z.string().optional(),
   status: RadarStatusSchema,
@@ -139,6 +159,7 @@ export interface CreateRadarInput {
   cwd: string;
   provider?: string;
   model?: string | null;
+  isolation?: RadarIsolation;
   instructions?: string | null;
 }
 
@@ -147,6 +168,7 @@ export interface UpdateRadarInput {
   channel?: string;
   cwd?: string;
   model?: string | null;
+  isolation?: RadarIsolation;
   instructions?: string | null;
 }
 

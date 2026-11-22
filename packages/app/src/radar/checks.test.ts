@@ -157,34 +157,76 @@ describe("slackTsToDate", () => {
 
 describe("resolveRadarChecksView", () => {
   it("is loading until the first answer", () => {
-    expect(resolveRadarChecksView({ checks: undefined, error: null })).toEqual({ kind: "loading" });
+    expect(resolveRadarChecksView({ groups: undefined, error: null })).toEqual({ kind: "loading" });
   });
 
   it("reports the error only when there is no history to show", () => {
     const error = new Error("Radar not found");
 
-    expect(resolveRadarChecksView({ checks: undefined, error })).toEqual({
+    expect(resolveRadarChecksView({ groups: undefined, error })).toEqual({
       kind: "error",
       message: "Radar not found",
     });
-    expect(resolveRadarChecksView({ checks: [makeCheck()], error })).toMatchObject({
-      kind: "loaded",
-    });
+    expect(
+      resolveRadarChecksView({
+        groups: [{ radarId: "r1", channel: null, checks: [makeCheck()] }],
+        error,
+      }),
+    ).toMatchObject({ kind: "loaded" });
   });
 
   it("loads an empty history as loaded, not loading", () => {
-    expect(resolveRadarChecksView({ checks: [], error: null })).toEqual({
+    expect(
+      resolveRadarChecksView({
+        groups: [{ radarId: "r1", channel: null, checks: [] }],
+        error: null,
+      }),
+    ).toEqual({ kind: "loaded", items: [], isLimited: false });
+  });
+
+  it("merges the checks of several radars newest first, each labelled with its channel", () => {
+    const view = resolveRadarChecksView({
+      groups: [
+        {
+          radarId: "r1",
+          channel: "#alerts",
+          checks: [
+            makeCheck({ id: "a2", startedAt: "2026-11-01T10:10:00.000Z" }),
+            makeCheck({ id: "a1", startedAt: "2026-11-01T10:00:00.000Z" }),
+          ],
+        },
+        {
+          radarId: "r2",
+          channel: "#tickets",
+          checks: [makeCheck({ id: "b1", startedAt: "2026-11-01T10:05:00.000Z" })],
+        },
+      ],
+      error: null,
+    });
+
+    expect(view).toMatchObject({
       kind: "loaded",
-      checks: [],
-      isLimited: false,
+      items: [
+        { key: "r1:a2", channel: "#alerts" },
+        { key: "r2:b1", channel: "#tickets" },
+        { key: "r1:a1", channel: "#alerts" },
+      ],
     });
   });
 
-  it("flags a history that filled the page, since older checks may exist", () => {
+  it("flags the list when any radar filled its page, since older checks were dropped", () => {
     const checks = Array.from({ length: RADAR_CHECK_HISTORY_PAGE_SIZE }, (_, index) =>
       makeCheck({ id: `check-${index}` }),
     );
 
-    expect(resolveRadarChecksView({ checks, error: null })).toMatchObject({ isLimited: true });
+    expect(
+      resolveRadarChecksView({
+        groups: [
+          { radarId: "r1", channel: "#alerts", checks: [] },
+          { radarId: "r2", channel: "#tickets", checks },
+        ],
+        error: null,
+      }),
+    ).toMatchObject({ isLimited: true });
   });
 });

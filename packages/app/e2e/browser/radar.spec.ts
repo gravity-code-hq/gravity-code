@@ -46,6 +46,15 @@ test.describe("Radar", () => {
     await page.getByTestId("radar-project-trigger").click();
     await page.locator('[data-testid^="radar-project-option-"]').first().click();
 
+    // A git project offers both places to run and starts in the current directory.
+    await expect(page.getByTestId("radar-isolation-trigger")).toContainText("Current directory");
+    await page.getByTestId("radar-isolation-trigger").click();
+    await expect(page.getByTestId("radar-isolation-option-worktree")).toBeVisible();
+    await page.getByTestId("radar-isolation-option-local").click();
+
+    // Tasks run on the provider's default model unless one is picked.
+    await expect(page.getByTestId("radar-model-trigger")).toContainText("Default model");
+
     // A value that is not a channel keeps the form closed to submit.
     const channelInput = page.getByTestId("radar-channel-input");
     await channelInput.fill("not a channel");
@@ -79,6 +88,16 @@ test.describe("Radar", () => {
     await expect(history.getByTestId("radar-check-history-list")).toBeVisible({ timeout: 30_000 });
     await history.getByRole("button", { name: "Close", exact: true }).click();
     await expect(history).toHaveCount(0, { timeout: 30_000 });
+
+    // The Checks view lists every radar's checks in place of the radar cards.
+    await page.getByTestId("radar-view-checks").click();
+    const allChecks = page.getByTestId("radar-all-checks");
+    await expect(allChecks.getByTestId("radar-check-history-list")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(row).toHaveCount(0);
+    await page.getByTestId("radar-view-radars").click();
+    await expect(row).toHaveCount(1, { timeout: 30_000 });
 
     await page.getByTestId(`radar-kebab-${radarId}`).click();
     await page.getByTestId(`radar-menu-pause-${radarId}`).click();

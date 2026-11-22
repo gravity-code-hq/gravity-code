@@ -1,4 +1,8 @@
-import { normalizeRadarChannel, type StoredRadar } from "@gravity/protocol/radar/types";
+import {
+  normalizeRadarChannel,
+  type RadarIsolation,
+  type StoredRadar,
+} from "@gravity/protocol/radar/types";
 import type { ScheduleProjectTarget } from "@/schedules/schedule-project-targets";
 import { shortenPath } from "@/utils/shorten-path";
 import { toErrorMessage } from "@/utils/error-messages";
@@ -14,7 +18,23 @@ export interface RadarFormProjectOption {
   testID: string;
 }
 
-export type RadarFormRecord = Pick<StoredRadar, "id" | "channel" | "cwd" | "instructions">;
+/** A model the radar's provider offers on this host. */
+export interface RadarFormModelChoice {
+  id: string;
+  label: string;
+}
+
+export interface RadarFormModelOption {
+  id: string;
+  value: string;
+  label: string;
+  testID: string;
+}
+
+export type RadarFormRecord = Pick<
+  StoredRadar,
+  "id" | "channel" | "cwd" | "instructions" | "provider" | "model" | "isolation"
+>;
 
 export interface RadarFormSnapshot {
   /** The host the screen is pinned to; a radar never moves between hosts. */
@@ -27,14 +47,20 @@ export interface RadarFormSnapshot {
 export interface RadarCreateFields {
   channel: string;
   cwd: string;
+  /** Left out to run on the provider's default model. */
+  model?: string;
+  /** Left out to run in the project's existing workspace. */
+  isolation?: RadarIsolation;
   instructions?: string;
 }
 
-/** Only the fields the user changed; `instructions: null` clears them. */
+/** Only the fields the user changed; a `null` clears `instructions` or returns `model` to the default. */
 export interface RadarUpdateFields {
   radarId: string;
   channel?: string;
   cwd?: string;
+  model?: string | null;
+  isolation?: RadarIsolation;
   instructions?: string | null;
 }
 
@@ -48,9 +74,16 @@ export interface RadarFormState {
   selectedProjectOptionId: string | null;
   projectDisplay: RadarFormDisplay | null;
   cwd: string;
+  isolation: RadarIsolation;
+  /** False for a project that is not a git checkout, which has nothing to cut a worktree from. */
+  canUseWorktree: boolean;
   channel: string;
   /** Set once the typed channel cannot be a channel name, id, or link. */
   isChannelInvalid: boolean;
+  modelOptions: RadarFormModelOption[];
+  /** Null runs tasks on the provider's default model. */
+  selectedModel: string | null;
+  modelDisplay: RadarFormDisplay | null;
   instructions: string;
   pending: boolean;
   submitError: string | null;
@@ -63,7 +96,10 @@ export interface RadarFormModel {
   close: () => void;
   applyProjectTargets: (targets: readonly ScheduleProjectTarget[]) => void;
   setProject: (optionId: string, display: RadarFormDisplay) => void;
+  setIsolation: (value: RadarIsolation) => void;
   setChannel: (value: string) => void;
+  applyModels: (models: readonly RadarFormModelChoice[]) => void;
+  setModel: (modelId: string | null, display: RadarFormDisplay | null) => void;
   setInstructions: (value: string) => void;
   submit: (save: (submission: RadarFormSubmission) => Promise<void>) => Promise<void>;
 }
@@ -91,6 +127,15 @@ function buildProjectOptions(
     }));
 }
 
+function buildModelOptions(models: readonly RadarFormModelChoice[]): RadarFormModelOption[] {
+  return models.map((model) => ({
+    id: model.id,
+    value: model.id,
+    label: model.label,
+    testID: `radar-model-option-${model.id}`,
+  }));
+}
+
 function findTargetByCwd(
   targets: readonly ScheduleProjectTarget[],
   serverId: string,
@@ -110,6 +155,12 @@ function buildSubmission(
   const instructions = state.instructions.trim();
   if (!radar) {
     const created: RadarCreateFields = { channel, cwd: state.cwd };
+    if (state.selectedModel) {
+      created.model = state.selectedModel;
+    }
+    if (state.isolation === "worktree") {
+      created.isolation = state.isolation;
+    }
     if (instructions) {
       created.instructions = instructions;
     }
@@ -121,6 +172,12 @@ function buildSubmission(
   }
   if (state.cwd !== radar.cwd) {
     changed.cwd = state.cwd;
+  }
+  if (state.selectedModel !== (radar.model ?? null)) {
+    changed.model = state.selectedModel;
+  }
+  if (state.isolation !== (radar.isolation ?? "local")) {
+    changed.isolation = state.isolation;
   }
   if (instructions !== (radar.instructions ?? "").trim()) {
     changed.instructions = instructions || null;
@@ -149,8 +206,15 @@ function buildInitialState(snapshot: RadarFormSnapshot): RadarFormState {
     selectedProjectOptionId: target?.optionId ?? null,
     projectDisplay: target ? { label: target.projectName } : storedDisplay,
     cwd,
+    isolation: radar?.isolation ?? "local",
+    // A stored folder whose project is not known yet is given the benefit of the doubt.
+    canUseWorktree: target?.isGit !== false,
     channel: radar ? `#${radar.channel}` : "",
     isChannelInvalid: false,
+    modelOptions: [],
+    selectedModel: radar?.model ?? null,
+    // The stored id stands in until the host's model list names it.
+    modelDisplay: radar?.model ? { label: radar.model } : null,
     instructions: radar?.instructions ?? "",
     pending: false,
     submitError: null,
@@ -207,6 +271,7 @@ export function openRadarForm(snapshot: RadarFormSnapshot): RadarFormModel {
         projectOptions,
         selectedProjectOptionId: lateTarget.optionId,
         projectDisplay: { label: lateTarget.projectName },
+        canUseWorktree: lateTarget.isGit,
       });
     },
     setProject(optionId, display) {
@@ -214,10 +279,39 @@ export function openRadarForm(snapshot: RadarFormSnapshot): RadarFormModel {
       if (!target) {
         return;
       }
-      publish({ selectedProjectOptionId: optionId, projectDisplay: display, cwd: target.cwd });
+      publish({
+        selectedProjectOptionId: optionId,
+        projectDisplay: display,
+        cwd: target.cwd,
+        canUseWorktree: target.isGit,
+        isolation: target.isGit ? state.isolation : "local",
+      });
+    },
+    setIsolation(value) {
+      if (value === "worktree" && !state.canUseWorktree) {
+        return;
+      }
+      publish({ isolation: value });
     },
     setChannel(value) {
       publish({ channel: value });
+    },
+    applyModels(models) {
+      if (closed) {
+        return;
+      }
+      const modelOptions = buildModelOptions(models);
+      const selected = models.find((entry) => entry.id === state.selectedModel);
+      // Name a model that so far showed as its raw id. A label the user picked
+      // is already the model's own label, so this never overwrites a choice.
+      if (selected && state.modelDisplay?.label === selected.id) {
+        publish({ modelOptions, modelDisplay: { label: selected.label } });
+        return;
+      }
+      publish({ modelOptions });
+    },
+    setModel(modelId, display) {
+      publish({ selectedModel: modelId, modelDisplay: modelId ? display : null });
     },
     setInstructions(value) {
       publish({ instructions: value });

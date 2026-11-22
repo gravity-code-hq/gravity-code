@@ -1278,6 +1278,10 @@ export const ar: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "رادار جديد",
+    views: {
+      radars: "الرادارات",
+      checks: "الفحوصات",
+    },
     states: {
       noHosts: "أضف مضيفًا لاستخدام Radar.",
       hostOffline: "هذا المضيف غير متصل.",
@@ -1364,7 +1368,7 @@ export const ar: TranslationResources = {
       title: "سجل الفحوصات",
       loadError: "تعذّر تحميل سجل الفحوصات",
       empty: "لا توجد فحوصات بعد",
-      limited: "عرض أحدث الفحوصات: {{count}}",
+      limited: "يحتفظ Radar بأحدث الفحوصات لكل رادار: {{count}}",
       outcome: {
         noMessages: "لا توجد رسائل جديدة",
         messagesOne: "رسالة جديدة واحدة",
@@ -1403,6 +1407,13 @@ export const ar: TranslationResources = {
       channelHint:
         "يقرأ Radar رسائل Slack عبر موصل Slack في Claude Code. اربط Slack من إعدادات الموصلات في claude.ai.",
       channelInvalid: "أدخل اسم قناة أو معرّف قناة أو رابط قناة Slack",
+      isolationHintLocal: "تعمل المهام في مساحة العمل الموجودة لديك على هذا المشروع.",
+      isolationHintWorktree: "تحصل كل مهمة على شجرة عمل ومساحة عمل خاصتين بها.",
+      model: "النموذج",
+      modelDefault: "النموذج الافتراضي",
+      modelEmpty: "لا توجد نماذج متاحة",
+      modelSearchPlaceholder: "ابحث في النماذج...",
+      modelHint: "تعمل المهام على هذا النموذج. أما الفحوصات فتستخدم دائمًا أسرع نموذج لدى المزوّد.",
       instructions: "التعليمات",
       instructionsPlaceholder: "اختياري. مثال: تجاهل إشعارات النشر",
       cancel: "إلغاء",

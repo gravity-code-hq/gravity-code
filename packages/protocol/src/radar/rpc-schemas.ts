@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { RadarCheckSchema, RadarStatusSchema, StoredRadarSchema } from "./types.js";
+import {
+  RadarCheckSchema,
+  RadarIsolationSchema,
+  RadarStatusSchema,
+  StoredRadarSchema,
+} from "./types.js";
 
 export const RadarListRequestSchema = z.object({
   type: z.literal("radar.list.request"),
@@ -22,6 +27,7 @@ export const RadarCreateRequestSchema = z.object({
   /** Defaults to Claude Code, whose claude.ai connectors supply Slack and Linear. */
   provider: z.string().trim().min(1).optional(),
   model: z.string().trim().min(1).optional(),
+  isolation: RadarIsolationSchema.optional(),
   instructions: z.string().optional(),
 });
 
@@ -40,6 +46,7 @@ export const RadarUpdateRequestSchema = z.object({
   channel: z.string().trim().min(1).optional(),
   cwd: z.string().trim().min(1).optional(),
   model: z.string().trim().min(1).nullable().optional(),
+  isolation: RadarIsolationSchema.optional(),
   instructions: z.string().nullable().optional(),
 });
 

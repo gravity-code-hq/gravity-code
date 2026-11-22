@@ -108,8 +108,9 @@ const RadarCheckListSchema = z.array(RadarCheckSchema);
 
 /**
  * Check history, one JSON array per radar under `$GRAVITY_HOME/radar/checks`,
- * oldest first. It lives apart from the radar file because it grows with every
- * check and the app only reads it when the user opens the history.
+ * oldest first, capped at `RADAR_CHECK_HISTORY_LIMIT`. It lives apart from the
+ * radar file because it is rewritten on every check and the app only reads it
+ * when the user opens the history.
  */
 export class RadarCheckStore {
   private readonly appends = new Map<string, Promise<unknown>>();
@@ -123,7 +124,9 @@ export class RadarCheckStore {
   async list(radarId: string): Promise<RadarCheck[]> {
     try {
       const content = await readFile(this.filePath(radarId), "utf-8");
-      return RadarCheckListSchema.parse(JSON.parse(content));
+      // A file written under a larger limit shrinks on its next append; until
+      // then (a paused radar never appends) the read applies the cap.
+      return RadarCheckListSchema.parse(JSON.parse(content)).slice(-RADAR_CHECK_HISTORY_LIMIT);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return [];

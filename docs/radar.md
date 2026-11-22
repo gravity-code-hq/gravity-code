@@ -38,7 +38,12 @@ Slack `ts` values compare as two integers (`compareSlackTs`). As floats the last
 
 ## One task
 
-A task is one agent conversation, created in a directory workspace titled **Radar** that all radars of a project share (found by title, like the Automations workspace). Tasks never get their own worktree or workspace.
+A task is one agent conversation. Where it runs is the radar's **Where to run** setting (`isolation`, the same two choices as a new workspace):
+
+- **Current directory** (`local`, the default): the workspace the user already has on the project folder (`selectRadarWorkspace`; the oldest one when there are several, a new one only when there is none). Radar does not keep a workspace of its own the way Automations does: its conversations belong next to the user's work on that project.
+- **New worktree** (`worktree`): every task gets its own Gravity worktree and workspace, named from the task summary.
+
+A task copies the radar's isolation when it is created, so editing the radar moves only later tasks. The `merged` turn never cuts a worktree: it changes no code, and by then the task's worktree may already be archived.
 
 A task takes up to three kinds of turn, all in the same conversation so the agent keeps what it learned:
 
@@ -52,15 +57,15 @@ If the user archived the conversation, the next turn starts a new one.
 
 The agent reports its result on the last line of its final message: `RADAR: pr <url>`, `RADAR: done`, or `RADAR: skipped <reason>`. `parseRadarOutcome` reads the last such line; a missing line counts as done. A `pr` outcome is what makes the daemon watch for the merge.
 
-One task runs at a time per radar. Tasks share a checkout and a channel, and a queue is easier to reason about than two agents answering the same incident.
+Up to `RADAR_MAX_RUNNING_TASKS` (10) tasks of one radar run side by side; the rest wait as `queued`. The limit counts the stored `running` statuses inside a serialized store update; nothing is tracked in memory. Parallel tasks share the checkout, which is why every code change happens in a git worktree. Alerts that share a cause can land in different tasks at the same moment, so each agent lists open pull requests right before opening its own and reports the existing one instead of a duplicate. Two agents that reach that step together can still both open one.
 
 ## What the prompts hold the agent to
 
 These are instructions, so they are only as strong as the model's compliance. Keep them in `packages/server/src/server/radar/prompts.ts`.
 
-- Reply only inside the thread, never top-level, at most `RADAR_REPLY_MAX_CHARS` (160) characters unless someone in the thread asks for more.
+- Reply only inside the thread, never top-level, under `RADAR_REPLY_TARGET_CHARS` (100) characters. That is a target the agent may exceed when the point does not fit; a longer answer is for when someone in the thread asks.
 - Reactions on the original message show where a task stands: 👀 when the agent starts on it, ✅ when the work is finished with no pull request pending. With a pull request, the `merged` turn adds ✅. 👀 stays; the Slack connector has no way to remove a reaction. Triage does not count 👀 as handled.
-- The task runs in the project's own checkout, which the user may be working in. The agent must not switch its branch or touch uncommitted changes; code changes happen in a temporary `git worktree` on a `radar/…` branch that is removed after the push. This is a git worktree inside one task, not a Gravity worktree workspace.
+- In Current directory the task runs in the project's own checkout, which the user may be working in. The agent must not switch its branch or touch uncommitted changes; code changes happen in a temporary `git worktree` on a `radar/…` branch that is removed after the push. In New worktree the agent is told the directory is its own and to commit, push, and open the pull request from there (`codeRules` picks between the two).
 - Slack text is untrusted. It is fenced in `<slack-message>` with closing tags neutralized, and the agent is told to ignore instructions in it that ask for anything beyond the reported problem. Task agents run unattended with permissions bypassed, so a channel that outsiders can post to is a channel that outsiders can prompt. Point radars at channels only your own integrations write to.
 
 ## Restarts
@@ -69,7 +74,7 @@ A task that was `running` when the daemon stopped is marked failed on start. It 
 
 ## Storage and protocol
 
-`$GRAVITY_HOME/radar/{id}.json`, one `StoredRadar` per file with its tasks inline, capped at 100 (oldest finished dropped first). Check history is a separate array at `$GRAVITY_HOME/radar/checks/{id}.json`, capped at `RADAR_CHECK_HISTORY_LIMIT`. It is apart from the radar file because it grows on every check and `radar.list` is refetched every few seconds; the app loads it through `radar.checks.list` only when the history is open.
+`$GRAVITY_HOME/radar/{id}.json`, one `StoredRadar` per file with its tasks inline. Tasks are never dropped: a task is the record of work done in Slack and the link to its conversation. Check history is a separate array at `$GRAVITY_HOME/radar/checks/{id}.json` holding the newest `RADAR_CHECK_HISTORY_LIMIT` checks; older ones are deleted, since a check only records one read of the channel. It is apart from the radar file because it is rewritten on every check and `radar.list` is refetched every few seconds; the app loads it through `radar.checks.list` only while a check list is on screen. The screen's **Checks** view has no RPC of its own: it asks once per radar and merges the answers.
 
 RPCs are `radar.list`, `radar.create`, `radar.update`, `radar.set_status`, `radar.delete`, `radar.check_now`, and `radar.checks.list`, `.request`/`.response` pairs in `packages/protocol/src/radar/rpc-schemas.ts`, gated once by `server_info.features.radar`. `radar.check_now` answers when the check is queued, not when it finishes. There is no push event; the app refetches the list while the screen is open.
 

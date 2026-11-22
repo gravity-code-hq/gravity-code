@@ -1288,6 +1288,10 @@ export const ko: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "새 레이더",
+    views: {
+      radars: "레이더",
+      checks: "확인",
+    },
     states: {
       noHosts: "Radar를 사용하려면 호스트를 추가하세요.",
       hostOffline: "이 호스트는 오프라인입니다.",
@@ -1374,7 +1378,7 @@ export const ko: TranslationResources = {
       title: "확인 기록",
       loadError: "확인 기록을 불러올 수 없습니다",
       empty: "아직 확인 기록이 없습니다",
-      limited: "최근 확인 {{count}}개 표시 중",
+      limited: "레이더마다 최근 확인 {{count}}개를 보관합니다",
       outcome: {
         noMessages: "새 메시지 없음",
         messagesOne: "새 메시지 1개",
@@ -1413,6 +1417,13 @@ export const ko: TranslationResources = {
       channelHint:
         "Radar는 Claude Code의 Slack 커넥터를 통해 Slack을 읽습니다. claude.ai 커넥터 설정에서 Slack을 연결하세요.",
       channelInvalid: "채널 이름, 채널 ID 또는 Slack 채널 링크를 입력하세요",
+      isolationHintLocal: "작업은 이 프로젝트에 이미 있는 워크스페이스에서 실행됩니다.",
+      isolationHintWorktree: "작업마다 전용 워크트리와 워크스페이스가 만들어집니다.",
+      model: "모델",
+      modelDefault: "기본 모델",
+      modelEmpty: "사용할 수 있는 모델이 없습니다",
+      modelSearchPlaceholder: "모델 검색...",
+      modelHint: "작업은 이 모델로 실행됩니다. 확인에는 항상 제공자의 가장 빠른 모델을 사용합니다.",
       instructions: "지침",
       instructionsPlaceholder: "선택 사항. 예: 배포 알림은 무시",
       cancel: "취소",

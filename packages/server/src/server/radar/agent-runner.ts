@@ -63,7 +63,8 @@ function assertAgentFinished(
 
 /**
  * A task is one agent conversation. The first turn creates it in the project's
- * shared Radar workspace; later turns (a follow-up question, the merged ✅)
+ * existing workspace, or in a worktree of its own when the task is isolated;
+ * later turns (a follow-up question, the merged ✅)
  * go back into the same conversation so the agent keeps what it learned. If
  * the user archived that conversation, the turn starts a fresh one.
  */
@@ -72,6 +73,11 @@ export function createRadarTaskRunner(deps: {
   agentStorage: AgentStorage;
   createAgent: BoundCreateAgentCommand;
   resolveWorkspace: (input: { cwd: string }) => Promise<PersistedWorkspaceRecord>;
+  /** Cuts a new Gravity worktree for one task and returns its workspace. */
+  createWorktreeWorkspace: (input: {
+    cwd: string;
+    summary: string;
+  }) => Promise<PersistedWorkspaceRecord>;
   logger: Logger;
 }): RadarTaskRunner {
   const logger = deps.logger.child({ module: "radar-agent-runner" });
@@ -99,6 +105,15 @@ export function createRadarTaskRunner(deps: {
     return waitResult.lastMessage ?? "";
   }
 
+  // Tasks of one radar start side by side. Resolving one at a time keeps the
+  // first two tasks on a folder with no workspace from each creating one.
+  let resolving: Promise<unknown> = Promise.resolve();
+  function resolveWorkspace(cwd: string): Promise<PersistedWorkspaceRecord> {
+    const next = resolving.catch(() => undefined).then(() => deps.resolveWorkspace({ cwd }));
+    resolving = next;
+    return next;
+  }
+
   return async ({ radar, task, prompt, onAgent }): Promise<RadarTaskRunResult> => {
     if (task.agentId) {
       const record = await deps.agentStorage.get(task.agentId);
@@ -108,7 +123,12 @@ export function createRadarTaskRunner(deps: {
       }
     }
 
-    const workspace = await deps.resolveWorkspace({ cwd: radar.cwd });
+    // The ✅ turn changes no code, so it never needs a worktree of its own,
+    // even when the task's first conversation (and its worktree) is gone.
+    const ownWorktree = task.isolation === "worktree" && task.step !== "merged";
+    const workspace = ownWorktree
+      ? await deps.createWorktreeWorkspace({ cwd: radar.cwd, summary: task.summary })
+      : await resolveWorkspace(radar.cwd);
     const modeId = getUnattendedModeId(radar.provider);
     const created = await deps.createAgent({
       kind: "mcp",

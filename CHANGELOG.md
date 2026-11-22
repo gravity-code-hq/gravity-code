@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.7 - 2026-11-22
+
+### Added
+
+- Radar: a Where to run setting, so tasks run in the current directory or each in its own worktree and workspace
+- Radar: choose the model tasks run on
+- A Checks view on the Radar screen that lists the checks of every radar in one place
+
+### Changed
+
+- Up to ten tasks of one radar run at the same time
+- Radar tasks run in the workspace you already have on the project instead of a separate Radar workspace
+- Radar's Slack replies are shorter
+- Radar keeps every task, and check history keeps the latest 30 checks for each radar
+
 ## 0.8.6 - 2026-11-13
 
 ### Added

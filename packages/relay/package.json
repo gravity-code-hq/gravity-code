@@ -1,6 +1,6 @@
 {
   "name": "@gravity/relay",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "Gravity relay for bridging daemon and client connections",
   "files": [
     "dist",

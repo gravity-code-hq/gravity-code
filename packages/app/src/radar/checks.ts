@@ -1,8 +1,15 @@
-import type { RadarCheck, RadarCheckMessage } from "@gravity/protocol/radar/types";
+import {
+  RADAR_CHECK_HISTORY_LIMIT,
+  type RadarCheck,
+  type RadarCheckMessage,
+} from "@gravity/protocol/radar/types";
 import type { StatusBadgeVariant } from "@/components/ui/status-badge";
 
-/** Checks the history sheet asks for. A radar checks every five minutes, so this is about eight hours. */
-export const RADAR_CHECK_HISTORY_PAGE_SIZE = 100;
+/**
+ * Checks asked for per radar: everything a current daemon keeps. The request
+ * still carries it because an older daemon keeps far more.
+ */
+export const RADAR_CHECK_HISTORY_PAGE_SIZE = RADAR_CHECK_HISTORY_LIMIT;
 
 /**
  * One fragment of a check's outcome line. `label` is client copy to translate;
@@ -122,24 +129,50 @@ export function slackTsToDate(ts: string): Date | null {
   return new Date(seconds * 1000);
 }
 
+/** The checks one radar returned, newest first. */
+export interface RadarChecksOfRadar {
+  radarId: string;
+  /** The channel to label each check with; null where the list belongs to one radar. */
+  channel: string | null;
+  checks: RadarCheck[];
+}
+
+export interface RadarCheckListItem {
+  /** Unique across radars; a check id is only unique within its radar's history. */
+  key: string;
+  check: RadarCheck;
+  channel: string | null;
+}
+
 export type RadarChecksView =
   | { kind: "loading" }
   | { kind: "error"; message: string }
-  | { kind: "loaded"; checks: RadarCheck[]; isLimited: boolean };
+  | { kind: "loaded"; items: RadarCheckListItem[]; isLimited: boolean };
 
 /**
- * A history that loaded once stays on screen when a later refetch fails; the
- * error state is only for a sheet with nothing to show.
+ * One list, newest first, from the checks of one or several radars. A history
+ * that loaded once stays on screen when a later refetch fails; the error state
+ * is only for a list with nothing to show.
  */
 export function resolveRadarChecksView(input: {
-  checks: RadarCheck[] | undefined;
+  groups: readonly RadarChecksOfRadar[] | undefined;
   error: Error | null;
 }): RadarChecksView {
-  if (input.checks) {
+  if (input.groups) {
+    const items = input.groups
+      .flatMap((group) =>
+        group.checks.map((check) => ({
+          key: `${group.radarId}:${check.id}`,
+          check,
+          channel: group.channel,
+        })),
+      )
+      .sort((left, right) => right.check.startedAt.localeCompare(left.check.startedAt));
     return {
       kind: "loaded",
-      checks: input.checks,
-      isLimited: input.checks.length >= RADAR_CHECK_HISTORY_PAGE_SIZE,
+      items,
+      // A full page means older checks of that radar were dropped.
+      isLimited: input.groups.some((group) => group.checks.length >= RADAR_CHECK_HISTORY_PAGE_SIZE),
     };
   }
   if (input.error) {

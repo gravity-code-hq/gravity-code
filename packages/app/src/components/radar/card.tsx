@@ -31,6 +31,7 @@ import { useToast } from "@/contexts/toast-context";
 import type { AggregatedRadar } from "@/radar/aggregated";
 import {
   RADAR_TASK_PREVIEW_COUNT,
+  formatRadarChannel,
   radarStatusBadge,
   resolveRadarNextCheck,
   selectRadarTasks,
@@ -104,8 +105,7 @@ export function RadarCard({
   const [pendingAction, setPendingAction] = useState<RadarAction | null>(null);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const { id } = radar;
-  // A radar set up from a pasted link holds a channel id, which reads wrong with a "#".
-  const channel = /^[CGD][A-Z0-9]{6,}$/.test(radar.channel) ? radar.channel : `#${radar.channel}`;
+  const channel = formatRadarChannel(radar.channel);
 
   const runAction = useCallback(
     async (action: RadarAction, run: () => Promise<void>): Promise<boolean> => {

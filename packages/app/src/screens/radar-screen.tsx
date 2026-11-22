@@ -6,6 +6,7 @@ import { StyleSheet } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { MenuHeader } from "@/components/headers/menu-header";
 import { RadarCard } from "@/components/radar/card";
+import { RadarCheckList } from "@/components/radar/check-list";
 import {
   RadarCheckHistorySheet,
   type RadarHistoryTarget,
@@ -13,10 +14,12 @@ import {
 import { RadarFormSheet } from "@/components/radar/form-sheet";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/segmented-control";
 import { useProjects } from "@/hooks/use-projects";
 import type { AggregatedRadar, RadarHostError } from "@/radar/aggregated";
-import { sortRadarsNewestFirst } from "@/radar/presentation";
+import { formatRadarChannel, sortRadarsNewestFirst } from "@/radar/presentation";
 import { resolveRadarScreenBodyState, type RadarScreenBodyState } from "@/radar/screen-state";
+import { useRadarChecks } from "@/radar/use-checks";
 import { useRadarClock } from "@/radar/use-clock";
 import { useRadars } from "@/radar/use-radars";
 import { useHostFeature } from "@/runtime/host-features";
@@ -30,6 +33,9 @@ import { useActiveWorkspaceSelection } from "@/stores/navigation-active-workspac
 import { useSidebarViewStore } from "@/stores/sidebar-view-store";
 
 type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; radar: AggregatedRadar };
+
+/** What the screen lists: the radars with their tasks, or the checks of every radar. */
+type RadarScreenView = "radars" | "checks";
 
 const EMPTY_RADARS: AggregatedRadar[] = [];
 
@@ -123,6 +129,7 @@ function RadarHostScreen({ serverId }: { serverId: string }): ReactElement {
     <View style={styles.container}>
       <MenuHeader title={t("radar.title")} />
       <RadarScreenBody
+        serverId={serverId}
         bodyState={bodyState}
         radars={radars}
         hostErrors={hostErrors}
@@ -147,6 +154,7 @@ function RadarHostScreen({ serverId }: { serverId: string }): ReactElement {
 }
 
 interface RadarScreenBodyProps {
+  serverId: string;
   bodyState: RadarScreenBodyState;
   radars: AggregatedRadar[];
   hostErrors: RadarHostError[];
@@ -159,6 +167,7 @@ interface RadarScreenBodyProps {
 }
 
 function RadarScreenBody({
+  serverId,
   bodyState,
   radars,
   hostErrors,
@@ -209,35 +218,98 @@ function RadarScreenBody({
       );
     case "content":
       return (
-        <View style={styles.body}>
-          <View style={styles.toolbar}>
-            <Button
-              variant="outline"
-              leftIcon={Plus}
-              onPress={onCreate}
-              size="sm"
-              testID="radar-new"
-            >
-              {t("radar.newRadar")}
-            </Button>
-          </View>
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            testID="radar-list"
-          >
-            <RadarList
-              radars={radars}
-              hostErrors={hostErrors}
-              onEdit={onEdit}
-              onOpenHistory={onOpenHistory}
-            />
-          </ScrollView>
-        </View>
+        <RadarContent
+          serverId={serverId}
+          radars={radars}
+          hostErrors={hostErrors}
+          onCreate={onCreate}
+          onEdit={onEdit}
+          onOpenHistory={onOpenHistory}
+        />
       );
   }
+}
+
+function RadarContent({
+  serverId,
+  radars,
+  hostErrors,
+  onCreate,
+  onEdit,
+  onOpenHistory,
+}: Pick<
+  RadarScreenBodyProps,
+  "serverId" | "radars" | "hostErrors" | "onCreate" | "onEdit" | "onOpenHistory"
+>): ReactElement {
+  const { t } = useTranslation();
+  const [view, setView] = useState<RadarScreenView>("radars");
+  const viewOptions = useMemo<SegmentedControlOption<RadarScreenView>[]>(
+    () => [
+      { value: "radars", label: t("radar.views.radars"), testID: "radar-view-radars" },
+      { value: "checks", label: t("radar.views.checks"), testID: "radar-view-checks" },
+    ],
+    [t],
+  );
+
+  return (
+    <View style={styles.body}>
+      <View style={styles.toolbar}>
+        <SegmentedControl
+          size="sm"
+          value={view}
+          onValueChange={setView}
+          options={viewOptions}
+          testID="radar-view"
+        />
+        <Button variant="outline" leftIcon={Plus} onPress={onCreate} size="sm" testID="radar-new">
+          {t("radar.newRadar")}
+        </Button>
+      </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        testID="radar-list"
+      >
+        {view === "radars" ? (
+          <RadarList
+            radars={radars}
+            hostErrors={hostErrors}
+            onEdit={onEdit}
+            onOpenHistory={onOpenHistory}
+          />
+        ) : (
+          <RadarAllChecks serverId={serverId} radars={radars} />
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * The checks of every radar on the host in one list. Mounted only while its
+ * view is selected, which is what scopes the query and its polling.
+ */
+function RadarAllChecks({
+  serverId,
+  radars,
+}: Pick<RadarScreenBodyProps, "serverId" | "radars">): ReactElement {
+  const targets = useMemo(
+    () =>
+      sortRadarsNewestFirst(radars).map((radar) => ({
+        radarId: radar.id,
+        channel: formatRadarChannel(radar.channel),
+      })),
+    [radars],
+  );
+  const { view, refetch } = useRadarChecks({ serverId, targets });
+
+  return (
+    <View style={styles.list} testID="radar-all-checks">
+      <RadarCheckList view={view} onRetry={refetch} />
+    </View>
+  );
 }
 
 function RadarEmptyState({ onCreate }: { onCreate: () => void }): ReactElement {
@@ -318,7 +390,9 @@ const styles = StyleSheet.create((theme) => ({
   },
   toolbar: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing[2],
     paddingHorizontal: { xs: theme.spacing[3], md: theme.spacing[6] },
     paddingTop: theme.spacing[4],
   },

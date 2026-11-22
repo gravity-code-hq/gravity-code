@@ -4,12 +4,14 @@ import { join } from "node:path";
 import pino from "pino";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import {
+  RADAR_CHECK_HISTORY_LIMIT,
   RADAR_LOOK_BACK_MS,
   RADAR_POLL_INTERVAL_MS,
   type StoredRadar,
 } from "@gravity/protocol/radar/types";
 import type { RadarTriageResult } from "./prompts.js";
 import {
+  RADAR_MAX_RUNNING_TASKS,
   RadarService,
   type RadarPullRequestState,
   type RadarTaskRunInput,
@@ -327,7 +329,7 @@ describe("RadarService", () => {
     await service.runNextTask(radar.id);
 
     let task = (await onlyRadar()).tasks[0];
-    expect(runInputs[0].prompt).toContain("at most 160 characters");
+    expect(runInputs[0].prompt).toContain("Keep it under 100 characters");
     expect(runInputs[0].prompt).toContain(`thread under ts ${tsAfter(10)}`);
     expect(task).toMatchObject({
       status: "pr_open",
@@ -436,7 +438,53 @@ describe("RadarService", () => {
     expect((await onlyRadar()).tasks[0].status).toBe("done");
   });
 
-  test("runs one task at a time, oldest first", async () => {
+  test("runs the tasks of one radar side by side, up to the limit", async () => {
+    const radar = await createRadar();
+    const releases: Array<() => void> = [];
+    const parallel = new RadarService({
+      gravityHome: home,
+      logger: pino({ level: "silent" }),
+      now: () => now,
+      triage: async () => triageResult(),
+      runTask: () =>
+        new Promise((resolve) => {
+          releases.push(() =>
+            resolve({ agentId: AGENT_ID, workspaceId: null, finalText: "RADAR: done" }),
+          );
+        }),
+      getPullRequestState: async () => "unknown",
+    });
+    const statuses = async () => (await onlyRadar()).tasks.map((task) => task.status);
+    const full = Array.from({ length: RADAR_MAX_RUNNING_TASKS }, () => "running");
+
+    for (let index = 1; index <= RADAR_MAX_RUNNING_TASKS + 1; index += 1) {
+      triageResults.push(triageResult({ messages: [message({ ts: tsAfter(index) })] }));
+      await service.check(radar.id);
+      await parallel.tick();
+      await expect.poll(() => releases.length).toBe(Math.min(index, RADAR_MAX_RUNNING_TASKS));
+    }
+    expect(await statuses()).toEqual([...full, "queued"]);
+
+    // A full radar starts nothing more.
+    await parallel.tick();
+    await parallel.runNextTask(radar.id);
+    expect(await statuses()).toEqual([...full, "queued"]);
+
+    // A finished task frees its slot for the one that was waiting.
+    releases[0]();
+    await expect.poll(async () => (await statuses())[0]).toBe("done");
+    await parallel.tick();
+    await expect.poll(() => releases.length).toBe(RADAR_MAX_RUNNING_TASKS + 1);
+    expect(await statuses()).toEqual(["done", ...full]);
+
+    for (const release of releases.slice(1)) {
+      release();
+    }
+    await parallel.idle();
+    expect(await statuses()).toEqual(["done", ...full.map(() => "done")]);
+  });
+
+  test("runNextTask starts the oldest queued task", async () => {
     const radar = await createRadar();
     triageResults.push(
       triageResult({
@@ -622,6 +670,58 @@ describe("RadarService", () => {
     await service.delete(radar.id);
 
     await expect(service.listChecks(radar.id)).rejects.toThrow("Radar not found");
+  });
+
+  test("only the newest checks are kept, and the tasks they started stay", async () => {
+    const radar = await createRadar();
+    triageResults.push(triageResult({ messages: [message({ ts: tsAfter(5) })] }));
+    await service.check(radar.id);
+    const [firstCheck] = await service.listChecks(radar.id);
+    expect(firstCheck.messages[0].decision).toBe("task");
+
+    for (let index = 0; index < RADAR_CHECK_HISTORY_LIMIT; index += 1) {
+      triageResults.push(triageResult());
+      await service.check(radar.id);
+    }
+
+    const checks = await service.listChecks(radar.id);
+    expect(checks).toHaveLength(RADAR_CHECK_HISTORY_LIMIT);
+    expect(checks.map((check) => check.id)).not.toContain(firstCheck.id);
+    expect((await onlyRadar()).tasks).toMatchObject([{ messageTs: tsAfter(5) }]);
+  });
+
+  test("a task keeps the isolation its radar had when the task was created", async () => {
+    const radar = await service.create({
+      channel: "#alerts",
+      cwd: projectDir,
+      isolation: "worktree",
+    });
+    expect(radar.isolation).toBe("worktree");
+    triageResults.push(
+      triageResult({ messages: [message({ ts: tsAfter(10), summary: "First" })] }),
+    );
+    await service.check(radar.id);
+
+    const updated = await service.update({ id: radar.id, isolation: "local" });
+    expect(updated.isolation).toBe("local");
+    triageResults.push(
+      triageResult({ messages: [message({ ts: tsAfter(20), summary: "Second" })] }),
+    );
+    await service.check(radar.id);
+
+    expect((await onlyRadar()).tasks.map((task) => [task.summary, task.isolation])).toEqual([
+      ["First", "worktree"],
+      ["Second", "local"],
+    ]);
+  });
+
+  test("a radar created without an isolation leaves its tasks in the project workspace", async () => {
+    const radar = await createRadar();
+    triageResults.push(triageResult({ messages: [message({ ts: tsAfter(10) })] }));
+    await service.check(radar.id);
+
+    expect(radar.isolation).toBeUndefined();
+    expect((await onlyRadar()).tasks[0].isolation).toBeUndefined();
   });
 
   test("a task left running by a daemon restart is failed on start", async () => {

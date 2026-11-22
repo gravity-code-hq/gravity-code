@@ -1320,6 +1320,10 @@ export const es: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "Nuevo radar",
+    views: {
+      radars: "Radares",
+      checks: "Revisiones",
+    },
     states: {
       noHosts: "Añade un host para usar Radar.",
       hostOffline: "Este host está sin conexión.",
@@ -1406,7 +1410,7 @@ export const es: TranslationResources = {
       title: "Historial de revisiones",
       loadError: "No se pudo cargar el historial de revisiones",
       empty: "Aún no hay revisiones",
-      limited: "Se muestran las últimas {{count}} revisiones",
+      limited: "Radar conserva las últimas {{count}} revisiones de cada radar",
       outcome: {
         noMessages: "Sin mensajes nuevos",
         messagesOne: "1 mensaje nuevo",
@@ -1445,6 +1449,15 @@ export const es: TranslationResources = {
       channelHint:
         "Radar lee Slack mediante el conector de Slack de Claude Code. Conecta Slack en los ajustes de conectores de claude.ai.",
       channelInvalid: "Escribe un nombre de canal, un ID de canal o un enlace a un canal de Slack",
+      isolationHintLocal:
+        "Las tareas se ejecutan en el espacio de trabajo que ya tienes en este proyecto.",
+      isolationHintWorktree: "Cada tarea tiene su propio worktree y espacio de trabajo.",
+      model: "Modelo",
+      modelDefault: "Modelo predeterminado",
+      modelEmpty: "No hay modelos disponibles",
+      modelSearchPlaceholder: "Buscar modelos...",
+      modelHint:
+        "Las tareas se ejecutan con este modelo. Las revisiones usan siempre el más rápido del proveedor.",
       instructions: "Instrucciones",
       instructionsPlaceholder: "Opcional. Por ejemplo: ignora los avisos de despliegue",
       cancel: "Cancelar",

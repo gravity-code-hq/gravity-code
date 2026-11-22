@@ -2,6 +2,7 @@ import type { RadarTask } from "@gravity/protocol/radar/types";
 import { describe, expect, it } from "vitest";
 import {
   RADAR_TASK_PREVIEW_COUNT,
+  formatRadarChannel,
   radarStatusBadge,
   radarTaskKindLabelKey,
   radarTaskStatusBadge,
@@ -173,5 +174,12 @@ describe("badges and kind labels", () => {
     expect(radarTaskKindLabelKey("error")).toBe("radar.task.kind.error");
     expect(radarTaskKindLabelKey("linear")).toBe("radar.task.kind.linear");
     expect(radarTaskKindLabelKey("incident")).toBeNull();
+  });
+});
+
+describe("formatRadarChannel", () => {
+  it("prefixes a channel name with # and leaves a channel id as it is", () => {
+    expect(formatRadarChannel("dev-ripple")).toBe("#dev-ripple");
+    expect(formatRadarChannel("C0TICKETS1")).toBe("C0TICKETS1");
   });
 });

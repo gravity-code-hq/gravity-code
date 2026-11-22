@@ -1268,6 +1268,10 @@ export const zhCN: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "新建雷达",
+    views: {
+      radars: "雷达",
+      checks: "检查",
+    },
     states: {
       noHosts: "添加主机后即可使用 Radar。",
       hostOffline: "此主机已离线。",
@@ -1353,7 +1357,7 @@ export const zhCN: TranslationResources = {
       title: "检查记录",
       loadError: "无法加载检查记录",
       empty: "暂无检查记录",
-      limited: "显示最近 {{count}} 次检查",
+      limited: "每个雷达保留最近 {{count}} 次检查",
       outcome: {
         noMessages: "没有新消息",
         messagesOne: "1 条新消息",
@@ -1392,6 +1396,13 @@ export const zhCN: TranslationResources = {
       channelHint:
         "Radar 通过 Claude Code 的 Slack 连接器读取 Slack。请在 claude.ai 的连接器设置中连接 Slack。",
       channelInvalid: "请输入频道名称、频道 ID 或 Slack 频道链接",
+      isolationHintLocal: "任务在此项目已有的工作区中运行。",
+      isolationHintWorktree: "每个任务都有自己的工作树和工作区。",
+      model: "模型",
+      modelDefault: "默认模型",
+      modelEmpty: "没有可用的模型",
+      modelSearchPlaceholder: "搜索模型...",
+      modelHint: "任务使用此模型运行。检查始终使用提供方最快的模型。",
       instructions: "说明",
       instructionsPlaceholder: "可选。例如：忽略部署通知",
       cancel: "取消",

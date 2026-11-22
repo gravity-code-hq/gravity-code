@@ -5305,6 +5305,7 @@ export class DaemonClient {
     cwd: string;
     provider?: string;
     model?: string;
+    isolation?: "local" | "worktree";
     instructions?: string;
     requestId?: string;
   }): Promise<RadarCreatePayload> {
@@ -5316,6 +5317,7 @@ export class DaemonClient {
         cwd: options.cwd,
         ...(options.provider ? { provider: options.provider } : {}),
         ...(options.model ? { model: options.model } : {}),
+        ...(options.isolation ? { isolation: options.isolation } : {}),
         ...(options.instructions ? { instructions: options.instructions } : {}),
       },
     });
@@ -5326,6 +5328,7 @@ export class DaemonClient {
     channel?: string;
     cwd?: string;
     model?: string | null;
+    isolation?: "local" | "worktree";
     instructions?: string | null;
     requestId?: string;
   }): Promise<RadarUpdatePayload> {
@@ -5337,6 +5340,7 @@ export class DaemonClient {
         ...(options.channel !== undefined ? { channel: options.channel } : {}),
         ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
         ...(options.model !== undefined ? { model: options.model } : {}),
+        ...(options.isolation !== undefined ? { isolation: options.isolation } : {}),
         ...(options.instructions !== undefined ? { instructions: options.instructions } : {}),
       },
     });

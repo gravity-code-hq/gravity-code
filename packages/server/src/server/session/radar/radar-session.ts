@@ -56,6 +56,7 @@ export class RadarSession {
         cwd: msg.cwd,
         provider: msg.provider,
         model: msg.model,
+        isolation: msg.isolation,
         instructions: msg.instructions,
       });
       this.host.emit({
@@ -74,6 +75,7 @@ export class RadarSession {
         channel: msg.channel,
         cwd: msg.cwd,
         model: msg.model,
+        isolation: msg.isolation,
         instructions: msg.instructions,
       });
       this.host.emit({

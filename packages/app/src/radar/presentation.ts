@@ -121,3 +121,8 @@ export function resolveRadarTaskNote(
   }
   return null;
 }
+
+/** A radar set up from a pasted link holds a channel id, which reads wrong with a "#". */
+export function formatRadarChannel(channel: string): string {
+  return /^[CGD][A-Z0-9]{6,}$/.test(channel) ? channel : `#${channel}`;
+}

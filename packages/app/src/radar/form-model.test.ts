@@ -28,8 +28,14 @@ const STORED: RadarFormRecord = {
   id: "radar-1",
   channel: "alerts",
   cwd: "/repos/gravity",
+  provider: "claude",
   instructions: "Ignore deploy notifications",
 };
+
+const MODELS = [
+  { id: "model-fast", label: "Fast" },
+  { id: "model-deep", label: "Deep" },
+];
 
 function openCreate(targets: readonly ScheduleProjectTarget[] = [GRAVITY, DOCS, OTHER_HOST]) {
   return openRadarForm({ serverId: "host-a", radar: null, projectTargets: targets });
@@ -198,6 +204,135 @@ describe("radar form: edit", () => {
     expect(form.getState().projectDisplay).toEqual({ label: "Gravity" });
     expect(form.getState().selectedProjectOptionId).toBe(GRAVITY.optionId);
     expect(form.getState().projectOptions).toHaveLength(2);
+  });
+});
+
+describe("radar form: model", () => {
+  it("runs on the default model until one is picked, and sends none", async () => {
+    const form = openCreate();
+    form.setProject(GRAVITY.optionId, { label: "Gravity" });
+    form.setChannel("#alerts");
+    form.applyModels(MODELS);
+
+    expect(form.getState().selectedModel).toBeNull();
+    expect(form.getState().modelOptions.map((option) => option.label)).toEqual(["Fast", "Deep"]);
+    expect(await captureSubmission(form)).toEqual({
+      kind: "create",
+      input: { channel: "alerts", cwd: "/repos/gravity" },
+    });
+  });
+
+  it("sends the picked model on create", async () => {
+    const form = openCreate();
+    form.setProject(GRAVITY.optionId, { label: "Gravity" });
+    form.setChannel("#alerts");
+    form.applyModels(MODELS);
+    form.setModel("model-deep", { label: "Deep" });
+
+    expect(form.getState().modelDisplay).toEqual({ label: "Deep" });
+    expect(await captureSubmission(form)).toEqual({
+      kind: "create",
+      input: { channel: "alerts", cwd: "/repos/gravity", model: "model-deep" },
+    });
+  });
+
+  it("shows a stored model as its id until the host names it", () => {
+    const form = openEdit({ ...STORED, model: "model-deep" });
+    expect(form.getState().modelDisplay).toEqual({ label: "model-deep" });
+
+    form.applyModels(MODELS);
+
+    expect(form.getState().selectedModel).toBe("model-deep");
+    expect(form.getState().modelDisplay).toEqual({ label: "Deep" });
+  });
+
+  it("keeps a stored model the host no longer lists", async () => {
+    const form = openEdit({ ...STORED, model: "model-retired" });
+    form.applyModels(MODELS);
+
+    expect(form.getState().modelDisplay).toEqual({ label: "model-retired" });
+    expect(await captureSubmission(form)).toEqual({
+      kind: "update",
+      input: { radarId: "radar-1" },
+    });
+  });
+
+  it("submits a changed model alone, and null to go back to the default", async () => {
+    const form = openEdit({ ...STORED, model: "model-deep" });
+    form.applyModels(MODELS);
+
+    form.setModel("model-fast", { label: "Fast" });
+    expect(await captureSubmission(form)).toEqual({
+      kind: "update",
+      input: { radarId: "radar-1", model: "model-fast" },
+    });
+
+    form.setModel(null, null);
+    expect(form.getState().modelDisplay).toBeNull();
+    expect(await captureSubmission(form)).toEqual({
+      kind: "update",
+      input: { radarId: "radar-1", model: null },
+    });
+  });
+});
+
+describe("radar form: isolation", () => {
+  const PLAIN_FOLDER = makeTarget({
+    projectViewKey: "notes",
+    projectName: "Notes",
+    cwd: "/notes",
+    isGit: false,
+  });
+
+  it("runs in the project workspace by default and sends no isolation", async () => {
+    const form = openCreate();
+    form.setProject(GRAVITY.optionId, { label: "Gravity" });
+    form.setChannel("#alerts");
+
+    expect(form.getState().isolation).toBe("local");
+    expect(await captureSubmission(form)).toEqual({
+      kind: "create",
+      input: { channel: "alerts", cwd: "/repos/gravity" },
+    });
+  });
+
+  it("sends worktree isolation on create when picked", async () => {
+    const form = openCreate();
+    form.setProject(GRAVITY.optionId, { label: "Gravity" });
+    form.setChannel("#alerts");
+    form.setIsolation("worktree");
+
+    expect(await captureSubmission(form)).toEqual({
+      kind: "create",
+      input: { channel: "alerts", cwd: "/repos/gravity", isolation: "worktree" },
+    });
+  });
+
+  it("a folder that is not a git checkout only runs in place", () => {
+    const form = openCreate([GRAVITY, PLAIN_FOLDER]);
+    form.setProject(GRAVITY.optionId, { label: "Gravity" });
+    form.setIsolation("worktree");
+
+    form.setProject(PLAIN_FOLDER.optionId, { label: "Notes" });
+    expect(form.getState()).toMatchObject({ isolation: "local", canUseWorktree: false });
+
+    form.setIsolation("worktree");
+    expect(form.getState().isolation).toBe("local");
+  });
+
+  it("seeds a stored isolation and submits it only when it changes", async () => {
+    const form = openEdit({ ...STORED, isolation: "worktree" });
+    expect(form.getState().isolation).toBe("worktree");
+    expect(await captureSubmission(form)).toEqual({
+      kind: "update",
+      input: { radarId: "radar-1" },
+    });
+
+    form.setIsolation("local");
+    expect(await captureSubmission(form)).toEqual({
+      kind: "update",
+      input: { radarId: "radar-1", isolation: "local" },
+    });
   });
 });
 

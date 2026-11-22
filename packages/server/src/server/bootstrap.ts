@@ -150,6 +150,7 @@ import {
 import { CheckoutDiffManager } from "./checkout-diff-manager.js";
 import { ScheduleService } from "./schedule/service.js";
 import { RadarService } from "./radar/service.js";
+import { selectRadarWorkspace } from "./radar/workspace.js";
 import {
   createRadarTaskRunner,
   createRadarTriage,
@@ -1357,27 +1358,26 @@ export async function createGravityDaemon(
     }
   });
   logger.info({ elapsed: elapsed() }, "Schedule service initialized");
-  // Every task of every radar for a project shares one directory workspace
-  // titled RADAR_WORKSPACE_TITLE, found by that title like the Automations one.
+  // Radar tasks run in the workspace the user already has on the project
+  // folder. One is created only when the folder has none.
   const resolveRadarWorkspaceExternal = async (input: { cwd: string }) => {
-    const project = await workspaceProvisioning.findOrCreateProjectForDirectory(input.cwd);
-    const existing = (await workspaceRegistry.list()).find(
-      (workspace) =>
-        !workspace.archivedAt &&
-        workspace.projectId === project.projectId &&
-        workspace.kind === "directory" &&
-        workspace.title === RADAR_WORKSPACE_TITLE &&
-        workspace.cwd === path.resolve(input.cwd),
-    );
+    const existing = selectRadarWorkspace(await workspaceRegistry.list(), input.cwd);
     if (existing) {
       return existing;
     }
-    const workspace = await workspaceProvisioning.createWorkspaceForDirectory(
-      input.cwd,
-      RADAR_WORKSPACE_TITLE,
-    );
+    const workspace = await workspaceProvisioning.createWorkspaceForDirectory(input.cwd, null);
     await emitWorkspaceUpdatesExternal([workspace.workspaceId]);
     return workspace;
+  };
+  // A worktree task gets a fresh Gravity worktree, named from the task the
+  // way a first prompt names any new worktree.
+  const createRadarWorktreeWorkspaceExternal = async (input: { cwd: string; summary: string }) => {
+    const result = await createGravityWorktreeForTools({
+      cwd: input.cwd,
+      firstAgentContext: { prompt: input.summary },
+    });
+    await emitWorkspaceUpdatesExternal([result.workspace.workspaceId]);
+    return result.workspace;
   };
   const radarService = new RadarService({
     gravityHome: config.gravityHome,
@@ -1393,6 +1393,7 @@ export async function createGravityDaemon(
       agentStorage,
       createAgent,
       resolveWorkspace: resolveRadarWorkspaceExternal,
+      createWorktreeWorkspace: createRadarWorktreeWorkspaceExternal,
       logger,
     }),
     getPullRequestState: getRadarPullRequestState,
@@ -1924,7 +1925,6 @@ async function seedDefaultSchedules(input: {
 }
 
 const AUTOMATIONS_WORKSPACE_TITLE = "Automations";
-const RADAR_WORKSPACE_TITLE = "Radar";
 
 const DEFAULT_SCHEDULE_PROVIDER_ORDER: AgentProvider[] = ["claude", "codex"];
 

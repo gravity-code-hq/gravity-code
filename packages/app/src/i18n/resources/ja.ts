@@ -1294,6 +1294,10 @@ export const ja: TranslationResources = {
   radar: {
     title: "Radar",
     newRadar: "新しいレーダー",
+    views: {
+      radars: "レーダー",
+      checks: "確認",
+    },
     states: {
       noHosts: "Radar を使うにはホストを追加してください。",
       hostOffline: "このホストはオフラインです。",
@@ -1381,7 +1385,7 @@ export const ja: TranslationResources = {
       title: "確認履歴",
       loadError: "確認履歴を読み込めません",
       empty: "確認はまだありません",
-      limited: "最新の {{count}} 件の確認を表示しています",
+      limited: "レーダーごとに最新の {{count}} 件の確認を保持します",
       outcome: {
         noMessages: "新しいメッセージはありません",
         messagesOne: "新しいメッセージ 1 件",
@@ -1421,6 +1425,14 @@ export const ja: TranslationResources = {
         "Radar は Claude Code の Slack コネクタ経由で Slack を読み取ります。claude.ai のコネクタ設定で Slack を接続してください。",
       channelInvalid:
         "チャンネル名、チャンネル ID、または Slack チャンネルのリンクを入力してください",
+      isolationHintLocal: "タスクは、このプロジェクトの既存のワークスペースで実行されます。",
+      isolationHintWorktree: "タスクごとに専用のワークツリーとワークスペースが作成されます。",
+      model: "モデル",
+      modelDefault: "デフォルトのモデル",
+      modelEmpty: "利用できるモデルがありません",
+      modelSearchPlaceholder: "モデルを検索...",
+      modelHint:
+        "タスクはこのモデルで実行されます。チェックには常にプロバイダーの最速モデルが使われます。",
       instructions: "指示",
       instructionsPlaceholder: "任意。例: デプロイ通知は無視する",
       cancel: "キャンセル",
